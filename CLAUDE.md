@@ -1,70 +1,34 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to standard AI assistants when working with code in this repository.
 
 ## Project Overview
 
-**Podium VIP Cards Generator** — A Claude AI-driven workflow that generates HTML sports betting analysis cards for distribution via Telegram. There is no traditional backend server; Claude itself is the engine. The master system prompt lives in `Prompts/PROMPT-MAESTRO-PODIUM-v2.2.md` and is configured once as project instructions in Claude.
+**Podium VIP Cards (SaaS Predictivo)** — Un sistema avanzado de análisis predictivo para apuestas deportivas estructurado como Software as a Service (SaaS). El sistema ha evolucionado de ser un simple generador de HTML basado en prompts hacia un robusto motor matemático en Python (`model_engine.py`). 
 
-## Triggering the Workflow
+Calcula probabilidades reales utilizando un enfoque híbrido (ratings Elo, xG con decaimiento exponencial, distribución de Poisson) y los compara contra las cuotas más eficientes del mercado (ej. Pinnacle) para encontrar Valor Esperado (EV).
 
-```
-Genera tarjeta VIP: Arsenal vs Liverpool, Premier League, 15/03/2026
-Genera tarjeta FREE: Arsenal vs Liverpool, Premier League, 15/03/2026
-Genera tarjeta AMBAS: Arsenal vs Liverpool, Premier League, 15/03/2026
-```
+## Arquitectura y Flujo de Trabajo
 
-If no version is specified, generate **VIP** by default. Optionally include a username for a personalized watermark:
-```
-Genera tarjeta VIP para @CarlosBet99: Arsenal vs Liverpool, Premier League, 15/03/2026
-```
+1. **Obtención de Datos**: Los datos del partido se obtienen a través de `data_fetcher.py` y se guardan en el archivo de entrada `partido_data.json` (actualmente incluye Elo, xG rodado, medias de la liga y cuotas).
+2. **Motor del Modelo (`model_engine.py`)**: El núcleo matemático del sistema. Procesa `partido_data.json` a través de los pasos del **Modelo Híbrido Podium v1.0**:
+   - **Paso A**: Cálculo de Elo (probabilidades base y factor ajustado por ventaja de localía).
+   - **Paso B**: Cálculo de Expected Goals (xG) rodado con una tasa de decaimiento (decay) de 0.85. Incorpora fallbacks robustos al promedio de la liga si faltan datos.
+   - **Paso C**: Cálculo de parámetros $\lambda$ (Lambdas) normalizando el xG con corrección de las métricas Elo.
+   - **Paso D**: Generación de Matriz de Poisson 7x7 (resultados de 0-0 hasta 6-6).
+   - **Paso E**: Derivación de probabilidades del mercado (1X2, Over 2.5, Ambos Marcan / BTTS) a partir de la matriz.
+   - **Paso F**: Mezcla (Blend) de las probabilidades del modelo con las cuotas justas de Pinnacle (sin overround / vig), balanceadas mediante pesos configurados.
+   - **Paso G**: Cálculo del Valor Esperado (EV%) frente a las mejores cuotas disponibles de las bookies.
+   - **Paso H**: Validación **Regla de Oro Podium**. Un pick se marca como "VIP" sólo si cumple los 3 requisitos simultáneos:
+     1. EV > +3.0%
+     2. Consenso de modelos $\ge$ 2 (Alineación entre Elo, xG y Poisson).
+     3. Divergencia de mercado $\le$ 8.0 pp (el mercado no contradice agresivamente al modelo).
+3. **Salidas y Triggers (SaaS)**:
+   - Los resultados estándar se guardan en formato JSON en el directorio `Pronosticos/` (ej: `[LOCAL]_[VISIT]_[FECHA].json`).
+   - Si se detectan picks de altísimo valor (EV $\ge$ +5.0%), se dispara la generación de un archivo extra `[...]_ALERT.json`. Este archivo funciona como el **Trigger** que despierta a la "Capa IA (Insights Narrativos)" del SaaS de Podium.
 
-## Data Collection Order (always respect this sequence)
+## Reglas y Contexto del Desarrollo
 
-1. **fetch_sports_data (SportRadar)** — standings, scores, fixtures. No usage limit.
-2. **web_search** — injuries, news, prediction probabilities, BTTS stats, corners stats. No usage limit.
-3. **The Odds API** — structured multi-bookmaker odds (h2h, totals, spreads). Check free events endpoint first; only call odds if event exists. ~3 credits per VIP card. Key: `TU_CLAVE_AQUI`.
-4. **RapidAPI** — H2H history, detailed injuries, advanced stats (xG). ~100 calls/day (~4–5 per card ≈ 20 cards/day max).
-5. If a data point is not found in any source → write `"No disponible"`. Never invent data.
-
-**BTTS and Corners are mandatory sections in every VIP card**, regardless of data source used.
-
-## Output Files
-
-Generated HTML files are saved in `Pruebas Tarjetas/` following this naming convention:
-- FREE: `[LOCAL]-[VISIT]-FREE.html`
-- VIP: `[LOCAL]-[VISIT]-VIP.html`
-
-## Card Architecture
-
-Cards are single-file HTML (1080px fixed width, dynamic height) with all CSS inline in `<head>`. No external JS. Only external dependency is Google Fonts (`Bebas Neue` for headlines, `Barlow Condensed` for body).
-
-**FREE vs VIP content split:**
-- FREE: header, 1X2 probability bar, last-5 form badges, basic standings, footer CTA.
-- VIP: everything above + odds (decimal only), detailed H2H, injuries with severity codes (🔴/🟠/🟡), **BTTS block**, **Corners block**, EV block (with best bookmaker noted), diagonal watermark overlay.
-
-## EV Calculation (VIP only)
-
-```
-Prob. implícita = 1 / cuota_decimal × 100
-EV% = (Prob_real% − Prob_implícita%) / Prob_implícita% × 100
-```
-
-Only recommend a market if EV > +3%. If no market clears +3%, output: `"DATOS INSUFICIENTES PARA UNA RECOMENDACIÓN SÓLIDA"`. Never inflate probabilities to force a positive EV.
-
-## Watermark (VIP only)
-
-CSS overlay with `position:absolute; inset:0; z-index:9999`. Text `PODIUM VIP · EXCLUSIVO` rotated −35°, opacity 6.5%. Parent `.card` must have `position:relative`. Never apply to FREE cards.
-
-## Database (Supabase — PostgreSQL)
-
-After generating the HTML, execute an INSERT into `public.partidos`. After the match concludes, run an UPDATE with the actual score and prediction accuracy flag. See `Prompts/PROMPT-MAESTRO-PODIUM-v2.2.md` → **PASO 4** for the exact SQL templates.
-
-Key columns: `equipo_local/visitante`, `liga`, `prob_local/empate/visitante`, `mercado_ev`, `cuota_ev`, `ev_porcentaje`, `ev_recomendado`, `version_generada`, `resultado_local/visitante`, `prediccion_acertada`.
-
-## Hard Rules
-
-- Odds format: **decimal only** — never American (+150/−110).
-- HTML must never expose source names (SportRadar, Dimers, Sports Mole, etc.), API endpoints, or internal logic.
-- No predicted lineups (XI) — clubs publish them ~1 hour before kickoff.
-- Always report both API consumptions on delivery: The Odds API credits used + remaining, and RapidAPI call count.
+- **Stack Tecnológico**: Predominantemente Python sin backend web tradicional expuesto al cliente directamente.
+- **Obsoletización**: Ignorar por completo cualquier instrucción antigua relacionada a "generar tarjetas HTML manualmente con Claude" o el uso de "PROMPT-MAESTRO-PODIUM-v2.2.md". El sistema es ahora puramente algorítmico y emite JSON.
+- **Manejo de Datos**: El script debe mantener las protecciones anti-errores (fallbacks de 1500 Elo, promedios de temporada en caso de falta de xG individual). Nunca forzar datos inventados ni sobreestimar probabilidades.
