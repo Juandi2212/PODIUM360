@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlético Nacional vs Millonarios · Copa Sudamericana 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #060810;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    font-family: 'Barlow Condensed', sans-serif;
+    padding: 20px;
+  }
+
+  .card {
+    width: 440px;
+    background: #0b0d1c;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── BANNER ── */
+  .banner {
+    background: linear-gradient(135deg, #1a6b3c 0%, #0d3d22 50%, #0b0d1c 100%);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .banner::after {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 100px; height: 100px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .banner-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .league-dot {
+    width: 8px; height: 8px;
+    background: #ff4444;
+    border-radius: 50%;
+    animation: pulse 1.5s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .league-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.9);
+  }
+  .match-date {
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.35);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    user-select: none;
+  }
+  .tab.active {
+    color: #4ade80;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 20%; right: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    border-radius: 2px;
+  }
+  .tab:hover { color: rgba(255,255,255,0.6); }
+
+  /* ── TAB CONTENT ── */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ── MATCHUP ── */
+  .matchup {
+    padding: 24px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+  .team-badge {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+  }
+  .team-badge img {
+    width: 42px; height: 42px;
+    object-fit: contain;
+  }
+  .team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 1.5px;
+    color: #fff;
+    text-align: center;
+    line-height: 1.1;
+  }
+  .team-pos {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .vs-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .vs-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 2px;
+  }
+  .kickoff {
+    font-size: 10px;
+    color: #4ade80;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: rgba(74,222,128,0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(74,222,128,0.2);
+  }
+  .venue-info {
+    text-align: center;
+    padding: 0 20px 12px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  /* ── FORM SECTION ── */
+  .form-section {
+    padding: 12px 20px 16px;
+  }
+  .form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .form-team-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    font-weight: 600;
+    width: 80px;
+  }
+  .form-badges {
+    display: flex;
+    gap: 4px;
+  }
+  .form-badge {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .form-badge.win { background: linear-gradient(135deg, #22c55e, #16a34a); }
+  .form-badge.draw { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.6); }
+  .form-badge.loss { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+  .form-summary {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    width: 75px;
+    text-align: right;
+  }
+
+  /* ── PROB BAR ── */
+  .prob-section { padding: 0 20px 16px; }
+  .section-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .prob-bar-wrap {
+    display: flex;
+    height: 8px;
+    border-radius: 6px;
+    overflow: hidden;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+  .prob-home { background: linear-gradient(90deg, #1a6b3c, #4ade80); border-radius: 6px 0 0 6px; }
+  .prob-draw { background: rgba(255,255,255,0.2); }
+  .prob-away { background: linear-gradient(90deg, #1e3a8a, #60a5fa); border-radius: 0 6px 6px 0; }
+  .prob-numbers { display: flex; justify-content: space-between; }
+  .prob-num {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .prob-num.home { color: #4ade80; }
+  .prob-num.draw-c { color: rgba(255,255,255,0.4); }
+  .prob-num.away { color: #60a5fa; }
+  .prob-num span {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 1px;
+    margin-top: 1px;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    margin: 0 20px;
+  }
+
+  /* ── CUOTAS ── */
+  .odds-row {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+  }
+  .odd-box {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+  }
+  .odd-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .odd-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #fff;
+  }
+
+  /* ── H2H ── */
+  .h2h-section { padding: 16px 20px; }
+  .section-title {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2.5px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .h2h-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .h2h-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    width: 70px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .h2h-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .h2h-fill {
+    height: 100%;
+    border-radius: 4px;
+    animation: expandBar 1.2s ease 0.5s both;
+    transform-origin: left;
+  }
+  @keyframes expandBar {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .h2h-fill.green { background: linear-gradient(90deg, #1a6b3c, #4ade80); }
+  .h2h-fill.gray { background: rgba(255,255,255,0.2); }
+  .h2h-fill.blue { background: linear-gradient(90deg, #1e3a8a, #60a5fa); }
+  .h2h-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    width: 22px;
+    text-align: center;
+  }
+
+  /* ── GOALS GRID ── */
+  .goals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 20px 16px;
+  }
+  .goal-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .goal-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .goal-card.gc-green::before { background: linear-gradient(90deg, #22c55e, transparent); }
+  .goal-card.gc-blue::before { background: linear-gradient(90deg, #3b82f6, transparent); }
+  .goal-card.gc-amber::before { background: linear-gradient(90deg, #f59e0b, transparent); }
+  .goal-card.gc-purple::before { background: linear-gradient(90deg, #a855f7, transparent); }
+  .gc-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .gc-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .gc-value.gv-green { color: #4ade80; }
+  .gc-value.gv-blue { color: #60a5fa; }
+  .gc-value.gv-amber { color: #fbbf24; }
+  .gc-value.gv-purple { color: #c084fc; }
+  .gc-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    font-weight: 500;
+  }
+
+  /* ── LAST 5 H2H MATCHES ── */
+  .last-matches { padding: 0 20px 16px; }
+  .match-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .match-date-sm {
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
+    width: 55px;
+    font-weight: 600;
+  }
+  .match-teams-sm {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    flex: 1;
+    text-align: center;
+    font-weight: 600;
+  }
+  .match-score-sm {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    color: #fff;
+    width: 40px;
+    text-align: center;
+  }
+  .match-result-sm {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  /* ── BAJAS TAB ── */
+  .bajas-section { padding: 16px 20px; }
+  .baja-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .baja-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .baja-dot.rojo { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.4); }
+  .baja-dot.naranja { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+  .baja-dot.amarillo { background: #eab308; box-shadow: 0 0 6px rgba(234,179,8,0.4); }
+  .baja-dot.verde { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+  .baja-name {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 600;
+    flex: 1;
+  }
+  .baja-reason {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 500;
+    text-align: right;
+  }
+  .baja-team-title {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin: 12px 0 8px;
+    text-transform: uppercase;
+  }
+  .baja-team-title:first-child { margin-top: 0; }
+  .semaforo-legend {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .semaforo-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .semaforo-item .baja-dot { width: 7px; height: 7px; }
+
+  /* ── XI TAB ── */
+  .xi-section { padding: 16px 20px; }
+  .xi-team-block { margin-bottom: 16px; }
+  .xi-team-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .xi-team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 1.5px;
+    color: #fff;
+  }
+  .xi-formation {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: rgba(255,255,255,0.05);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .xi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .xi-player {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    font-weight: 500;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    border-left: 2px solid rgba(255,255,255,0.08);
+  }
+  .xi-player.gk { border-left-color: #f59e0b; }
+  .xi-player.def { border-left-color: #3b82f6; }
+  .xi-player.mid { border-left-color: #22c55e; }
+  .xi-player.fwd { border-left-color: #ef4444; }
+  .xi-player span {
+    font-size: 9px;
+    color: rgba(255,255,255,0.25);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .xi-dt {
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* ── PREDICTION ── */
+  .prediction {
+    margin: 0 20px 16px;
+    background: linear-gradient(135deg, rgba(26,107,60,0.2), rgba(26,107,60,0.05));
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .prediction::after {
+    content: '⚡';
+    position: absolute;
+    right: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 32px;
+    opacity: 0.12;
+  }
+  .pred-label {
+    font-size: 9px;
+    color: rgba(74,222,128,0.7);
+    letter-spacing: 2.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .pred-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #fff;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .pred-cuota {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .cuota-badge {
+    background: #1a6b3c;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 3px 10px;
+    border-radius: 5px;
+    letter-spacing: 1px;
+  }
+  .pred-note {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 500;
+  }
+  .pred-reasons {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .pred-reason {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 4px;
+    padding-left: 10px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .pred-reason::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #4ade80;
+    font-size: 9px;
+  }
+  .pred-reason .src {
+    color: rgba(74,222,128,0.5);
+    font-style: italic;
+  }
+
+  /* ── SOURCES ── */
+  .sources-box {
+    margin: 0 20px 16px;
+    background: rgba(34,197,94,0.06);
+    border: 1px solid rgba(34,197,94,0.15);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .sources-title {
+    font-size: 9px;
+    color: rgba(34,197,94,0.6);
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .source-item {
+    font-size: 9px;
+    color: rgba(255,255,255,0.25);
+    margin-bottom: 2px;
+    line-height: 1.4;
+  }
+
+  /* ── FOOTER ── */
+  .card-footer {
+    background: rgba(0,0,0,0.3);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .footer-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.2);
+  }
+  .footer-tag {
+    font-size: 10px;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="banner-left">
+      <div class="league-dot"></div>
+      <div class="league-name">CONMEBOL Sudamericana · Fase 1</div>
+    </div>
+    <div class="match-date">4 MAR 2026 · 19:30 COL</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" data-tab="stats">STATS</div>
+    <div class="tab" data-tab="h2h">H2H</div>
+    <div class="tab" data-tab="bajas">BAJAS 🚨</div>
+    <div class="tab" data-tab="xi">XI</div>
+  </div>
+
+  <!-- ══════════ TAB: STATS ══════════ -->
+  <div class="tab-content active" id="tab-stats">
+
+    <!-- MATCHUP -->
+    <div class="matchup">
+      <div class="team">
+        <div class="team-badge" style="background:rgba(26,107,60,0.2);">
+          <img src="https://media.api-sports.io/football/teams/1129.png" alt="NAL" onerror="this.parentElement.textContent='🟢'">
+        </div>
+        <div class="team-name">ATLÉTICO<br>NACIONAL</div>
+        <div class="team-pos">5° Liga BetPlay · 15 pts</div>
+      </div>
+      <div class="vs-block">
+        <div class="vs-text">VS</div>
+        <div class="kickoff">HOY · PARTIDO ÚNICO</div>
+      </div>
+      <div class="team">
+        <div class="team-badge" style="background:rgba(30,58,138,0.2);">
+          <img src="https://media.api-sports.io/football/teams/1126.png" alt="MIL" onerror="this.parentElement.textContent='🔵'">
+        </div>
+        <div class="team-name">MILLONARIOS<br>FC</div>
+        <div class="team-pos">11° Liga BetPlay · 11 pts</div>
+      </div>
+    </div>
+
+    <div class="venue-info">📍 ESTADIO ATANASIO GIRARDOT · MEDELLÍN · ÁRBITRO: WILTON SAMPAIO (BRA)</div>
+
+    <!-- FORMA RECIENTE -->
+    <div class="form-section">
+      <div class="section-label">Forma reciente · Últimos 5 partidos Liga</div>
+      <div class="form-row">
+        <div class="form-team-label">Nacional</div>
+        <div class="form-badges">
+          <div class="form-badge win">G</div>
+          <div class="form-badge win">G</div>
+          <div class="form-badge draw">E</div>
+          <div class="form-badge win">G</div>
+          <div class="form-badge loss">P</div>
+        </div>
+        <div class="form-summary">3G 1E 1P</div>
+      </div>
+      <div class="form-row">
+        <div class="form-team-label">Millonarios</div>
+        <div class="form-badges">
+          <div class="form-badge loss">P</div>
+          <div class="form-badge draw">E</div>
+          <div class="form-badge draw">E</div>
+          <div class="form-badge loss">P</div>
+          <div class="form-badge win">G</div>
+        </div>
+        <div class="form-summary">1G 2E 2P</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- PROBABILIDAD -->
+    <div class="prob-section" style="padding-top: 14px;">
+      <div class="section-label">Probabilidad de victoria (basada en cuotas)</div>
+      <div class="prob-bar-wrap">
+        <div class="prob-home" style="width:52%"></div>
+        <div class="prob-draw" style="width:22%"></div>
+        <div class="prob-away" style="width:26%"></div>
+      </div>
+      <div class="prob-numbers">
+        <div class="prob-num home">52%<span>NACIONAL</span></div>
+        <div class="prob-num draw-c">22%<span>EMPATE</span></div>
+        <div class="prob-num away">26%<span>MILLONARIOS</span></div>
+      </div>
+    </div>
+
+    <!-- CUOTAS -->
+    <div class="odds-row">
+      <div class="odd-box">
+        <div class="odd-label">NAL GANA</div>
+        <div class="odd-value" style="color:#4ade80;">1.64</div>
+      </div>
+      <div class="odd-box">
+        <div class="odd-label">EMPATE</div>
+        <div class="odd-value">3.55</div>
+      </div>
+      <div class="odd-box">
+        <div class="odd-label">MIL GANA</div>
+        <div class="odd-value" style="color:#60a5fa;">5.70</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: H2H ══════════ -->
+  <div class="tab-content" id="tab-h2h">
+
+    <div class="h2h-section">
+      <div class="section-title">Head to Head · Historial completo (~290 partidos)</div>
+
+      <div class="h2h-bar-wrap">
+        <div class="h2h-label">Nacional</div>
+        <div class="h2h-track"><div class="h2h-fill green" style="width:29%"></div></div>
+        <div class="h2h-val" style="color:#4ade80">83</div>
+      </div>
+      <div class="h2h-bar-wrap">
+        <div class="h2h-label">Empates</div>
+        <div class="h2h-track"><div class="h2h-fill gray" style="width:33%"></div></div>
+        <div class="h2h-val" style="color:rgba(255,255,255,0.4)">96</div>
+      </div>
+      <div class="h2h-bar-wrap">
+        <div class="h2h-label">Millonarios</div>
+        <div class="h2h-track"><div class="h2h-fill blue" style="width:38%"></div></div>
+        <div class="h2h-val" style="color:#60a5fa">111</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- H2H CONMEBOL -->
+    <div class="h2h-section">
+      <div class="section-title">En torneos CONMEBOL · 16 enfrentamientos</div>
+      <div class="h2h-bar-wrap">
+        <div class="h2h-label">Nacional</div>
+        <div class="h2h-track"><div class="h2h-fill green" style="width:25%"></div></div>
+        <div class="h2h-val" style="color:#4ade80">4</div>
+      </div>
+      <div class="h2h-bar-wrap">
+        <div class="h2h-label">Empates</div>
+        <div class="h2h-track"><div class="h2h-fill gray" style="width:37%"></div></div>
+        <div class="h2h-val" style="color:rgba(255,255,255,0.4)">6</div>
+      </div>
+      <div class="h2h-bar-wrap">
+        <div class="h2h-label">Millonarios</div>
+        <div class="h2h-track"><div class="h2h-fill blue" style="width:38%"></div></div>
+        <div class="h2h-val" style="color:#60a5fa">6</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- GOALS GRID -->
+    <div class="goals-grid" style="padding-top: 14px;">
+      <div class="goal-card gc-green">
+        <div class="gc-label">Goles NAL</div>
+        <div class="gc-value gv-green">352</div>
+        <div class="gc-sub">Historial total</div>
+      </div>
+      <div class="goal-card gc-blue">
+        <div class="gc-label">Goles MIL</div>
+        <div class="gc-value gv-blue">422</div>
+        <div class="gc-sub">Historial total</div>
+      </div>
+      <div class="goal-card gc-amber">
+        <div class="gc-label">Prom. goles H2H</div>
+        <div class="gc-value gv-amber">2.0</div>
+        <div class="gc-sub">Por partido (últ. 60)</div>
+      </div>
+      <div class="goal-card gc-purple">
+        <div class="gc-label">NAL en Atanasio</div>
+        <div class="gc-value gv-purple">51G</div>
+        <div class="gc-sub">de 122 en casa vs MIL</div>
+      </div>
+    </div>
+
+    <!-- ÚLTIMOS 6 H2H DIRECTOS -->
+    <div class="last-matches">
+      <div class="section-title">Últimos 6 enfrentamientos directos</div>
+      <div class="match-row">
+        <div class="match-date-sm">2025-II</div>
+        <div class="match-teams-sm">NAL vs MIL</div>
+        <div class="match-score-sm">2-0</div>
+        <div class="match-result-sm" style="background:#22c55e">G</div>
+      </div>
+      <div class="match-row">
+        <div class="match-date-sm">2025-II</div>
+        <div class="match-teams-sm">MIL vs NAL</div>
+        <div class="match-score-sm">1-1</div>
+        <div class="match-result-sm" style="background:rgba(255,255,255,0.2)">E</div>
+      </div>
+      <div class="match-row">
+        <div class="match-date-sm">2025-I</div>
+        <div class="match-teams-sm">MIL vs NAL</div>
+        <div class="match-score-sm">1-0</div>
+        <div class="match-result-sm" style="background:#3b82f6">G</div>
+      </div>
+      <div class="match-row">
+        <div class="match-date-sm">2025-I</div>
+        <div class="match-teams-sm">NAL vs MIL</div>
+        <div class="match-score-sm">0-0</div>
+        <div class="match-result-sm" style="background:rgba(255,255,255,0.2)">E</div>
+      </div>
+      <div class="match-row">
+        <div class="match-date-sm">2024-II</div>
+        <div class="match-teams-sm">NAL vs MIL</div>
+        <div class="match-score-sm">1-0</div>
+        <div class="match-result-sm" style="background:#22c55e">G</div>
+      </div>
+      <div class="match-row">
+        <div class="match-date-sm">2024-II</div>
+        <div class="match-teams-sm">MIL vs NAL</div>
+        <div class="match-score-sm">2-1</div>
+        <div class="match-result-sm" style="background:#3b82f6">G</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: BAJAS ══════════ -->
+  <div class="tab-content" id="tab-bajas">
+    <div class="bajas-section">
+      <div class="section-title">Estado de plantillas</div>
+
+      <div class="semaforo-legend">
+        <div class="semaforo-item"><div class="baja-dot rojo"></div> BAJA CONFIRMADA</div>
+        <div class="semaforo-item"><div class="baja-dot naranja"></div> SUSPENDIDO</div>
+        <div class="semaforo-item"><div class="baja-dot amarillo"></div> DUDA</div>
+        <div class="semaforo-item"><div class="baja-dot verde"></div> RECUPERADO</div>
+      </div>
+
+      <div class="baja-team-title" style="color:#4ade80">🟢 Atlético Nacional</div>
+
+      <div class="baja-item">
+        <div class="baja-dot naranja"></div>
+        <div class="baja-name">Edwin Cardona</div>
+        <div class="baja-reason">Sanción CONMEBOL<br>(1 fecha · roja Libertadores 2025)</div>
+      </div>
+      <div class="baja-item">
+        <div class="baja-dot verde"></div>
+        <div class="baja-name">David Ospina</div>
+        <div class="baja-reason">Recuperado<br>(descansó vs Tolima)</div>
+      </div>
+      <div class="baja-item">
+        <div class="baja-dot verde"></div>
+        <div class="baja-name">William Tesillo</div>
+        <div class="baja-reason">Recuperado<br>(problemas médicos recientes)</div>
+      </div>
+
+      <div class="baja-team-title" style="color:#60a5fa">🔵 Millonarios FC</div>
+
+      <div class="baja-item">
+        <div class="baja-dot verde"></div>
+        <div class="baja-name">Radamel Falcao</div>
+        <div class="baja-reason">Recuperado · Convocado<br>(lesión isquiotibiales)</div>
+      </div>
+      <div class="baja-item">
+        <div class="baja-dot verde"></div>
+        <div class="baja-name">Rodrigo Contreras</div>
+        <div class="baja-reason">Recuperado<br>(contractura muscular)</div>
+      </div>
+      <div class="baja-item">
+        <div class="baja-dot verde"></div>
+        <div class="baja-name">Edgar Elizalde</div>
+        <div class="baja-reason">Recuperado<br>(ausente por precaución)</div>
+      </div>
+
+      <div style="margin-top:14px; padding:10px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.04);">
+        <div style="font-size:10px; color:rgba(255,255,255,0.35); line-height:1.5;">
+          ℹ️ Nacional llega prácticamente completo. La única baja es Cardona por sanción.<br>
+          Millonarios recupera a Falcao, Contreras y Elizalde para este duelo crucial.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: XI ══════════ -->
+  <div class="tab-content" id="tab-xi">
+    <div class="xi-section">
+
+      <!-- XI NACIONAL -->
+      <div class="xi-team-block">
+        <div class="xi-team-header">
+          <div class="xi-team-name" style="color:#4ade80">ATLÉTICO NACIONAL</div>
+          <div class="xi-formation">4-2-2-2</div>
+        </div>
+        <div class="xi-grid">
+          <div class="xi-player gk"><span>POR</span> David Ospina</div>
+          <div class="xi-player def"><span>LD</span> Andrés Román</div>
+          <div class="xi-player def"><span>DFC</span> Simón García</div>
+          <div class="xi-player def"><span>DFC</span> William Tesillo</div>
+          <div class="xi-player def"><span>LI</span> Milton Casco</div>
+          <div class="xi-player mid"><span>MCD</span> Jorman Campuzano</div>
+          <div class="xi-player mid"><span>MC</span> Matheus Uribe</div>
+          <div class="xi-player mid"><span>EXT</span> Juan M. Rengifo</div>
+          <div class="xi-player mid"><span>EXT</span> Andrés Sarmiento</div>
+          <div class="xi-player fwd"><span>DEL</span> Cristian Arango</div>
+          <div class="xi-player fwd"><span>DEL</span> Alfredo Morelos</div>
+        </div>
+        <div class="xi-dt">DT: Diego Arias</div>
+      </div>
+
+      <div class="divider" style="margin: 12px 0;"></div>
+
+      <!-- XI MILLONARIOS -->
+      <div class="xi-team-block">
+        <div class="xi-team-header">
+          <div class="xi-team-name" style="color:#60a5fa">MILLONARIOS FC</div>
+          <div class="xi-formation">3-4-1-2</div>
+        </div>
+        <div class="xi-grid">
+          <div class="xi-player gk"><span>POR</span> Diego Novoa</div>
+          <div class="xi-player def"><span>DFC</span> Andrés Llinás</div>
+          <div class="xi-player def"><span>DFC</span> Sergio Mosquera</div>
+          <div class="xi-player def"><span>DFC</span> Carlos Sarabia</div>
+          <div class="xi-player mid"><span>CAR</span> Jorge Arias</div>
+          <div class="xi-player mid"><span>CAR</span> Sebastián Valencia</div>
+          <div class="xi-player mid"><span>MC</span> Mateo García</div>
+          <div class="xi-player mid"><span>MC</span> Rodrigo Ureña</div>
+          <div class="xi-player mid"><span>ENG</span> David M. Silva</div>
+          <div class="xi-player fwd"><span>DEL</span> Rodrigo Contreras</div>
+          <div class="xi-player fwd"><span>DEL</span> Leonardo Castro</div>
+        </div>
+        <div class="xi-dt">DT: Fabián Bustos</div>
+      </div>
+
+      <div style="margin-top:12px; padding:8px; background:rgba(255,255,255,0.02); border-radius:6px; border:1px solid rgba(255,255,255,0.04);">
+        <div style="font-size:9px; color:rgba(255,255,255,0.25); line-height:1.4;">
+          ⚠️ Alineaciones probables según Futbolred, ESPN y 365Scores. Sujetas a cambios. Falcao García podría ingresar como titular o suplente.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ PREDICTION (siempre visible) ══════════ -->
+  <div class="prediction">
+    <div class="pred-label">⚽ Apuesta recomendada</div>
+    <div class="pred-main">Nacional Gana (Local) · Menos de 3.5 Goles</div>
+    <div class="pred-cuota">
+      <div class="cuota-badge">CUOTA 1.64</div>
+      <div class="pred-note">Nacional favorito con localía en Atanasio</div>
+    </div>
+    <div class="pred-reasons">
+      <div class="pred-reason">Nacional 5° en Liga con 15 pts, Millonarios 11° con 11 pts <span class="src">(El Colombiano)</span></div>
+      <div class="pred-reason">Nacional registra 51G de 122 partidos vs MIL en Atanasio <span class="src">(AtlNacional.com.co)</span></div>
+      <div class="pred-reason">Nacional guardó titulares vs Tolima pensando en Sudamericana <span class="src">(Futbolred)</span></div>
+      <div class="pred-reason">Millonarios acumula rendimiento visitante: 2G 3E 5P en últimos 10 <span class="src">(AcademiaApuestas)</span></div>
+      <div class="pred-reason">Promedio H2H reciente: ~2.0 goles por partido <span class="src">(FCTables)</span></div>
+      <div class="pred-reason">Cuotas de casas: NAL 1.64 / E 3.55 / MIL 5.70 <span class="src">(Coolbet/Doradobet)</span></div>
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="sources-box">
+    <div class="sources-title">✅ Fuentes verificadas</div>
+    <div class="source-item">📰 Futbolred.com · Convocatorias y alineaciones probables</div>
+    <div class="source-item">📰 Infobae Colombia · Convocados Millonarios, Falcao</div>
+    <div class="source-item">📰 ESPN Deportes · Fixture y datos del partido</div>
+    <div class="source-item">📰 El Colombiano · Posiciones Liga BetPlay 2026</div>
+    <div class="source-item">📰 AcademiaApuestas Latam · Estadísticas visitante MIL</div>
+    <div class="source-item">📰 AtlNacional.com.co · Historial H2H en Atanasio</div>
+    <div class="source-item">📰 Olympics.com · Historial total ~290 partidos</div>
+    <div class="source-item">📰 FCTables · H2H últimos 60 partidos directos</div>
+    <div class="source-item">📰 Coolbet/Doradobet · Cuotas del partido</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="card-footer">
+    <div class="footer-brand">TU CANAL VIP</div>
+    <div class="footer-tag">ANÁLISIS PROFESIONAL · DATOS VERIFICADOS</div>
+  </div>
+
+</div>
+
+<script>
+  // Tab navigation
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

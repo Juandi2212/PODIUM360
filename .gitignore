@@ -1,0 +1,29 @@
+# Entornos Virtuales y Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Base de datos local transitoria (Evitamos subir miles de JSONs inoficiosos de cada partido diario)
+database/api_cache.json
+database/daily_report_*.json
+database/tracking_metrics.json
+
+# Salidas Temporales
+Pronosticos/
+_ALERT.json
+test_output.json
+*.log
+
+# Scripts de Testeo Temporales e Inspecciones (Si no las quieres en producción)
+inspect_db.py
+check_db_v360.py
+test_runner.py
+init_supabase.sql
+
+# SO y Editores
+.DS_Store
+.vscode/
+.idea/

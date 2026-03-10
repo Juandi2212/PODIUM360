@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=1080">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;background:#0b0d1c}
+body{font-family:'Barlow Condensed',sans-serif;width:1080px;color:#e8eef8}
+.card{width:1080px;background:#0b0d1c;position:relative;overflow:hidden;padding-bottom:0}
+
+/* HEADER */
+.header{background:linear-gradient(180deg,#141828 0%,#0d1020 100%);border-bottom:2px solid #1e2340}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:18px 40px 14px}
+.hdr-badge{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:4px;color:#8090b0;display:flex;align-items:center;gap:10px}
+.league-chip{background:#f5bc2f;color:#0b0d1c;padding:3px 14px;font-size:12px;letter-spacing:3px;font-family:'Bebas Neue',sans-serif;border-radius:3px}
+.hdr-free-chip{background:rgba(144,160,200,.08);border:1px solid #1e2340;color:#8090b0;padding:3px 16px;font-size:11px;letter-spacing:3px;font-family:'Bebas Neue',sans-serif;border-radius:3px}
+.teams-block{display:flex;align-items:center;justify-content:center;padding:8px 40px 22px;gap:0}
+.team-side{flex:1;display:flex;flex-direction:column;align-items:center;gap:12px}
+.team-badge{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:900;letter-spacing:1px}
+.badge-psg{background:linear-gradient(140deg,#003087 50%,#c0001a);color:#fff;border:2px solid #0043be;box-shadow:0 0 24px rgba(0,48,135,.3)}
+.badge-mon{background:linear-gradient(140deg,#CE1126 50%,#8b0010);color:#fff;border:2px solid #ff2233;box-shadow:0 0 24px rgba(206,17,38,.3)}
+.team-name-big{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:3px;color:#e8eef8;line-height:1}
+.team-pos-tag{font-size:12px;color:#8090b0;letter-spacing:1px;font-weight:500}
+.vs-center{display:flex;flex-direction:column;align-items:center;padding:0 28px;gap:4px}
+.vs-big{font-family:'Bebas Neue',sans-serif;font-size:50px;color:#1e2340;line-height:1}
+.vs-time{font-family:'Bebas Neue',sans-serif;font-size:34px;color:#f5bc2f;letter-spacing:2px;line-height:1}
+.vs-date{font-size:13px;color:#8090b0;letter-spacing:1px}
+.vs-venue{font-size:11px;color:#555d7a;margin-top:2px}
+.hdr-bottom{display:flex;align-items:center;justify-content:center;padding:10px 40px;border-top:1px solid #1e2340;gap:22px;font-size:12px;color:#555d7a;letter-spacing:1px}
+.hdr-dot{width:4px;height:4px;border-radius:50%;background:#1e2340}
+
+/* SECTION */
+.sw{padding:26px 40px}
+.sw-nt{padding-top:0}
+.st{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:4px;color:#8090b0;border-bottom:1px solid #1e2340;padding-bottom:10px;margin-bottom:18px}
+.st em{color:#f5bc2f;font-style:normal}
+.sdiv{height:1px;background:#1e2340;margin:0 40px 26px}
+
+/* PROB BAR */
+.prob-track{display:flex;height:40px;border-radius:8px;overflow:hidden;gap:2px}
+.pbar{display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:rgba(255,255,255,.9);letter-spacing:1px}
+.pbar-l{background:linear-gradient(90deg,#003087,#0058d4);flex:70.97}
+.pbar-d{background:#2a2f4a;flex:16.39}
+.pbar-v{background:linear-gradient(90deg,#9e000f,#CE1126);flex:12.63}
+.prob-lbl{display:flex;font-size:11px;color:#555d7a;letter-spacing:1px;margin-top:8px}
+.prob-lbl-l{flex:70.97;text-align:center}
+.prob-lbl-d{flex:16.39;text-align:center}
+.prob-lbl-v{flex:12.63;text-align:center}
+.prob-note{font-size:11px;color:#555d7a;margin-top:10px;font-style:italic;letter-spacing:1px;text-align:center}
+
+/* FORM */
+.form-row{display:flex;gap:40px}
+.form-col{flex:1}
+.form-lbl{font-size:12px;letter-spacing:2px;color:#8090b0;font-weight:600;margin-bottom:10px}
+.form-badges{display:flex;gap:8px;align-items:center}
+.fb{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:19px}
+.fb-g{background:rgba(37,212,102,.12);color:#25d466;border:1px solid rgba(37,212,102,.25)}
+.fb-e{background:rgba(245,188,47,.12);color:#f5bc2f;border:1px solid rgba(245,188,47,.25)}
+.fb-p{background:rgba(240,68,68,.12);color:#f04444;border:1px solid rgba(240,68,68,.25)}
+.form-summary{margin-top:10px;font-size:12px;color:#555d7a}
+
+/* STANDINGS */
+.std-grid{display:flex;gap:16px}
+.std-card{flex:1;background:#141828;border:1px solid #1e2340;border-radius:10px;padding:20px 24px;display:flex;align-items:center;gap:16px}
+.std-pos{font-family:'Bebas Neue',sans-serif;font-size:64px;line-height:1;color:#1e2340;min-width:58px;text-align:center}
+.std-pos.leader{color:rgba(245,188,47,.18)}
+.std-data{flex:1}
+.std-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#e8eef8}
+.std-pts{font-family:'Bebas Neue',sans-serif;font-size:38px;color:#f5bc2f;line-height:1}
+.std-pts small{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:#8090b0;margin-left:5px}
+.std-wdl{display:flex;gap:16px;margin-top:6px}
+.wdl{font-size:13px;color:#555d7a}.wdl strong{color:#e8eef8;font-size:15px}
+.std-tag{font-size:10px;letter-spacing:2px;font-weight:600;padding:3px 10px;border-radius:3px;margin-top:10px;display:inline-block}
+.std-tag.ldr{background:rgba(37,212,102,.1);color:#25d466;border:1px solid rgba(37,212,102,.2)}
+.std-tag.mid{background:rgba(245,188,47,.1);color:#f5bc2f;border:1px solid rgba(245,188,47,.2)}
+
+/* LOCK BLOCK */
+.lock-block{margin:0 40px;background:linear-gradient(135deg,#141828,#0f1220);border:1px solid rgba(245,188,47,.15);border-radius:12px;padding:32px;text-align:center;position:relative;overflow:hidden}
+.lock-block::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#f5bc2f44,transparent)}
+.lock-icon{font-size:44px;margin-bottom:14px;filter:grayscale(0.3)}
+.lock-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:4px;color:#e8eef8;margin-bottom:8px}
+.lock-items{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:18px 0}
+.lock-item{background:rgba(245,188,47,.06);border:1px solid rgba(245,188,47,.15);border-radius:6px;padding:8px 16px;font-size:12px;color:#8090b0;letter-spacing:1px}
+.lock-item span{color:#f5bc2f;font-weight:600}
+.lock-cta{display:inline-block;margin-top:6px;background:linear-gradient(90deg,#f5bc2f,#fb8c3a);color:#0b0d1c;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:4px;padding:12px 36px;border-radius:6px}
+
+/* FOOTER */
+.footer-bar{margin:28px 40px 0;padding:20px 26px;background:#141828;border:1px solid #1e2340;border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+.ft-brand{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:4px;color:#f5bc2f}
+.ft-sub{font-size:11px;color:#555d7a;letter-spacing:2px;margin-top:2px}
+.ft-right-label{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;color:#8090b0}
+.card-pad-bottom{height:40px}
+</style></head>
+<body><div class="card">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="hdr-top">
+    <div class="hdr-badge">
+      <span class="league-chip">LIGUE 1</span>
+      JORNADA 25 · TEMPORADA 2025/26
+    </div>
+    <span class="hdr-free-chip">📊 ANÁLISIS FREE</span>
+  </div>
+  <div class="teams-block">
+    <div class="team-side">
+      <div class="team-badge badge-psg">PSG</div>
+      <div class="team-name-big">PARIS SG</div>
+      <div class="team-pos-tag">🥇 1° LUGAR · 57 PTS</div>
+    </div>
+    <div class="vs-center">
+      <div class="vs-big">VS</div>
+      <div class="vs-time">20:45h</div>
+      <div class="vs-date">VIERNES · 06/03/2026</div>
+      <div class="vs-venue">Parc des Princes · París</div>
+    </div>
+    <div class="team-side">
+      <div class="team-badge badge-mon">MON</div>
+      <div class="team-name-big">MÓNACO</div>
+      <div class="team-pos-tag">7° LUGAR · 37 PTS</div>
+    </div>
+  </div>
+  <div class="hdr-bottom">
+    <span>🏟️ Parc des Princes</span>
+    <span class="hdr-dot"></span>
+    <span>📺 Ligue 1+</span>
+    <span class="hdr-dot"></span>
+    <span>📊 Podium</span>
+  </div>
+</div>
+
+<!-- PROB BAR -->
+<div class="sw">
+  <div class="st">PROBABILIDADES <em>1X2</em> · MODELO ESTADÍSTICO</div>
+  <div class="prob-track">
+    <div class="pbar pbar-l">70.97%</div>
+    <div class="pbar pbar-d">16.39%</div>
+    <div class="pbar pbar-v">12.63%</div>
+  </div>
+  <div class="prob-lbl">
+    <span class="prob-lbl-l">PSG GANA</span>
+    <span class="prob-lbl-d">EMPATE</span>
+    <span class="prob-lbl-v">MÓNACO GANA</span>
+  </div>
+  <div class="prob-note">Solo probabilidades · Las cuotas y el análisis de valor están disponibles en la versión VIP</div>
+</div>
+<div class="sdiv"></div>
+
+<!-- FORM -->
+<div class="sw sw-nt">
+  <div class="st">FORMA <em>ÚLTIMOS 5</em> · TODAS LAS COMPETICIONES</div>
+  <div class="form-row">
+    <div class="form-col">
+      <div class="form-lbl">PARIS SAINT-GERMAIN</div>
+      <div class="form-badges">
+        <div class="fb fb-g">G</div>
+        <div class="fb fb-g">G</div>
+        <div class="fb fb-g">G</div>
+        <div class="fb fb-e">E</div>
+        <div class="fb fb-g">G</div>
+      </div>
+      <div class="form-summary">9 victorias en los últimos 10 · Sin derrota en casa · 3 porterías a cero en últimos 4 de liga</div>
+    </div>
+    <div class="form-col">
+      <div class="form-lbl">AS MÓNACO</div>
+      <div class="form-badges">
+        <div class="fb fb-g">G</div>
+        <div class="fb fb-g">G</div>
+        <div class="fb fb-g">G</div>
+        <div class="fb fb-e">E</div>
+        <div class="fb fb-g">G</div>
+      </div>
+      <div class="form-summary">6 resultados positivos consecutivos · 4 victorias en los últimos 5 · Varias bajas importantes</div>
+    </div>
+  </div>
+</div>
+<div class="sdiv"></div>
+
+<!-- STANDINGS -->
+<div class="sw sw-nt">
+  <div class="st">CLASIFICACIÓN <em>LIGUE 1</em> · TEMPORADA 2025-26</div>
+  <div class="std-grid">
+    <div class="std-card">
+      <div class="std-pos leader">1</div>
+      <div class="std-data">
+        <div class="std-name">PARIS SG</div>
+        <div class="std-pts">57 <small>PTS</small></div>
+        <div class="std-wdl">
+          <span class="wdl"><strong>18</strong> V</span>
+          <span class="wdl"><strong>3</strong> E</span>
+          <span class="wdl"><strong>3</strong> D</span>
+        </div>
+        <span class="std-tag ldr">LÍDER DE LA LIGA</span>
+      </div>
+    </div>
+    <div class="std-card">
+      <div class="std-pos">7</div>
+      <div class="std-data">
+        <div class="std-name">AS MÓNACO</div>
+        <div class="std-pts">37 <small>PTS</small></div>
+        <div class="std-wdl">
+          <span class="wdl"><strong>11</strong> V</span>
+          <span class="wdl"><strong>4</strong> E</span>
+          <span class="wdl"><strong>9</strong> D</span>
+        </div>
+        <span class="std-tag mid">7° · MITAD DE TABLA</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="sdiv"></div>
+
+<!-- LOCK BLOCK -->
+<div class="lock-block">
+  <div class="lock-icon">🔒</div>
+  <div class="lock-title">DESBLOQUEA EL ANÁLISIS COMPLETO</div>
+  <div style="font-size:14px;color:#8090b0;margin-bottom:6px">El análisis VIP de este partido incluye:</div>
+  <div class="lock-items">
+    <div class="lock-item"><span>💰</span> Cuotas de 24 bookmakers</div>
+    <div class="lock-item"><span>📈</span> H2H detallado</div>
+    <div class="lock-item"><span>🔴</span> Bajas con semáforo médico</div>
+    <div class="lock-item"><span>⚽</span> Estadísticas BTTS</div>
+    <div class="lock-item"><span>📐</span> Córners y promedios</div>
+    <div class="lock-item"><span>🎯</span> Mercado +EV recomendado</div>
+  </div>
+  <div class="lock-cta">ACCEDER AL VIP</div>
+  <div style="font-size:11px;color:#555d7a;margin-top:16px">Regístrate y deposita para acceder a predicciones con valor real · Podium</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-bar">
+  <div>
+    <div class="ft-brand">📊 PODIUM</div>
+    <div class="ft-sub">JORNADA 25 · LIGUE 1 2025/26</div>
+  </div>
+  <div class="ft-right-label">🔒 DESBLOQUEA EL ANÁLISIS COMPLETO</div>
+</div>
+
+<div class="card-pad-bottom"></div>
+</div></body></html>

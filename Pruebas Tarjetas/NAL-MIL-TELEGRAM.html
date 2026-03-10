@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>NAL vs MIL · Copa Sudamericana</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d1c;
+    --card: #141828;
+    --border: #1e2340;
+    --gold: #f5bc2f;
+    --green: #25d466;
+    --red: #f04444;
+    --orange: #fb8c3a;
+    --yellow: #f5c518;
+    --text: #e8eef8;
+    --muted: #8090b0;
+    --nal-primary: #1a6b3c;
+    --nal-light: #4ade80;
+    --mil-primary: #1e3a8a;
+    --mil-light: #60a5fa;
+  }
+
+  html, body { margin: 0; padding: 0; width: 1080px; background: var(--bg); }
+  body { font-family: 'Barlow Condensed', sans-serif; width: 1080px; color: var(--text); }
+
+  .card { width: 1080px; background: var(--bg); overflow: hidden; }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, var(--nal-primary) 0%, #0d2818 30%, var(--bg) 60%, #0d1a3d 85%, var(--mil-primary) 100%);
+    padding: 40px 60px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(26,107,60,0.15), transparent 70%);
+    border-radius: 50%;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(30,58,138,0.15), transparent 70%);
+    border-radius: 50%;
+  }
+
+  .meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .pill {
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .pill-gold {
+    background: linear-gradient(135deg, var(--gold), #d4a017);
+    color: #1a1a00;
+  }
+  .pill-gray {
+    background: rgba(255,255,255,0.08);
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .pill-red {
+    background: linear-gradient(135deg, var(--red), #c02020);
+    color: #fff;
+    animation: pulseGlow 2s ease infinite;
+  }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 rgba(240,68,68,0); }
+    50% { box-shadow: 0 0 16px rgba(240,68,68,0.4); }
+  }
+
+  .matchup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    position: relative;
+    z-index: 1;
+  }
+  .team-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 300px;
+  }
+  .team-logo {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
+  }
+  .team-logo img {
+    width: 80px; height: 80px;
+    object-fit: contain;
+  }
+  .team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 2px;
+    color: #fff;
+    text-align: center;
+    line-height: 1.05;
+  }
+  .team-pos-pill {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 14px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .team-record {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .vs-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .vs-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    color: rgba(255,255,255,0.12);
+    letter-spacing: 4px;
+  }
+
+  .venue-bar {
+    text-align: center;
+    padding: 16px 60px 0;
+    font-size: 15px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── SECTION WRAPPER ── */
+  .section {
+    padding: 32px 60px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 0 60px;
+  }
+
+  /* ── PROB BAR ── */
+  .prob-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+  .prob-col {
+    flex: 1;
+    text-align: center;
+    padding: 20px 16px;
+    position: relative;
+  }
+  .prob-col:first-child {
+    background: linear-gradient(135deg, rgba(26,107,60,0.12), transparent);
+    border-radius: 12px 0 0 12px;
+  }
+  .prob-col:nth-child(2) {
+    background: rgba(255,255,255,0.02);
+  }
+  .prob-col:last-child {
+    background: linear-gradient(135deg, transparent, rgba(30,58,138,0.12));
+    border-radius: 0 12px 12px 0;
+  }
+  .prob-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .prob-pct.nal { color: var(--nal-light); }
+  .prob-pct.draw { color: var(--muted); }
+  .prob-pct.mil { color: var(--mil-light); }
+  .prob-label {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .prob-bar-visual {
+    display: flex;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    gap: 3px;
+  }
+  .pb-nal { background: linear-gradient(90deg, var(--nal-primary), var(--nal-light)); border-radius: 6px 0 0 6px; }
+  .pb-draw { background: rgba(255,255,255,0.15); }
+  .pb-mil { background: linear-gradient(90deg, var(--mil-primary), var(--mil-light)); border-radius: 0 6px 6px 0; }
+
+  /* ── FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .form-team {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+  }
+  .form-team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+  .form-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .fb {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+  }
+  .fb-g { background: linear-gradient(135deg, #1a9a4a, var(--green)); }
+  .fb-e { background: linear-gradient(135deg, #b8960a, var(--gold)); color: #1a1a00; }
+  .fb-p { background: linear-gradient(135deg, #b02020, var(--red)); }
+  .form-summary {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── BAJAS ── */
+  .bajas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .bajas-team {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+  }
+  .bajas-team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+  .baja-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .baja-row:last-child { border-bottom: none; }
+  .baja-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .bd-red { background: var(--red); box-shadow: 0 0 8px rgba(240,68,68,0.4); }
+  .bd-orange { background: var(--orange); box-shadow: 0 0 8px rgba(251,140,58,0.4); }
+  .bd-yellow { background: var(--yellow); box-shadow: 0 0 8px rgba(245,197,24,0.3); }
+  .bd-green { background: var(--green); box-shadow: 0 0 8px rgba(37,212,102,0.3); }
+  .baja-info { flex: 1; }
+  .baja-name {
+    font-size: 17px;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .baja-reason {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .semaforo-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .semaforo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── EV BLOCK ── */
+  .ev-block {
+    margin: 32px 60px;
+    background: linear-gradient(135deg, rgba(37,212,102,0.08), rgba(37,212,102,0.02));
+    border: 1px solid rgba(37,212,102,0.2);
+    border-radius: 18px;
+    padding: 36px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ev-block::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(37,212,102,0.06), transparent 70%);
+    border-radius: 50%;
+  }
+  .ev-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .ev-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: var(--green);
+  }
+  .ev-method-pill {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: rgba(37,212,102,0.15);
+    border: 1px solid rgba(37,212,102,0.3);
+    color: var(--green);
+  }
+  .ev-pick {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 46px;
+    color: #fff;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .ev-cuota-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .ev-cuota-badge {
+    background: var(--green);
+    color: #0b0d1c;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    padding: 6px 20px;
+    border-radius: 8px;
+    letter-spacing: 1px;
+  }
+  .ev-cuota-label {
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* EV BAR */
+  .ev-bar-section {
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .ev-bar-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .ev-bar-track {
+    height: 14px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .ev-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #6ee7a0);
+    border-radius: 8px;
+    animation: evGrow 1.5s ease 0.3s both;
+  }
+  @keyframes evGrow { from { width: 0; } }
+  .ev-bar-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: var(--green);
+    margin-top: 6px;
+  }
+
+  /* EV CALC */
+  .ev-calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .ev-calc-box {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .ev-calc-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .ev-calc-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    color: #fff;
+  }
+  .ev-calc-value.green { color: var(--green); }
+
+  /* EV REASONS */
+  .ev-reasons {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 20px;
+  }
+  .ev-reason {
+    font-size: 16px;
+    color: rgba(255,255,255,0.55);
+    font-weight: 500;
+    padding: 6px 0 6px 20px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .ev-reason::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 900;
+  }
+
+  .ev-disclaimer {
+    font-size: 12px;
+    color: rgba(255,255,255,0.2);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: rgba(0,0,0,0.4);
+    padding: 20px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+  }
+  .footer-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.25);
+  }
+  .footer-vip {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 6px 18px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--gold), #d4a017);
+    color: #1a1a00;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="header">
+    <div class="meta-row">
+      <div class="pill pill-gold">CONMEBOL SUDAMERICANA · FASE 1</div>
+      <div class="pill pill-gray">4 MAR 2026 · 19:30 COL</div>
+      <div class="pill pill-red">HOY</div>
+    </div>
+
+    <div class="matchup">
+      <div class="team-col">
+        <div class="team-logo" style="border-color:rgba(74,222,128,0.2);">
+          <img src="https://media.api-sports.io/football/teams/1129.png" alt="NAL" onerror="this.parentElement.innerHTML='<span style=font-size:48px>🟢</span>'">
+        </div>
+        <div class="team-name">ATLÉTICO<br>NACIONAL</div>
+        <div class="team-pos-pill" style="color:var(--nal-light);">5° LIGA BETPLAY · 15 PTS</div>
+        <div class="team-record">Temporada: ~5V · 0E · 2D (+ 2 aplazados)</div>
+      </div>
+
+      <div class="vs-center">
+        <div class="vs-text">VS</div>
+      </div>
+
+      <div class="team-col">
+        <div class="team-logo" style="border-color:rgba(96,165,250,0.2);">
+          <img src="https://media.api-sports.io/football/teams/1126.png" alt="MIL" onerror="this.parentElement.innerHTML='<span style=font-size:48px>🔵</span>'">
+        </div>
+        <div class="team-name">MILLONARIOS<br>FC</div>
+        <div class="team-pos-pill" style="color:var(--mil-light);">11° LIGA BETPLAY · 11 PTS</div>
+        <div class="team-record">Temporada: ~3V · 2E · 4D</div>
+      </div>
+    </div>
+
+    <div class="venue-bar">📍 ESTADIO ATANASIO GIRARDOT · MEDELLÍN · ARB: WILTON SAMPAIO (BRA)</div>
+  </div>
+
+  <!-- ═══ PROBABILIDADES 1X2 ═══ -->
+  <div class="section">
+    <div class="section-title">Probabilidades 1X2</div>
+    <div class="prob-row">
+      <div class="prob-col">
+        <div class="prob-pct nal">49%</div>
+        <div class="prob-label">NACIONAL</div>
+      </div>
+      <div class="prob-col">
+        <div class="prob-pct draw">30%</div>
+        <div class="prob-label">EMPATE</div>
+      </div>
+      <div class="prob-col">
+        <div class="prob-pct mil">21%</div>
+        <div class="prob-label">MILLONARIOS</div>
+      </div>
+    </div>
+    <div class="prob-bar-visual">
+      <div class="pb-nal" style="width:49%"></div>
+      <div class="pb-draw" style="width:30%"></div>
+      <div class="pb-mil" style="width:21%"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══ FORMA RECIENTE ═══ -->
+  <div class="section">
+    <div class="section-title">Forma Reciente · Últimos 5 partidos (Liga BetPlay)</div>
+    <div class="form-grid">
+      <div class="form-team">
+        <div class="form-team-name" style="color:var(--nal-light)">ATLÉTICO NACIONAL</div>
+        <div class="form-badges">
+          <div class="fb fb-g">G</div>
+          <div class="fb fb-g">G</div>
+          <div class="fb fb-e">E</div>
+          <div class="fb fb-g">G</div>
+          <div class="fb fb-p">P</div>
+        </div>
+        <div class="form-summary">3V · 1E · 1D · Guardó titulares vs Tolima</div>
+      </div>
+      <div class="form-team">
+        <div class="form-team-name" style="color:var(--mil-light)">MILLONARIOS FC</div>
+        <div class="form-badges">
+          <div class="fb fb-p">P</div>
+          <div class="fb fb-e">E</div>
+          <div class="fb fb-e">E</div>
+          <div class="fb fb-p">P</div>
+          <div class="fb fb-g">G</div>
+        </div>
+        <div class="form-summary">1V · 2E · 2D · Viene de golear 5-1 a Pereira</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══ BAJAS ═══ -->
+  <div class="section">
+    <div class="section-title">Bajas y suspensiones</div>
+    <div class="semaforo-row">
+      <div class="semaforo-item"><div class="baja-dot bd-red"></div> Baja confirmada</div>
+      <div class="semaforo-item"><div class="baja-dot bd-orange"></div> Suspendido</div>
+      <div class="semaforo-item"><div class="baja-dot bd-yellow"></div> Duda</div>
+      <div class="semaforo-item"><div class="baja-dot bd-green"></div> Recuperado</div>
+    </div>
+    <div class="bajas-grid">
+      <div class="bajas-team">
+        <div class="bajas-team-name" style="color:var(--nal-light)">ATLÉTICO NACIONAL</div>
+        <div class="baja-row">
+          <div class="baja-dot bd-orange"></div>
+          <div class="baja-info">
+            <div class="baja-name">Edwin Cardona</div>
+            <div class="baja-reason">Sanción CONMEBOL (roja Libertadores 2025)</div>
+          </div>
+        </div>
+        <div class="baja-row">
+          <div class="baja-dot bd-green"></div>
+          <div class="baja-info">
+            <div class="baja-name">David Ospina</div>
+            <div class="baja-reason">Recuperado — descansó vs Tolima</div>
+          </div>
+        </div>
+        <div class="baja-row">
+          <div class="baja-dot bd-green"></div>
+          <div class="baja-info">
+            <div class="baja-name">William Tesillo</div>
+            <div class="baja-reason">Recuperado — problemas médicos recientes</div>
+          </div>
+        </div>
+      </div>
+      <div class="bajas-team">
+        <div class="bajas-team-name" style="color:var(--mil-light)">MILLONARIOS FC</div>
+        <div class="baja-row">
+          <div class="baja-dot bd-green"></div>
+          <div class="baja-info">
+            <div class="baja-name">Radamel Falcao</div>
+            <div class="baja-reason">Recuperado — lesión isquiotibiales</div>
+          </div>
+        </div>
+        <div class="baja-row">
+          <div class="baja-dot bd-green"></div>
+          <div class="baja-info">
+            <div class="baja-name">Rodrigo Contreras</div>
+            <div class="baja-reason">Recuperado — contractura muscular</div>
+          </div>
+        </div>
+        <div class="baja-row">
+          <div class="baja-dot bd-green"></div>
+          <div class="baja-info">
+            <div class="baja-name">Edgar Elizalde</div>
+            <div class="baja-reason">Recuperado — ausente por precaución</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BLOQUE +EV ═══ -->
+  <div class="ev-block">
+    <div class="ev-header">
+      <div class="ev-title">🎯 APUESTA CON VALOR REAL (+EV)</div>
+      <div class="ev-method-pill">MÉTODO +EV</div>
+    </div>
+
+    <div class="ev-pick">UNDER 2.5 GOLES</div>
+
+    <div class="ev-cuota-row">
+      <div class="ev-cuota-badge">1.95</div>
+      <div class="ev-cuota-label">Cuota decimal promedio del mercado</div>
+    </div>
+
+    <div class="ev-bar-section">
+      <div class="ev-bar-label">Índice de Expected Value</div>
+      <div class="ev-bar-track">
+        <div class="ev-bar-fill" style="width:60%"></div>
+      </div>
+      <div class="ev-bar-pct">+9.8% EV</div>
+    </div>
+
+    <div class="ev-calc-grid">
+      <div class="ev-calc-box">
+        <div class="ev-calc-label">Prob. Real</div>
+        <div class="ev-calc-value">56.3%</div>
+      </div>
+      <div class="ev-calc-box">
+        <div class="ev-calc-label">Prob. Implícita</div>
+        <div class="ev-calc-value">51.3%</div>
+      </div>
+      <div class="ev-calc-box">
+        <div class="ev-calc-label">EV Neto</div>
+        <div class="ev-calc-value green">+9.8%</div>
+      </div>
+    </div>
+
+    <div class="ev-reasons">
+      <div class="ev-reason">100% de los últimos 5 clásicos directos terminaron con Under 2.5 goles</div>
+      <div class="ev-reason">6 de los últimos 6 H2H tuvieron menos de 2.5 goles totales (promedio: ~2.0)</div>
+      <div class="ev-reason">8 de 10 últimos H2H registraron menos de 2 goles en total</div>
+      <div class="ev-reason">Partido único eliminatorio — ambos equipos priorizarán no recibir gol</div>
+      <div class="ev-reason">Millonarios visitante: 13 de 29 partidos fuera terminaron con Under 1.5 goles</div>
+    </div>
+
+    <div class="ev-disclaimer">⚠️ EV calculado sobre modelos estadísticos y cuotas del mercado. Apuesta responsable. Solo +18.</div>
+  </div>
+
+  <!-- ═══ FOOTER ═══ -->
+  <div class="footer">
+    <div class="footer-brand">TU CANAL VIP</div>
+    <div class="footer-vip">⭐ ANÁLISIS VIP</div>
+  </div>
+
+</div>
+</body>
+</html>

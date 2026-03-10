@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║   PODIUM · TEMPLATE FREE-PNG v1.0                           ║
+  ║   Formato: 1080px ancho × altura dinámica                   ║
+  ║   Uso: Screenshot → PNG → Telegram (canal FREE / anzuelo)   ║
+  ║                                                              ║
+  ║   CONTENIDO PERMITIDO:                                       ║
+  ║   ✅ Header (liga, fecha, equipos, posiciones)               ║
+  ║   ✅ Barra de probabilidades 1X2 (solo porcentajes)          ║
+  ║   ✅ Forma reciente — badges G/E/P                           ║
+  ║   ✅ Clasificación básica (posición, puntos, V/E/D)          ║
+  ║   ✅ Footer CTA → canal VIP                                  ║
+  ║                                                              ║
+  ║   CONTENIDO PROHIBIDO (exclusivo VIP):                       ║
+  ║   ❌ Cuotas de cualquier tipo                                ║
+  ║   ❌ Cálculo de EV o predicción                              ║
+  ║   ❌ H2H detallado                                           ║
+  ║   ❌ Bajas detalladas (máximo: "X bajas importantes")        ║
+  ║   ❌ Mercados de goles                                       ║
+  ║   ❌ Marca de agua VIP                                       ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>[LOCAL] vs [VISITANTE] · Podium FREE</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  /* ── SISTEMA DE DISEÑO PODIUM ── */
+  --bg:#0b0d1c;
+  --bg2:#10132a;
+  --card:#141828;
+  --border:#1e2340;
+  --gold:#f5bc2f;
+  --green:#25d466;
+  --red:#ef4444;
+  --orange:#f97316;
+  --yellow:#eab308;
+  --text:#dde4f0;
+  --muted:#7a839e;
+
+  /* ── COLORES EQUIPO LOCAL — cambiar por partido ── */
+  --loc:#EF0107;
+  --loc2:#FFD700;
+
+  /* ── COLORES EQUIPO VISITANTE — cambiar por partido ── */
+  --vis:#034694;
+  --vis2:#9FC4F8;
+}
+
+html,body{margin:0;padding:0;width:1080px;background:var(--bg);}
+body{font-family:'Barlow Condensed',sans-serif;width:1080px;}
+/* Sin position:relative — la FREE no tiene watermark */
+.card{width:1080px;background:var(--bg);overflow:hidden;}
+
+/* ════════════════════════════════
+   HEADER
+   ════════════════════════════════ */
+.header{
+  background:linear-gradient(160deg,var(--loc) 0%,#0a0e24 40%,#0a0e24 60%,var(--vis) 100%);
+  padding:28px 36px 0;position:relative;overflow:hidden;
+}
+.header::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 15% 60%,rgba(255,255,255,.06) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 60%,rgba(255,255,255,.04) 0%,transparent 55%);
+}
+.top-line{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:24px;position:relative;z-index:1;
+}
+.lge-pill{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:6px 18px;
+  font-family:'Bebas Neue';font-size:18px;letter-spacing:2px;color:var(--gold);
+}
+.date-pill{
+  font-size:16px;color:var(--muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+  border-radius:20px;padding:6px 18px;
+}
+.matchup{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:28px;position:relative;z-index:1;
+}
+.team{display:flex;flex-direction:column;align-items:center;gap:10px;width:280px;}
+.logo{
+  width:100px;height:100px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:44px;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);border:3px solid rgba(255,255,255,.13);
+  position:relative;
+}
+.logo-loc{background:linear-gradient(135deg,var(--loc),color-mix(in srgb,var(--loc) 50%,black));}
+.logo-vis{background:linear-gradient(135deg,var(--vis),color-mix(in srgb,var(--vis) 50%,black));}
+.rk{
+  position:absolute;bottom:-6px;right:-6px;
+  background:var(--gold);color:#000;font-family:'Bebas Neue';font-size:14px;
+  padding:2px 8px;border-radius:6px;
+}
+.tname{font-family:'Bebas Neue';font-size:28px;letter-spacing:2px;color:#fff;text-align:center;line-height:1.1;}
+.tpts{font-size:16px;color:var(--muted);}
+.trec{font-size:14px;color:rgba(255,255,255,.3);}
+.vs-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.vs{font-family:'Bebas Neue';font-size:56px;color:var(--gold);text-shadow:0 0 30px rgba(245,188,47,.4);line-height:1;}
+.ko{font-size:16px;color:var(--muted);text-align:center;line-height:1.5;}
+
+/* ════════════════════════════════
+   BARRA DE PROBABILIDADES 1X2
+   Solo porcentajes — sin cuotas
+   ════════════════════════════════ */
+.prob{background:rgba(0,0,0,.35);padding:18px 36px 22px;border-top:1px solid rgba(255,255,255,.04);}
+.prob-hdr{display:flex;justify-content:space-between;margin-bottom:12px;}
+.ph{display:flex;flex-direction:column;}
+.ph.center{align-items:center;}
+.ph.right{align-items:flex-end;}
+.ph-lbl{font-size:14px;color:var(--muted);letter-spacing:1.5px;}
+.ph-pct{font-family:'Bebas Neue';font-size:26px;}
+.ph-pct.l{color:var(--loc2);}
+.ph-pct.d{color:var(--gold);}
+.ph-pct.v{color:var(--vis2);}
+.bar{height:12px;border-radius:6px;overflow:hidden;display:flex;gap:3px;}
+.bs{border-radius:6px;}
+.bs-l{background:linear-gradient(90deg,var(--loc),var(--loc2));}
+.bs-d{background:var(--gold);}
+.bs-v{background:linear-gradient(90deg,var(--vis),var(--vis2));}
+
+/* ════════════════════════════════
+   DIVISORES DE SECCIÓN
+   ════════════════════════════════ */
+.section-divider{
+  background:var(--bg2);padding:14px 30px;
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+}
+.sd-title{font-family:'Bebas Neue';font-size:18px;letter-spacing:3px;color:var(--gold);}
+
+/* ════════════════════════════════
+   ÁREA DE CONTENIDO
+   ════════════════════════════════ */
+.content{padding:24px 30px;}
+.sec{
+  font-family:'Bebas Neue';font-size:18px;letter-spacing:3px;color:var(--muted);
+  padding-bottom:8px;border-bottom:1px solid var(--border);
+  margin-bottom:14px;margin-top:22px;
+}
+.sec:first-child{margin-top:0;}
+
+/* ════════════════════════════════
+   FORMA RECIENTE (badges G/E/P)
+   ════════════════════════════════ */
+.frow{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.fl{font-size:16px;color:var(--muted);width:200px;}
+.bdgs{display:flex;gap:5px;}
+.b{
+  width:36px;height:36px;border-radius:8px;
+  font-family:'Bebas Neue';font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+}
+.b.G{background:var(--green);color:#000;}
+.b.E{background:var(--gold);color:#000;}
+.b.P{background:var(--red);color:#fff;}
+.frec{margin-left:auto;font-size:14px;color:var(--muted);}
+
+/* ════════════════════════════════
+   CLASIFICACIÓN BÁSICA (2 columnas)
+   ════════════════════════════════ */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.sbox{background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);}
+.sh{
+  font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;
+  margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);
+}
+.sh.l{color:var(--loc2);}
+.sh.v{color:var(--vis2);}
+.sr{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);
+}
+.sr:last-child{border:none;}
+.sl{font-size:15px;color:var(--muted);}
+.sv{font-size:16px;font-weight:700;color:var(--text);}
+.sv.g{color:var(--green);}
+.sv.r{color:var(--red);}
+.sv.y{color:var(--gold);}
+
+/* ════════════════════════════════
+   BLOQUE DE BAJAS SIMPLIFICADO
+   Solo menciona cuántas bajas, sin detalles
+   ════════════════════════════════ */
+.bajas-simple{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px;
+}
+.baja-box{
+  background:var(--card);border-radius:12px;padding:16px;
+  border:1px solid var(--border);text-align:center;
+}
+.baja-num{font-family:'Bebas Neue';font-size:36px;color:var(--red);}
+.baja-lbl{font-size:14px;color:var(--muted);letter-spacing:1px;}
+.baja-note{font-size:13px;color:rgba(255,255,255,.3);margin-top:4px;}
+
+/* ════════════════════════════════
+   BLOQUE DE PREVIEW VIP (CTA oculto)
+   Muestra el "avance" del análisis completo
+   ════════════════════════════════ */
+.vip-preview{
+  margin:0 30px 24px;
+  background:linear-gradient(135deg,#0d1025,#141828);
+  border:1px solid rgba(245,188,47,.2);border-radius:16px;
+  overflow:hidden;
+}
+.vip-preview-header{
+  background:linear-gradient(90deg,rgba(245,188,47,.12),rgba(245,188,47,.04));
+  padding:14px 20px;border-bottom:1px solid rgba(245,188,47,.15);
+  display:flex;align-items:center;gap:10px;
+}
+.lock-icon{font-size:20px;}
+.vip-preview-title{font-family:'Bebas Neue';font-size:18px;color:var(--gold);letter-spacing:3px;}
+.vip-preview-body{padding:20px;}
+.vip-items{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.vip-item{
+  background:rgba(0,0,0,.3);border-radius:10px;padding:12px 14px;
+  display:flex;align-items:center;gap:10px;
+  border:1px solid rgba(255,255,255,.04);
+}
+.vi-icon{font-size:18px;}
+.vi-text{font-size:14px;color:rgba(255,255,255,.5);}
+.vi-blur{
+  font-family:'Bebas Neue';font-size:22px;
+  color:transparent;text-shadow:0 0 10px rgba(245,188,47,.4);
+  letter-spacing:2px;filter:blur(5px);margin-top:2px;
+}
+
+/* ════════════════════════════════
+   FOOTER FREE — CTA al canal VIP
+   ════════════════════════════════ */
+.footer-cta{
+  background:linear-gradient(135deg,#0d1025,#161a30);
+  padding:28px 36px;
+  border-top:2px solid rgba(245,188,47,.25);
+  text-align:center;
+}
+.cta-brand{
+  font-family:'Bebas Neue';font-size:28px;color:var(--gold);
+  letter-spacing:4px;margin-bottom:6px;
+}
+.cta-headline{
+  font-family:'Bebas Neue';font-size:20px;color:#fff;
+  letter-spacing:2px;margin-bottom:10px;
+}
+.cta-text{
+  font-size:15px;color:var(--muted);line-height:1.5;
+  max-width:600px;margin:0 auto 18px;
+}
+.cta-btn{
+  display:inline-block;
+  background:linear-gradient(135deg,var(--gold),#d4a017);
+  color:#000;font-family:'Bebas Neue';font-size:18px;
+  letter-spacing:2px;padding:12px 36px;border-radius:10px;
+}
+.disc{
+  font-size:12px;color:rgba(255,255,255,.2);
+  text-align:center;padding:10px 36px 14px;line-height:1.4;
+}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- ══════════════════════════════════════════
+       HEADER: Liga · Fecha · Matchup · Prob 1X2
+       SIN watermark en versión FREE
+       ══════════════════════════════════════════ -->
+  <div class="header">
+    <div class="top-line">
+      <div class="lge-pill">⚽ PREMIER LEAGUE</div>
+      <div class="date-pill">J30 · Dom 15 Mar 2026</div>
+    </div>
+
+    <div class="matchup">
+      <div class="team">
+        <div class="logo logo-loc">🔴<div class="rk">2.º</div></div>
+        <div class="tname">Arsenal</div>
+        <div class="tpts">58 pts · 17V-7E-5D</div>
+        <div class="trec">5 victorias seguidas</div>
+      </div>
+      <div class="vs-col">
+        <div class="vs">VS</div>
+        <div class="ko">Emirates Stadium<br>16:30 UTC</div>
+      </div>
+      <div class="team">
+        <div class="logo logo-vis">🔵<div class="rk">6.º</div></div>
+        <div class="tname">Chelsea</div>
+        <div class="tpts">44 pts · 12V-8E-9D</div>
+        <div class="trec">3V seguidas de visitante</div>
+      </div>
+    </div>
+
+    <!-- BARRA DE PROBABILIDADES — solo porcentajes, sin cuotas -->
+    <div class="prob">
+      <div class="prob-hdr">
+        <div class="ph"><div class="ph-lbl">ARSENAL</div><div class="ph-pct l">52.4%</div></div>
+        <div class="ph center"><div class="ph-lbl">EMPATE</div><div class="ph-pct d">23.1%</div></div>
+        <div class="ph right"><div class="ph-lbl">CHELSEA</div><div class="ph-pct v">24.5%</div></div>
+      </div>
+      <div class="bar">
+        <div class="bs bs-l" style="width:52.4%"></div>
+        <div class="bs bs-d" style="width:23.1%"></div>
+        <div class="bs bs-v" style="width:24.5%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ESTADÍSTICAS BÁSICAS (FREE)
+       · Forma reciente
+       · Clasificación básica
+       · Bajas: número simplificado
+       ══════════════════════════════════════════ -->
+  <div class="section-divider"><div class="sd-title">📊 ESTADÍSTICAS</div></div>
+  <div class="content">
+
+    <div class="sec">FORMA RECIENTE — ÚLTIMOS 5 PJ</div>
+    <div class="frow">
+      <div class="fl">🔴 Arsenal</div>
+      <div class="bdgs">
+        <div class="b G">G</div><div class="b G">G</div><div class="b E">E</div>
+        <div class="b G">G</div><div class="b G">G</div>
+      </div>
+      <div class="frec">4V · 1E · 0D</div>
+    </div>
+    <div class="frow">
+      <div class="fl">🔵 Chelsea</div>
+      <div class="bdgs">
+        <div class="b P">P</div><div class="b G">G</div><div class="b G">G</div>
+        <div class="b E">E</div><div class="b G">G</div>
+      </div>
+      <div class="frec">3V · 1E · 1D</div>
+    </div>
+
+    <div class="sec">CLASIFICACIÓN</div>
+    <div class="two">
+      <div class="sbox">
+        <div class="sh l">🔴 ARSENAL</div>
+        <div class="sr"><div class="sl">Posición</div><div class="sv y">2.º</div></div>
+        <div class="sr"><div class="sl">Puntos</div><div class="sv">58</div></div>
+        <div class="sr"><div class="sl">V / E / D</div><div class="sv">17 / 7 / 5</div></div>
+      </div>
+      <div class="sbox">
+        <div class="sh v">🔵 CHELSEA</div>
+        <div class="sr"><div class="sl">Posición</div><div class="sv">6.º</div></div>
+        <div class="sr"><div class="sl">Puntos</div><div class="sv">44</div></div>
+        <div class="sr"><div class="sl">V / E / D</div><div class="sv">12 / 8 / 9</div></div>
+      </div>
+    </div>
+
+    <!-- Bajas simplificadas — sin nombres ni detalles -->
+    <div class="sec">🚨 BAJAS</div>
+    <div class="bajas-simple">
+      <div class="baja-box">
+        <div class="baja-num">3</div>
+        <div class="baja-lbl">🔴 ARSENAL</div>
+        <div class="baja-note">Bajas importantes</div>
+      </div>
+      <div class="baja-box">
+        <div class="baja-num">3</div>
+        <div class="baja-lbl">🔵 CHELSEA</div>
+        <div class="baja-note">Bajas importantes</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       BLOQUE PREVIEW VIP
+       Muestra lo que el suscriptor VIP ve
+       con efecto "bloqueado"
+       ══════════════════════════════════════════ -->
+  <div class="vip-preview">
+    <div class="vip-preview-header">
+      <div class="lock-icon">🔒</div>
+      <div class="vip-preview-title">ANÁLISIS COMPLETO — EXCLUSIVO VIP</div>
+    </div>
+    <div class="vip-preview-body">
+      <div class="vip-items">
+        <div class="vip-item">
+          <div class="vi-icon">💰</div>
+          <div>
+            <div class="vi-text">Cuotas del partido</div>
+            <div class="vi-blur">1.88 · 3.70 · 4.10</div>
+          </div>
+        </div>
+        <div class="vip-item">
+          <div class="vi-icon">🎯</div>
+          <div>
+            <div class="vi-text">Apuesta con +EV</div>
+            <div class="vi-blur">+15.6% EV</div>
+          </div>
+        </div>
+        <div class="vip-item">
+          <div class="vi-icon">📈</div>
+          <div>
+            <div class="vi-text">H2H completo</div>
+            <div class="vi-blur">198 PJ · 80-50-68</div>
+          </div>
+        </div>
+        <div class="vip-item">
+          <div class="vi-icon">🚨</div>
+          <div>
+            <div class="vi-text">Bajas detalladas</div>
+            <div class="vi-blur">Romero · James · +4</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       FOOTER FREE — CTA al canal VIP
+       ══════════════════════════════════════════ -->
+  <div class="footer-cta">
+    <div class="cta-brand">📊 PODIUM</div>
+    <div class="cta-headline">🔒 DESBLOQUEA EL ANÁLISIS COMPLETO</div>
+    <div class="cta-text">
+      Regístrate y deposita para acceder a predicciones con valor real,
+      cuotas analizadas y el mercado con mejor +EV calculado por modelo estadístico.
+    </div>
+    <div class="cta-btn">🌟 ACCEDER AL VIP</div>
+  </div>
+  <div class="disc">Las probabilidades son estimaciones estadísticas. Solo +18. Juega con responsabilidad.</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "partido": {
+    "local": "Atleti",
+    "visitante": "Tottenham",
+    "liga": "Champions League",
+    "estadio": null,
+    "hora_utc": null
+  },
+  "elo": {
+    "local": null,
+    "visitante": 1789.4
+  },
+  "xg": {
+    "local": {
+      "atk": [
+        1.57,
+        1.57,
+        1.57,
+        1.57,
+        1.57,
+        1.57,
+        1.57,
+        1.57
+      ],
+      "def": [
+        1.09,
+        1.09,
+        1.09,
+        1.09,
+        1.09,
+        1.09,
+        1.09,
+        1.09
+      ]
+    },
+    "visitante": {
+      "atk": [
+        1.04,
+        1.04,
+        1.04,
+        1.04,
+        1.04,
+        1.04,
+        1.04,
+        1.04
+      ],
+      "def": [
+        1.51,
+        1.51,
+        1.51,
+        1.51,
+        1.51,
+        1.51,
+        1.51,
+        1.51
+      ]
+    }
+  },
+  "liga_avg_goals": 3.44,
+  "standings": {
+    "pos_local": null,
+    "pts_local": null,
+    "pos_visitante": 4,
+    "pts_visitante": 17
+  },
+  "forma": {
+    "local": null,
+    "visitante": [
+      "W",
+      "L",
+      "W",
+      "W",
+      "W"
+    ]
+  },
+  "h2h": {
+    "victorias_local": null,
+    "empates": null,
+    "victorias_visitante": null
+  },
+  "bajas": {
+    "local": null,
+    "visitante": null
+  },
+  "odds": {
+    "pinnacle": {
+      "local": null,
+      "empate": null,
+      "visitante": null
+    },
+    "mejor_cuota": {
+      "local": null,
+      "empate": null,
+      "visitante": null,
+      "over25": null,
+      "btts": null
+    },
+    "corners": {
+      "avg_local": null,
+      "avg_visitante": null,
+      "linea": null
+    }
+  }
+}

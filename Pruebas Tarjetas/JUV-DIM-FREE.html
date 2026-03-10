@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<!--
+  PODIUM FREE · JUV-DIM-FREE.html
+  Juventud de Las Piedras vs Independiente Medellín
+  Copa Libertadores 2026 — Fase 3 (Ida)
+  Generada: 05/03/2026
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Juventud vs Independiente Medellín · Podium FREE</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0b0d1c;
+  --bg2:#10132a;
+  --card:#141828;
+  --border:#1e2340;
+  --gold:#f5bc2f;
+  --green:#25d466;
+  --red:#ef4444;
+  --orange:#f97316;
+  --yellow:#eab308;
+  --text:#dde4f0;
+  --muted:#7a839e;
+
+  /* JUVENTUD DE LAS PIEDRAS — verde y blanco */
+  --loc:#00843D;
+  --loc2:#A8FFD0;
+
+  /* INDEPENDIENTE MEDELLÍN — rojo */
+  --vis:#CC0000;
+  --vis2:#FF9999;
+}
+
+html,body{margin:0;padding:0;width:1080px;background:var(--bg);}
+body{font-family:'Barlow Condensed',sans-serif;width:1080px;}
+/* FREE: sin position:relative en .card (no watermark) */
+.card{width:1080px;background:var(--bg);overflow:hidden;}
+
+/* HEADER */
+.header{
+  background:linear-gradient(160deg,var(--loc) 0%,#0a0e24 40%,#0a0e24 60%,var(--vis) 100%);
+  padding:28px 36px 0;position:relative;overflow:hidden;
+}
+.header::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 15% 60%,rgba(255,255,255,.06) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 60%,rgba(255,255,255,.04) 0%,transparent 55%);
+}
+.top-line{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;position:relative;z-index:1;}
+.lge-pill{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:6px 18px;
+  font-family:'Bebas Neue';font-size:18px;letter-spacing:2px;color:var(--gold);
+}
+.date-pill{
+  font-size:16px;color:var(--muted);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);
+  border-radius:20px;padding:6px 18px;
+}
+.matchup{display:flex;align-items:center;justify-content:space-between;padding-bottom:28px;position:relative;z-index:1;}
+.team{display:flex;flex-direction:column;align-items:center;gap:10px;width:280px;}
+.logo{
+  width:100px;height:100px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:44px;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);border:3px solid rgba(255,255,255,.13);
+  position:relative;
+}
+.logo-loc{background:linear-gradient(135deg,var(--loc),color-mix(in srgb,var(--loc) 50%,black));}
+.logo-vis{background:linear-gradient(135deg,var(--vis),color-mix(in srgb,var(--vis) 50%,black));}
+.rk{
+  position:absolute;bottom:-6px;right:-6px;
+  background:var(--gold);color:#000;font-family:'Bebas Neue';font-size:14px;
+  padding:2px 8px;border-radius:6px;
+}
+.tname{font-family:'Bebas Neue';font-size:28px;letter-spacing:2px;color:#fff;text-align:center;line-height:1.1;}
+.tpts{font-size:16px;color:var(--muted);}
+.trec{font-size:14px;color:rgba(255,255,255,.3);}
+.vs-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.vs{font-family:'Bebas Neue';font-size:56px;color:var(--gold);text-shadow:0 0 30px rgba(245,188,47,.4);line-height:1;}
+.ko{font-size:16px;color:var(--muted);text-align:center;line-height:1.5;}
+.badge-live{background:var(--red);color:#fff;font-family:'Bebas Neue';font-size:14px;letter-spacing:2px;padding:4px 14px;border-radius:6px;}
+
+/* PROB BAR */
+.prob{background:rgba(0,0,0,.35);padding:18px 36px 22px;border-top:1px solid rgba(255,255,255,.04);}
+.prob-hdr{display:flex;justify-content:space-between;margin-bottom:12px;}
+.ph{display:flex;flex-direction:column;}
+.ph.center{align-items:center;}
+.ph.right{align-items:flex-end;}
+.ph-lbl{font-size:14px;color:var(--muted);letter-spacing:1.5px;}
+.ph-pct{font-family:'Bebas Neue';font-size:26px;}
+.ph-pct.l{color:var(--loc2);}
+.ph-pct.d{color:var(--gold);}
+.ph-pct.v{color:var(--vis2);}
+.bar{height:12px;border-radius:6px;overflow:hidden;display:flex;gap:3px;}
+.bs{border-radius:6px;}
+.bs-l{background:linear-gradient(90deg,var(--loc),var(--loc2));}
+.bs-d{background:var(--gold);}
+.bs-v{background:linear-gradient(90deg,var(--vis),var(--vis2));}
+
+/* SECTION DIVIDER */
+.section-divider{background:var(--bg2);padding:14px 30px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.sd-title{font-family:'Bebas Neue';font-size:18px;letter-spacing:3px;color:var(--gold);}
+
+/* CONTENT */
+.content{padding:24px 30px;}
+.sec{
+  font-family:'Bebas Neue';font-size:18px;letter-spacing:3px;color:var(--muted);
+  padding-bottom:8px;border-bottom:1px solid var(--border);
+  margin-bottom:14px;margin-top:22px;
+}
+.sec:first-child{margin-top:0;}
+
+/* FORMA RECIENTE */
+.frow{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.fl{font-size:16px;color:var(--muted);width:240px;}
+.bdgs{display:flex;gap:5px;}
+.b{width:36px;height:36px;border-radius:8px;font-family:'Bebas Neue';font-size:18px;display:flex;align-items:center;justify-content:center;}
+.b.G{background:var(--green);color:#000;}
+.b.E{background:var(--gold);color:#000;}
+.b.P{background:var(--red);color:#fff;}
+.frec{margin-left:auto;font-size:14px;color:var(--muted);}
+
+/* STATS BOXES */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.sbox{background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);}
+.sh{font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.sh.l{color:var(--loc2);}
+.sh.v{color:var(--vis2);}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.sr:last-child{border:none;}
+.sl{font-size:15px;color:var(--muted);}
+.sv{font-size:16px;font-weight:700;color:var(--text);}
+.sv.g{color:var(--green);}
+.sv.r{color:var(--red);}
+.sv.y{color:var(--gold);}
+
+/* BAJAS (FREE: solo conteo, sin nombres) */
+.baja-count{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-radius:10px;margin-bottom:8px;
+  background:var(--card);border:1px solid var(--border);
+}
+.bc-team{font-size:16px;font-weight:600;color:var(--text);}
+.bc-nums{display:flex;gap:12px;}
+.bc-n{display:flex;align-items:center;gap:6px;font-size:14px;}
+.sem{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.sem.r{background:var(--red);box-shadow:0 0 8px var(--red);}
+.sem.o{background:var(--orange);box-shadow:0 0 8px var(--orange);}
+.baja-ok{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px 16px;font-size:15px;color:rgba(34,197,94,.8);display:flex;align-items:center;gap:10px;}
+
+/* BLOQUE VIP PREVIEW (contenido bloqueado) */
+.vip-preview{position:relative;margin:0 30px 4px;border-radius:16px;overflow:hidden;border:1px solid rgba(245,188,47,.25);}
+.vip-preview-inner{padding:20px;filter:blur(6px);user-select:none;pointer-events:none;}
+.vip-overlay{
+  position:absolute;inset:0;
+  background:rgba(11,13,28,.75);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;
+}
+.lock-icon{font-size:36px;}
+.lock-title{font-family:'Bebas Neue';font-size:22px;color:var(--gold);letter-spacing:3px;}
+.lock-sub{font-size:14px;color:rgba(255,255,255,.5);text-align:center;max-width:400px;line-height:1.4;}
+/* fake preview content */
+.fk-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.fk-l{width:180px;height:14px;background:rgba(255,255,255,.12);border-radius:4px;}
+.fk-v{width:70px;height:14px;background:rgba(245,188,47,.2);border-radius:4px;}
+.fk-lbl{font-family:'Bebas Neue';font-size:16px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;}
+
+/* CTA BUTTON */
+.cta-wrap{padding:20px 30px 30px;text-align:center;}
+.cta-btn{
+  display:inline-block;
+  background:linear-gradient(135deg,var(--gold),#e0a820);
+  color:#0b0d1c;font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;
+  padding:16px 48px;border-radius:12px;border:none;cursor:pointer;
+  box-shadow:0 6px 24px rgba(245,188,47,.35);
+}
+.cta-sub{margin-top:10px;font-size:15px;color:var(--muted);}
+
+/* FOOTER */
+.footer{background:linear-gradient(90deg,var(--loc),#0a0e24,var(--vis));padding:18px 36px;display:flex;justify-content:space-between;align-items:center;}
+.fb{font-family:'Bebas Neue';font-size:26px;color:#fff;letter-spacing:3px;}
+.fv{background:var(--gold);color:#000;font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;padding:6px 18px;border-radius:8px;}
+.disc{font-size:13px;color:rgba(255,255,255,.25);text-align:center;padding:12px 36px 16px;line-height:1.4;}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- HEADER (idéntico a VIP) -->
+  <div class="header">
+    <div class="top-line">
+      <div class="lge-pill">🏆 COPA LIBERTADORES 2026</div>
+      <div class="date-pill">Fase 3 · Ida · Jue 5 Mar 2026</div>
+    </div>
+
+    <div class="matchup">
+      <div class="team">
+        <div class="logo logo-loc">🟢<div class="rk">15.º</div></div>
+        <div class="tname">Juventud<br>Las Piedras</div>
+        <div class="tpts">Liga AUF · 1pt (0V-1E-3D)</div>
+        <div class="trec">Invicto en Copa Lib 2026</div>
+      </div>
+
+      <div class="vs-col">
+        <div class="vs">VS</div>
+        <div class="ko">Gran Parque Central<br>Montevideo, Uruguay<br>21:30 UYU · 19:30 COL</div>
+        <div class="badge-live">HOY</div>
+      </div>
+
+      <div class="team">
+        <div class="logo logo-vis">🔴</div>
+        <div class="tname">Independiente<br>Medellín</div>
+        <div class="tpts">Liga BetPlay · 1V de 9 PJ</div>
+        <div class="trec">Busca fase de grupos</div>
+      </div>
+    </div>
+
+    <!-- PROB BAR 1X2 -->
+    <div class="prob">
+      <div class="prob-hdr">
+        <div class="ph"><div class="ph-lbl">JUVENTUD</div><div class="ph-pct l">28.9%</div></div>
+        <div class="ph center"><div class="ph-lbl">EMPATE</div><div class="ph-pct d">28.1%</div></div>
+        <div class="ph right"><div class="ph-lbl">MEDELLÍN</div><div class="ph-pct v">43.0%</div></div>
+      </div>
+      <div class="bar">
+        <div class="bs bs-l" style="width:28.9%"></div>
+        <div class="bs bs-d" style="width:28.1%"></div>
+        <div class="bs bs-v" style="width:43.0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADÍSTICAS (versión FREE) -->
+  <div class="section-divider"><div class="sd-title">📊 ESTADÍSTICAS</div></div>
+  <div class="content">
+
+    <div class="sec">FORMA RECIENTE — ÚLTIMAS 5 PRESENTACIONES (TODAS LAS COMP.)</div>
+    <div class="frow">
+      <div class="fl">🟢 Juventud Las Piedras</div>
+      <div class="bdgs">
+        <div class="b P">P</div><div class="b G">G</div><div class="b G">G</div>
+        <div class="b E">E</div><div class="b P">P</div>
+      </div>
+      <div class="frec">2V · 1E · 2D</div>
+    </div>
+    <div class="frow">
+      <div class="fl">🔴 Independiente Medellín</div>
+      <div class="bdgs">
+        <div class="b P">P</div><div class="b E">E</div><div class="b G">G</div>
+        <div class="b P">P</div><div class="b P">P</div>
+      </div>
+      <div class="frec">1V · 1E · 3D</div>
+    </div>
+
+    <div class="sec">CLASIFICACIÓN Y CONTEXTO</div>
+    <div class="two">
+      <div class="sbox">
+        <div class="sh l">🟢 JUVENTUD LAS PIEDRAS</div>
+        <div class="sr"><div class="sl">Copa Lib — Fase</div><div class="sv y">Fase 3 (Ida)</div></div>
+        <div class="sr"><div class="sl">Rondas eliminadas</div><div class="sv g">2 equipos</div></div>
+        <div class="sr"><div class="sl">Liga AUF — Posición</div><div class="sv r">15.º (último)</div></div>
+        <div class="sr"><div class="sl">Liga AUF — Registro</div><div class="sv">0V / 1E / 3D</div></div>
+        <div class="sr"><div class="sl">Goles Copa Lib 2026</div><div class="sv g">4 marcados</div></div>
+      </div>
+      <div class="sbox">
+        <div class="sh v">🔴 INDEPENDIENTE MEDELLÍN</div>
+        <div class="sr"><div class="sl">Copa Lib — Fase</div><div class="sv y">Fase 3 (Ida)</div></div>
+        <div class="sr"><div class="sl">Rival anterior</div><div class="sv">Liverpool UY (agg 2-1)</div></div>
+        <div class="sr"><div class="sl">Liga BetPlay — Registro</div><div class="sv r">1V de 9 PJ</div></div>
+        <div class="sr"><div class="sl">BTTS últimos 7 partidos</div><div class="sv g">6 de 7 (86%)</div></div>
+        <div class="sr"><div class="sl">DT</div><div class="sv">Alejandro Restrepo</div></div>
+      </div>
+    </div>
+
+    <!-- FREE: bajas como conteo únicamente -->
+    <div class="sec">DISPONIBILIDAD PARA ESTE PARTIDO</div>
+    <div class="baja-ok">🟢 Juventud Las Piedras — Sin bajas reportadas</div>
+    <div style="height:8px"></div>
+    <div class="baja-count">
+      <div class="bc-team">🔴 Independiente Medellín</div>
+      <div class="bc-nums">
+        <div class="bc-n"><div class="sem r"></div><span>1 baja (larga duración)</span></div>
+        <div class="bc-n"><div class="sem o"></div><span>1 no disponible</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIP PREVIEW — contenido bloqueado con blur -->
+  <div class="section-divider"><div class="sd-title">💰 CUOTAS Y ANÁLISIS AVANZADO</div></div>
+  <div class="vip-preview">
+    <div class="vip-preview-inner">
+      <div class="fk-lbl">CUOTAS 1X2 (DECIMAL)</div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div style="height:16px"></div>
+      <div class="fk-lbl">BAJAS DETALLADAS (NOMBRES + POSICIÓN)</div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div style="height:16px"></div>
+      <div class="fk-lbl">🎯 APUESTA +EV RECOMENDADA</div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+      <div class="fk-row"><div class="fk-l"></div><div class="fk-v"></div></div>
+    </div>
+    <div class="vip-overlay">
+      <div class="lock-icon">🔒</div>
+      <div class="lock-title">CONTENIDO EXCLUSIVO VIP</div>
+      <div class="lock-sub">Las cuotas, bajas detalladas y la apuesta con valor real (+EV) solo están disponibles para miembros VIP de Podium.</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <div class="cta-btn">🌟 ACCEDER AL VIP</div>
+    <div class="cta-sub">Desbloquea cuotas, análisis +EV y picks exclusivos diarios</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="fb">📊 PODIUM</div>
+    <div class="fv">ANÁLISIS DEPORTIVO</div>
+  </div>
+  <div class="disc">Análisis deportivo informativo · Las apuestas conllevan riesgo · Solo +18 · @Podium</div>
+
+</div>
+</body>
+</html>

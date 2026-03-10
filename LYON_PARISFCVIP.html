@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podium VIP Card - Lyon vs Paris FC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800&display=swap');
+        
+        /* RESET TOTAL: Sin bloqueos de scroll */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #050816;
+            width: 100%;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            padding: 50px 20px; /* Margen para que respire arriba y abajo */
+        }
+
+        .podium-card {
+            font-family: 'Barlow Condensed', sans-serif;
+            width: 1080px; /* Estricto 1080px como manda el Master */
+            min-height: 1080px; /* Permite que crezca sin cortar nada */
+            background-color: #0a0e21;
+            border: 4px solid #00FF00;
+            position: relative;
+            box-shadow: 0 0 80px rgba(0, 255, 0, 0.15);
+            color: white;
+            padding: 70px; /* Espacio interno para que nada toque los bordes */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Efectos visuales */
+        .neon-text {
+            color: #00FF00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8), 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .vip-gold {
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        /* Fondo radial degradado interno */
+        .podium-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0,255,0,0.04) 0%, rgba(10,14,33,1) 85%);
+            z-index: 1;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .divider {
+            height: 2px;
+            background: linear-gradient(90deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.8) 50%, rgba(0,255,0,0) 100%);
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="podium-card">
+        <div class="content-layer">
+            
+            <div class="flex justify-between items-center">
+                <div class="text-7xl font-extrabold tracking-tighter">
+                    PO<span class="neon-text">DIUM</span>
+                </div>
+                <div class="text-right">
+                    <div class="text-3xl font-bold uppercase tracking-widest text-gray-500">Ligue 1 (J25)</div>
+                    <div class="text-4xl font-bold neon-text">08 MAR 2026 · 19:45 UTC</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="flex justify-between items-center mt-12 mb-15">
+                <div class="text-center w-[45%]">
+                    <div class="text-8xl font-extrabold uppercase tracking-tight leading-none">Lyon</div>
+                    <div class="text-2xl font-bold text-gray-400 mt-3 uppercase tracking-wider">Local</div>
+                </div>
+                <div class="text-7xl font-extrabold text-gray-700 mx-5">VS</div>
+                <div class="text-center w-[45%]">
+                    <div class="text-8xl font-extrabold uppercase tracking-tight leading-none">Paris FC</div>
+                    <div class="text-2xl font-bold text-gray-400 mt-3 uppercase tracking-wider">Visitante</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="flex justify-around items-stretch mt-12">
+                <div class="text-center border-r border-gray-800 pr-16 w-1/2">
+                    <div class="text-3xl font-bold text-gray-500 uppercase tracking-widest">RATING PODIUM</div>
+                    <div class="flex items-end justify-center mt-5">
+                        <div class="text-7xl font-extrabold neon-text leading-none">1754.9</div>
+                        <div class="text-3xl font-bold text-gray-700 ml-5 mb-1">vs 1546.8</div>
+                    </div>
+                </div>
+                <div class="text-center pl-16 w-1/2">
+                    <div class="text-3xl font-bold text-gray-500 uppercase tracking-widest">PROYECCIÓN OFENSIVA (xG+)</div>
+                    <div class="flex items-end justify-center mt-5">
+                        <div class="text-7xl font-extrabold neon-text leading-none">3.09</div>
+                        <div class="text-3xl font-bold text-gray-700 ml-5 mb-1">vs 0.69</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="bg-gray-900 border-4 border-[#FFD700] rounded-[30px] p-12 mt-8 flex-grow shadow-2xl">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-5xl font-extrabold vip-gold tracking-tight">★ PICK VIP CONFIRMADO ★</div>
+                        <div class="text-[100px] font-extrabold uppercase tracking-tighter mt-8 leading-none">Victoria Lyon</div>
+                        <div class="text-3xl font-bold text-gray-400 mt-4 uppercase">Mercado: 1X2_LOCAL</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-gray-400 uppercase tracking-widest">CONSENSO DEL MOTOR</div>
+                        <div class="text-7xl font-extrabold neon-text mt-3">3/3 <span class="text-4xl text-gray-600">Algoritmos</span></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end mt-16">
+                    <div>
+                        <div class="text-3xl font-bold text-gray-500 uppercase tracking-widest">CUOTA RECOMENDADA</div>
+                        <div class="text-[130px] font-extrabold neon-text mt-4 leading-none">1.69</div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-gray-500 uppercase tracking-widest">VALOR ESPERADO (EV%)</div>
+                        <div class="text-[130px] font-extrabold vip-gold mt-4 leading-none">+18.05%</div>
+                    </div>
+                </div>
+
+                <div class="mt-16 text-center border-t border-gray-800 pt-10">
+                    <span class="text-4xl font-bold text-gray-400 uppercase tracking-wide">CUOTA MÍNIMA ACEPTABLE (+3% EV): </span>
+                    <span class="text-6xl font-extrabold vip-gold ml-6">1.47</span>
+                </div>
+            </div>
+
+            <div class="mt-12 flex justify-between items-center text-gray-700 text-2xl font-bold tracking-widest uppercase">
+                <div>PO<span class="neon-text">DIUM</span> — Análisis Predictivo Propietario</div>
+                <div>Resultados Pasados No Garantizan Resultados Futuros</div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

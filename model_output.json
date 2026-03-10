@@ -1,0 +1,43 @@
+{
+  "probabilidades_modelo": {
+    "local": 49.03,
+    "empate": 25.81,
+    "visitante": 25.16
+  },
+  "probabilidades_mercado": {
+    "local": 43.0,
+    "empate": 29.59,
+    "visitante": 27.41
+  },
+  "probabilidades_finales": {
+    "local": 45.71,
+    "empate": 27.89,
+    "visitante": 26.4
+  },
+  "lambdas": {
+    "local": 1.5189,
+    "visitante": 1.0086
+  },
+  "ev_por_mercado": {
+    "1x2_local": 6.05,
+    "1x2_empate": -5.73,
+    "1x2_visitante": -3.64,
+    "over25": 0.87,
+    "btts": null
+  },
+  "pick_vip": {
+    "mercado": "1x2_local",
+    "cuota": 2.32,
+    "bookie": "Best available",
+    "ev_pct": 6.05,
+    "es_vip": true,
+    "razon_rechazo": "",
+    "cuota_minima": 2.25
+  },
+  "diagnostico": {
+    "xg_usado": "fotmob_promedio",
+    "odds_blend": true,
+    "consenso_modelos": 3,
+    "divergencia_mercado": -6.03
+  }
+}

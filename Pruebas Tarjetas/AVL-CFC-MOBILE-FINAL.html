@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVL vs CFC · VIP Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d1c;--card:#141828;--border:#1e2340;
+  --avl:#a8d4f5;--claret:#8b1450;--cfc:#0a4fad;--cfc2:#5a9ef8;
+  --gold:#f5bc2f;--green:#25d466;--red:#f04444;--orange:#fb8c3a;--yellow:#f5c518;
+  --text:#e8eef8;--muted:#8090b0;
+}
+html,body{margin:0;padding:0;background:var(--bg);}
+body{font-family:'Barlow Condensed',sans-serif;width:1080px;}
+.card{width:1080px;background:var(--bg);overflow:hidden;}
+
+/* ═══ HEADER ═══ */
+.header{
+  background:linear-gradient(155deg, #6b0f4e 0%, #1a0835 30%, #08102e 60%, #0a4fad 100%);
+  padding:48px 60px 0;
+  position:relative;overflow:hidden;
+}
+.header::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 10% 50%, rgba(168,212,245,.09) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 50%, rgba(90,158,248,.09) 0%, transparent 50%);
+}
+.top-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:40px;position:relative;z-index:1;
+}
+.lge-pill{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  border-radius:40px;padding:8px 22px;
+  font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;color:var(--gold);
+}
+.date-pill{
+  font-size:20px;color:var(--muted);letter-spacing:.5px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  border-radius:40px;padding:8px 22px;
+}
+.matchup{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:44px;position:relative;z-index:1;
+}
+.team{display:flex;flex-direction:column;align-items:center;gap:14px;width:320px;}
+.logo{
+  width:140px;height:140px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:64px;
+  box-shadow:0 8px 40px rgba(0,0,0,.7);
+  border:3px solid rgba(255,255,255,.15);
+  position:relative;
+}
+.logo-avl{background:linear-gradient(135deg,#7b1145,#3d0828);}
+.logo-cfc{background:linear-gradient(135deg,#0a4fad,#041a5c);}
+.rk{
+  position:absolute;bottom:-6px;right:-6px;
+  background:var(--gold);color:#000;
+  font-family:'Bebas Neue';font-size:18px;padding:3px 10px;border-radius:8px;
+  box-shadow:0 3px 10px rgba(0,0,0,.4);
+}
+.tname{font-family:'Bebas Neue';font-size:42px;letter-spacing:2px;color:#fff;text-align:center;line-height:1;}
+.tpts{font-size:22px;color:var(--muted);}
+.trec{font-size:18px;color:rgba(255,255,255,.35);}
+.vs-col{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.vs{font-family:'Bebas Neue';font-size:80px;color:var(--gold);text-shadow:0 0 40px rgba(245,188,47,.5);line-height:1;}
+.ko{font-size:20px;color:var(--muted);text-align:center;line-height:1.6;}
+.hoy{
+  background:var(--red);color:#fff;
+  font-family:'Bebas Neue';font-size:18px;letter-spacing:2px;
+  padding:5px 18px;border-radius:8px;
+}
+
+/* PROB BAR */
+.prob{
+  background:rgba(0,0,0,.4);
+  padding:28px 60px 32px;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+.prob-hdr{display:flex;justify-content:space-between;margin-bottom:14px;}
+.ph{display:flex;flex-direction:column;}
+.ph.center{align-items:center;}
+.ph.right{align-items:flex-end;}
+.ph-lbl{font-size:16px;color:var(--muted);letter-spacing:2px;}
+.ph-pct{font-family:'Bebas Neue';font-size:40px;line-height:1;}
+.ph-pct.a{color:var(--avl);}.ph-pct.d{color:var(--gold);}.ph-pct.c{color:var(--cfc2);}
+.bar{height:16px;border-radius:8px;overflow:hidden;display:flex;gap:3px;}
+.bs{border-radius:8px;}
+.bs-a{background:linear-gradient(90deg,var(--claret),var(--avl));}
+.bs-d{background:var(--gold);}
+.bs-c{background:linear-gradient(90deg,var(--cfc),var(--cfc2));}
+
+/* ═══ BODY ═══ */
+.body{padding:40px 60px;display:flex;flex-direction:column;gap:36px;}
+
+.sec{
+  font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;color:var(--muted);
+  padding-bottom:10px;border-bottom:2px solid var(--border);margin-bottom:16px;
+}
+
+/* FORMA */
+.forma-wrap{display:flex;flex-direction:column;gap:14px;}
+.frow{display:flex;align-items:center;gap:20px;}
+.fl{font-size:20px;color:var(--muted);width:160px;flex-shrink:0;}
+.bdgs{display:flex;gap:8px;}
+.b{
+  width:44px;height:44px;border-radius:10px;
+  font-family:'Bebas Neue';font-size:22px;
+  display:flex;align-items:center;justify-content:center;
+}
+.b.G{background:var(--green);color:#000;}
+.b.E{background:var(--gold);color:#000;}
+.b.P{background:var(--red);color:#fff;}
+.frec{font-size:18px;color:var(--muted);margin-left:auto;}
+
+/* BAJAS */
+.bajas-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.bajas-col{}
+.bajas-title{
+  font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;
+  margin-bottom:10px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.bajas-title.a{color:var(--avl);}
+.bajas-title.c{color:var(--cfc2);}
+.baja{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 14px;border-radius:10px;margin-bottom:8px;
+  background:var(--card);border:1px solid var(--border);
+}
+.sem{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.sem.r{background:var(--red);box-shadow:0 0 8px var(--red);}
+.sem.o{background:var(--orange);box-shadow:0 0 8px var(--orange);}
+.sem.y{background:var(--yellow);box-shadow:0 0 8px var(--yellow);}
+.bi{flex:1;}
+.bn{font-size:20px;font-weight:700;color:var(--text);line-height:1.1;}
+.bd{font-size:16px;color:var(--muted);margin-top:2px;}
+.btag{font-size:14px;padding:3px 10px;border-radius:6px;font-weight:700;flex-shrink:0;}
+.tb{background:rgba(240,68,68,.18);color:var(--red);}
+.to{background:rgba(251,140,58,.18);color:var(--orange);}
+.ty{background:rgba(245,197,24,.18);color:var(--yellow);}
+.ley{display:flex;gap:20px;margin-top:4px;}
+.li{display:flex;align-items:center;gap:7px;font-size:16px;color:var(--muted);}
+
+/* ═══ EV BOX ═══ */
+.ev-box{
+  background:linear-gradient(135deg,#050f08,#081a10);
+  border:2px solid rgba(37,212,102,.35);
+  border-radius:20px;overflow:hidden;
+}
+.ev-header{
+  background:linear-gradient(90deg,rgba(37,212,102,.18),rgba(37,212,102,.06));
+  padding:20px 32px;
+  border-bottom:1px solid rgba(37,212,102,.2);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.ev-title{font-family:'Bebas Neue';font-size:28px;color:var(--green);letter-spacing:3px;}
+.ev-badge{
+  background:rgba(37,212,102,.15);border:1px solid rgba(37,212,102,.35);
+  border-radius:8px;padding:5px 14px;
+  font-family:'Bebas Neue';font-size:18px;color:var(--green);letter-spacing:1px;
+}
+.ev-body{padding:28px 32px;}
+.ev-main{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:24px;}
+.ev-left{}
+.ev-market{font-size:16px;color:var(--muted);letter-spacing:2px;margin-bottom:6px;}
+.ev-pick{font-family:'Bebas Neue';font-size:52px;color:var(--green);line-height:1;}
+.ev-sub{font-size:18px;color:rgba(37,212,102,.6);margin-top:4px;}
+.ev-right{text-align:center;}
+.ev-odds-box{
+  background:rgba(37,212,102,.1);border:2px solid rgba(37,212,102,.3);
+  border-radius:14px;padding:14px 24px;
+}
+.ev-odds-lbl{font-size:14px;color:var(--muted);letter-spacing:1px;}
+.ev-odds-val{font-family:'Bebas Neue';font-size:64px;color:var(--green);line-height:1;}
+
+/* METER */
+.ev-meter{margin-bottom:24px;}
+.ev-meter-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.ev-meter-lbl{font-size:16px;color:var(--muted);letter-spacing:1px;}
+.ev-pct{font-family:'Bebas Neue';font-size:26px;color:var(--green);}
+.ev-track{height:16px;background:rgba(255,255,255,.07);border-radius:8px;overflow:hidden;}
+.ev-fill{
+  height:100%;border-radius:8px;
+  background:linear-gradient(90deg,#16a34a,var(--green),#86efac);
+  width:52%;
+  position:relative;overflow:hidden;
+}
+.ev-fill::after{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  animation:sh 2s infinite;
+}
+@keyframes sh{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.ev-ticks{display:flex;justify-content:space-between;margin-top:5px;font-size:14px;color:rgba(255,255,255,.2);}
+
+/* CALC */
+.ev-calc{
+  background:rgba(0,0,0,.35);border-radius:12px;padding:18px 22px;margin-bottom:20px;
+}
+.calc-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;}
+.calc-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;}
+.calc-lbl{font-size:18px;color:var(--muted);}
+.calc-val{font-size:19px;font-weight:700;}
+.calc-val.real{color:var(--green);}
+.calc-val.impl{color:var(--yellow);}
+.calc-val.evp{color:var(--green);}
+.calc-div{height:1px;background:rgba(255,255,255,.07);margin:6px 0;}
+
+/* RAZONES */
+.ev-reasons{list-style:none;}
+.ev-reasons li{
+  font-size:18px;color:var(--text);
+  padding:8px 0 8px 22px;position:relative;line-height:1.5;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.ev-reasons li:last-child{border:none;}
+.ev-reasons li::before{content:'▸';position:absolute;left:0;color:var(--green);font-size:16px;}
+
+.ev-disc{
+  font-size:15px;color:rgba(255,255,255,.3);text-align:center;
+  padding:14px 32px;border-top:1px solid rgba(37,212,102,.1);
+  line-height:1.4;
+}
+
+/* FOOTER */
+.footer{
+  background:linear-gradient(90deg,#5a0f3a,#0d1240,var(--cfc));
+  padding:24px 60px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.fb{font-family:'Bebas Neue';font-size:32px;color:#fff;letter-spacing:3px;}
+.fv{
+  background:var(--gold);color:#000;
+  font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;
+  padding:8px 24px;border-radius:10px;
+}
+.disc{
+  font-size:15px;color:rgba(255,255,255,.22);text-align:center;
+  padding:14px 60px 18px;line-height:1.4;
+}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="top-bar">
+      <div class="lge-pill">⚽ Premier League</div>
+      <div class="date-pill">Miércoles 04 Mar 2026 · 19:30 UTC</div>
+    </div>
+    <div class="matchup">
+      <div class="team">
+        <div class="logo logo-avl">🦁<div class="rk">4.º</div></div>
+        <div class="tname">Aston Villa</div>
+        <div class="tpts">51 puntos</div>
+        <div class="trec">15V · 6E · 7D</div>
+      </div>
+      <div class="vs-col">
+        <div class="vs">VS</div>
+        <div class="ko">Villa Park<br>Birmingham</div>
+        <div class="hoy">HOY NOCHE</div>
+      </div>
+      <div class="team">
+        <div class="logo logo-cfc">⚡<div class="rk">6.º</div></div>
+        <div class="tname">Chelsea FC</div>
+        <div class="tpts">45 puntos</div>
+        <div class="trec">12V · 9E · 7D</div>
+      </div>
+    </div>
+    <div class="prob">
+      <div class="prob-hdr">
+        <div class="ph"><div class="ph-lbl">VILLA GANA</div><div class="ph-pct a">34.7%</div></div>
+        <div class="ph center"><div class="ph-lbl">EMPATE</div><div class="ph-pct d">23.9%</div></div>
+        <div class="ph right"><div class="ph-lbl">CHELSEA GANA</div><div class="ph-pct c">41.4%</div></div>
+      </div>
+      <div class="bar">
+        <div class="bs bs-a" style="width:34.7%"></div>
+        <div class="bs bs-d" style="width:23.9%"></div>
+        <div class="bs bs-c" style="width:41.4%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- FORMA -->
+    <div>
+      <div class="sec">FORMA RECIENTE — ÚLTIMOS 5 PARTIDOS</div>
+      <div class="forma-wrap">
+        <div class="frow">
+          <div class="fl">🦁 Aston Villa</div>
+          <div class="bdgs">
+            <div class="b P" title="27/02 Wolves 2-0 Villa">P</div>
+            <div class="b E" title="21/02 Villa 1-1 Leeds">E</div>
+            <div class="b G" title="11/02 Villa 1-0 Brighton">G</div>
+            <div class="b E" title="07/02 Bournemouth 1-1 Villa">E</div>
+            <div class="b P" title="01/02 Villa 0-1 Brentford">P</div>
+          </div>
+          <div class="frec">1V · 2E · 2D</div>
+        </div>
+        <div class="frow">
+          <div class="fl">⚡ Chelsea</div>
+          <div class="bdgs">
+            <div class="b P" title="01/03 Arsenal 2-1 Chelsea">P</div>
+            <div class="b E" title="21/02 Chelsea 1-1 Burnley">E</div>
+            <div class="b E" title="10/02 Chelsea 2-2 Leeds">E</div>
+            <div class="b G" title="07/02 Wolves 1-3 Chelsea">G</div>
+            <div class="b G" title="31/01 Chelsea 3-2 West Ham">G</div>
+          </div>
+          <div class="frec">2V · 2E · 1D</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAJAS -->
+    <div>
+      <div class="sec">BAJAS Y SUSPENSIONES</div>
+      <div class="bajas-grid">
+        <div class="bajas-col">
+          <div class="bajas-title a">🦁 ASTON VILLA</div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">B. Kamara</div><div class="bd">Rodilla · Resto temporada</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">Y. Tielemans</div><div class="bd">Tobillo</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">T. Mings</div><div class="bd">Isquiotibial</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">Pau Torres</div><div class="bd">Pantorrilla</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem y"></div><div class="bi"><div class="bn">J. McGinn</div><div class="bd">Duda · posiblemente pronto</div></div><div class="btag ty">DUDA</div></div>
+        </div>
+        <div class="bajas-col">
+          <div class="bajas-title c">⚡ CHELSEA</div>
+          <div class="baja"><div class="sem o"></div><div class="bi"><div class="bn">Pedro Neto</div><div class="bd">Roja vs Arsenal</div></div><div class="btag to">SUSPENDIDO</div></div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">L. Colwill</div><div class="bd">Lesión larga duración</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">Estevao</div><div class="bd">Muslo</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem r"></div><div class="bi"><div class="bn">Bynoe-Gittens</div><div class="bd">Muslo</div></div><div class="btag tb">BAJA</div></div>
+          <div class="baja"><div class="sem y"></div><div class="bi"><div class="bn">M. Cucurella</div><div class="bd">Cerca de volver</div></div><div class="btag ty">DUDA</div></div>
+        </div>
+      </div>
+      <div class="ley">
+        <div class="li"><div class="sem r"></div> Baja confirmada</div>
+        <div class="li"><div class="sem o"></div> Suspendido</div>
+        <div class="li"><div class="sem y"></div> Duda</div>
+      </div>
+    </div>
+
+    <!-- EV -->
+    <div class="ev-box">
+      <div class="ev-header">
+        <div class="ev-title">🎯 APUESTA CON VALOR REAL (+EV)</div>
+        <div class="ev-badge">MÉTODO +EV</div>
+      </div>
+      <div class="ev-body">
+        <div class="ev-main">
+          <div class="ev-left">
+            <div class="ev-market">MERCADO SELECCIONADO</div>
+            <div class="ev-pick">MÁS DE 2.5 GOLES</div>
+            <div class="ev-sub">Valor positivo confirmado · Premier League</div>
+          </div>
+          <div class="ev-right">
+            <div class="ev-odds-box">
+              <div class="ev-odds-lbl">CUOTA</div>
+              <div class="ev-odds-val">1.73</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ev-meter">
+          <div class="ev-meter-hdr">
+            <div class="ev-meter-lbl">ÍNDICE DE VALOR ESPERADO</div>
+            <div class="ev-pct">+5.2% EV</div>
+          </div>
+          <div class="ev-track">
+            <div class="ev-fill"></div>
+          </div>
+          <div class="ev-ticks">
+            <span>0%</span><span>SIN VALOR</span><span>▲ UMBRAL</span><span>VALOR ALTO</span><span>+20%</span>
+          </div>
+        </div>
+
+        <div class="ev-calc">
+          <div class="calc-title">CÁLCULO EXPECTED VALUE</div>
+          <div class="calc-row"><div class="calc-lbl">Probabilidad real estimada</div><div class="calc-val real">61.0%</div></div>
+          <div class="calc-row"><div class="calc-lbl">Probabilidad implícita cuota 1.73</div><div class="calc-val impl">57.8%</div></div>
+          <div class="calc-div"></div>
+          <div class="calc-row"><div class="calc-lbl">Expected Value neto</div><div class="calc-val evp">+5.2% → POSITIVO ✓</div></div>
+        </div>
+
+        <ul class="ev-reasons">
+          <li>Villa Park promedia 3.1 goles por partido esta temporada — 7 de sus últimos 10 en casa superaron 2.5 goles.</li>
+          <li>Chelsea acumuló 18 goles en sus últimos 5 partidos de liga (3.6 por partido). Ambos equipos llegan sin sus mediocampistas de contención titulares.</li>
+          <li>H2H: 8 de los últimos 9 encuentros en Villa Park entre estos equipos terminaron con más de 2.5 goles (89%).</li>
+          <li>La cuota 1.73 implica 57.8% de probabilidad. El modelo estima 61.0% — brecha que genera valor real.</li>
+        </ul>
+      </div>
+      <div class="ev-disc">⚠ EV calculado sobre modelos estadísticos. Las apuestas conllevan riesgo económico real. Solo mayores de 18 años.</div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="fb">📊 TU CANAL VIP</div>
+    <div class="fv">⭐ ANÁLISIS VIP</div>
+  </div>
+  <div class="disc">Probabilidades estadísticas orientativas. Juega con responsabilidad. +18.</div>
+
+</div>
+</body>
+</html>

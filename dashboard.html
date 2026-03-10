@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Podium 360 | Terminal de Inteligencia</title>
+
+  <!-- Google Fonts: Bebas Neue / Barlow Condensed (Design System) -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Bebas Neue"', "system-ui", "sans-serif"],
+            body: ['"Barlow Condensed"', "system-ui", "sans-serif"],
+          },
+          colors: {
+            podium: {
+              bg: "#050716",
+              card: "#13162b",
+              border: "#1e2340",
+              gold: "#f5bc2f",
+              green: "#25d466",
+              red: "#f04444",
+              text: "#e8eef8",
+              muted: "#8090b0",
+            },
+          },
+          boxShadow: {
+            "podium-xl":
+              "0 25px 50px -12px rgba(0,0,0,0.85), 0 0 40px rgba(37,212,102,0.25)",
+            "podium-gold":
+              "0 25px 50px -12px rgba(0,0,0,0.85), 0 0 40px rgba(245,188,47,0.15)",
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: "Barlow Condensed", system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e2340; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #8090b0; }
+
+    .loader {
+        border: 2px solid rgba(255,255,255,0.1);
+        border-top-color: #f5bc2f;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body class="min-h-screen bg-podium-bg text-podium-text flex flex-col">
+  <!-- Background gradient + grid overlay -->
+  <div class="pointer-events-none fixed inset-0 opacity-70 mix-blend-screen" aria-hidden="true">
+    <div
+      class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(37,212,102,0.12),transparent_55%),radial-gradient(circle_at_bottom,_rgba(245,188,47,0.10),transparent_55%)]">
+    </div>
+    <div
+      class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:80px_80px]">
+    </div>
+  </div>
+
+  <div class="relative flex-1 flex flex-col">
+    <!-- NAVBAR (Mismo de index.html) -->
+    <header class="mx-auto flex w-full max-w-6xl items-center justify-between px-4 pt-6 sm:px-6 lg:px-8 border-b border-podium-border/40 pb-4">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="flex items-center gap-3 group">
+            <div
+            class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/40 bg-black/40 shadow-[0_0_25px_rgba(37,212,102,0.55)] group-hover:bg-emerald-400/10 transition">
+            <span class="font-display text-xl tracking-[0.18em] text-podium-green">
+                P
+            </span>
+            </div>
+            <div class="leading-tight">
+            <div class="font-display text-xl leading-none tracking-[0.20em] text-podium-text">
+                PODIUM
+            </div>
+            <p class="text-xs uppercase tracking-[0.26em] text-podium-muted">
+                Terminal 360
+            </p>
+            </div>
+        </a>
+      </div>
+
+      <div class="hidden items-center gap-6 text-sm sm:flex">
+        <a href="index.html" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text transition">
+          Volver a Inicio
+        </a>
+        <div class="flex items-center gap-2 rounded-full border border-podium-border bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.26em] text-podium-gold shadow-[0_0_18px_rgba(245,188,47,0.25)]">
+            <span class="h-1.5 w-1.5 rounded-full bg-podium-gold animate-pulse"></span>
+            Live Data
+        </div>
+      </div>
+    </header>
+
+    <!-- DASHBOARD MAIN CONTENT -->
+    <main class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 w-full flex-1">
+        
+        <header class="mb-10">
+            <h1 class="font-display text-4xl uppercase leading-tight tracking-[0.14em] text-white sm:text-5xl">
+                Radiografía <span class="text-podium-gold">de Jornada</span>
+            </h1>
+            <p class="mt-2 text-lg font-body text-podium-muted max-w-2xl">
+                Escaneo algorítmico en tiempo real conectado directamente a Supabase.
+            </p>
+        </header>
+
+        <div id="loading-state" class="flex flex-col items-center justify-center py-20 rounded-3xl border border-podium-border bg-black/40 backdrop-blur">
+            <div class="loader mb-4"></div>
+            <p class="text-sm uppercase tracking-[0.22em] text-podium-muted">Conectando matriz de Supabase...</p>
+        </div>
+
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-24 rounded-3xl border border-podium-border bg-black/40 backdrop-blur text-center">
+            <div class="flex h-16 w-16 items-center justify-center rounded-full border border-podium-border bg-black/60 mb-6">
+                <svg class="w-8 h-8 text-podium-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4M12 4v16"></path></svg>
+            </div>
+            <h3 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-text mb-2">Jornada Completada</h3>
+            <p class="text-sm text-podium-muted font-body max-w-md">No se han detectado ineficiencias matemáticas en la jornada actual. Próximo escaneo en 12 horas. Protegiendo bankroll.</p>
+        </div>
+
+        <!-- Dashboard Grid Layout -->
+        <div id="dashboard-content" class="hidden grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-8">
+            
+            <!-- RADAR 1X2 -->
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-podium-border/80">
+                    <h2 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-text drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                        Radar 1x2 <span class="text-podium-muted text-lg tracking-[0.1em]">(Global)</span>
+                    </h2>
+                    <span id="board-count" class="text-[11px] uppercase tracking-[0.24em] text-podium-muted bg-black/60 px-2 py-1 rounded border border-podium-border"></span>
+                </div>
+                
+                <div id="daily-board-container" class="space-y-4 overflow-y-auto max-h-[800px] pr-2">
+                    <!-- Renders here -->
+                </div>
+            </div>
+
+            <!-- VIP SIGNALS -->
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-podium-gold/30">
+                    <h2 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-gold drop-shadow-[0_0_12px_rgba(245,188,47,0.4)]">
+                        Alertas VIP <span class="text-podium-muted text-lg tracking-[0.1em]">(EV ≥ 5.0%)</span>
+                    </h2>
+                    <span id="vip-count" class="text-[11px] uppercase font-bold tracking-[0.24em] text-black bg-podium-gold px-3 py-1 rounded"></span>
+                </div>
+
+                <div id="vip-signals-container" class="space-y-6">
+                    <!-- Renders here -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER (Mismo de index.html) -->
+    <footer class="mt-8 border-t border-podium-border/70 pt-6 pb-8 mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col items-start justify-between gap-4 text-[11px] text-podium-muted sm:flex-row sm:items-center">
+        <p>
+          Podium 360 · Sistema Data-First Híbrido · IA y Optimización de EV.
+        </p>
+        <p class="uppercase tracking-[0.24em]">
+          Powered by Antigravity & Claude
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // SUPABASE CONFIG. 
+    // Usaremos Supabase public Anon Key que hemos inyectado en el .env (Extraída del prompt).
+    const SUPABASE_URL = 'https://ssvnixnqczpvpiomgrje.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdm5peG5xY3pwdnBpb21ncmplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY3NTYxOSwiZXhwIjoyMDg4MjUxNjE5fQ.xBR4JOau1uOPsr9xNSiXr7atmgb65SYgLNmPf13Tg00';
+    
+    // UI Helpers
+    function renderBoardCard(item) {
+        const isEvAlta = item.estado_mercado === 'Oportunidad Detectada';
+        const beacon = isEvAlta 
+            ? `<span class="h-1.5 w-1.5 rounded-full bg-podium-gold animate-pulse"></span> Oportunidad` 
+            : `<span class="h-1.5 w-1.5 rounded-full bg-podium-muted"></span> Eficiente`;
+        
+        const xgDiff = parseFloat(item.xg_diff) || 0;
+        const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
+
+        return `
+        <div class="relative overflow-hidden p-4 rounded-2xl border border-podium-border bg-black/60 transition hover:bg-black/80">
+            <div class="flex justify-between items-start mb-3">
+                <span class="text-[10px] uppercase tracking-[0.28em] text-podium-muted">Competición Global</span>
+                <span class="inline-flex items-center gap-1.5 text-[10px] uppercase font-semibold tracking-[0.22em] ${isEvAlta ? 'text-podium-gold' : 'text-podium-muted'}">
+                    ${beacon}
+                </span>
+            </div>
+            <h3 class="font-display text-xl uppercase tracking-[0.12em] text-white mb-4">
+                ${item.home_team} <span class="text-podium-muted font-light px-1">vs</span> ${item.away_team}
+            </h3>
+            
+            <div class="space-y-1.5 text-[11px] text-podium-muted">
+                <div class="flex justify-between">
+                    <span>Probabilidades 1X2</span>
+                </div>
+                <div class="flex h-2.5 overflow-hidden rounded-full bg-[#090b16]">
+                    <div class="flex items-center justify-center bg-podium-green text-[9px] text-black font-bold opacity-90" style="width: ${item.poisson_1 || 33}%"></div>
+                    <div class="flex items-center justify-center bg-podium-muted text-[9px] text-black font-bold opacity-60" style="width: ${item.poisson_x || 33}%"></div>
+                    <div class="flex items-center justify-center bg-podium-red text-[9px] text-black font-bold opacity-90" style="width: ${item.poisson_2 || 33}%"></div>
+                </div>
+                <div class="flex justify-between text-[10px] pt-1">
+                    <span class="text-podium-green">${item.poisson_1 || '-'}% 1</span>
+                    <span class="text-podium-muted">${item.poisson_x || '-'}% X</span>
+                    <span class="text-podium-red">${item.poisson_2 || '-'}% 2</span>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-podium-border/50 flex justify-between items-center text-[11px]">
+                <span class="text-podium-muted uppercase tracking-[0.15em]">xG Rolling Diff</span>
+                <span class="font-mono bg-black/40 px-2 py-0.5 rounded border border-podium-border ${xgColor}">
+                    ${xgDiff > 0 ? '+'+item.xg_diff : item.xg_diff}
+                </span>
+            </div>
+        </div>`;
+    }
+
+    function renderVipCard(item) {
+        return `
+        <article class="relative overflow-hidden rounded-2xl border border-podium-gold/30 bg-gradient-to-br from-[#0f1428] via-[#050716] to-black p-6 shadow-podium-gold">
+            <!-- Glow BG -->
+            <div class="pointer-events-none absolute inset-x-0 -top-10 h-32 bg-gradient-to-b from-podium-gold/10 to-transparent"></div>
+            
+            <div class="relative flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-5 border-b border-podium-border/60">
+                <div>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="bg-podium-gold text-black text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(245,188,47,0.5)]">VIP Signal</span>
+                        <span class="text-[11px] text-podium-muted uppercase tracking-[0.24em]">Objetivo Prioritario</span>
+                    </div>
+                    <h3 class="font-display text-3xl uppercase tracking-[0.14em] text-white">
+                        ${item.home_team} <span class="text-podium-gold px-1">vs</span> ${item.away_team}
+                    </h3>
+                </div>
+                
+                <div class="mt-4 sm:mt-0 p-3 rounded-xl border border-emerald-400/30 bg-[#0a1720] flex items-center gap-5 shadow-[0_0_15px_rgba(37,212,102,0.1)]">
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-1">Mercado</p>
+                        <p class="text-xs font-semibold text-podium-gold">Ver en Ángulo 1</p>
+                    </div>
+                    <div class="w-px h-8 bg-podium-border"></div>
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-1">Cuota</p>
+                        <p class="text-base font-bold text-white">${item.cuota || '--'}</p>
+                    </div>
+                    <div class="w-px h-8 bg-podium-border"></div>
+                    <div class="text-center">
+                        <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-1">Valor (EV)</p>
+                        <p class="text-xl font-display text-podium-green">
+                           +${item.ev_pct || item.ev_initial}%
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Triple Angulo Layout -->
+            <div class="relative grid gap-5 md:grid-cols-3">
+                <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
+                    <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">1. Matemático</p>
+                    <p class="text-[13px] leading-relaxed text-podium-muted font-body">
+                        ${item.angulo_matematico || 'Procesando narrativa...'}
+                    </p>
+                </div>
+                <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
+                    <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">2. Tendencia xG/Data</p>
+                    <p class="text-[13px] leading-relaxed text-podium-muted font-body">
+                        ${item.angulo_tendencia || 'Procesando narrativa...'}
+                    </p>
+                </div>
+                <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
+                    <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">3. Contexto de Mercado</p>
+                    <p class="text-[13px] leading-relaxed text-podium-text font-body">
+                        ${item.angulo_contexto || 'Procesando narrativa...'}
+                    </p>
+                </div>
+            </div>
+            
+        </article>`;
+    }
+
+    async function fetchData() {
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        try {
+            console.log("--- DEBUG: Iniciando FETCH a Supabase ---");
+            console.log("URL de conexión:", SUPABASE_URL);
+            
+            // Obtenemos todos los datos reales inyectados por python supabase_sync.py
+            const { data: dbBoard, error: err1 } = await supabase.from('daily_board').select('*').order('estado_mercado', { ascending: false });
+            const { data: dbVip, error: err2 } = await supabase.from('vip_signals').select('*').order('ev_pct', { ascending: false });
+            
+            document.getElementById('loading-state').classList.add('hidden');
+
+            if (err1) console.error("--- DEBUG ERROR (daily_board) ---", err1);
+            if (err2) console.error("--- DEBUG ERROR (vip_signals) ---", err2);
+            
+            console.log("--- DEBUG DATA (daily_board) ---", dbBoard);
+            console.log("--- DEBUG DATA (vip_signals) ---", dbVip);
+
+            if (err1 && err2) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                return;
+            }
+
+            // Filtrado por Fecha (Igual o mayor a hoy)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            function isDateValidOrFuture(itemFecha) {
+                if (!itemFecha) return true; // Si no tiene el formato fecha, lo pasamos
+                const parts = itemFecha.split('_');
+                if (parts.length === 3) {
+                    // Formato esperado: DD_MM_YY
+                    const itemDate = new Date(`20${parts[2]}`, parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    itemDate.setHours(0, 0, 0, 0);
+                    return itemDate >= today;
+                }
+                return true; 
+            }
+
+            const boardData = (dbBoard || []).filter(item => isDateValidOrFuture(item.match_date));
+            const vipData = (dbVip || []).filter(item => isDateValidOrFuture(item.match_date));
+
+            if (boardData.length === 0 && vipData.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+            } else {
+                document.getElementById('dashboard-content').classList.remove('hidden');
+                
+                document.getElementById('board-count').innerText = `${boardData.length} PARTIDOS`;
+                document.getElementById('vip-count').innerText = `${vipData.length} SEÑALES DETECTADAS`;
+
+                const boardContainer = document.getElementById('daily-board-container');
+                if (boardData.length > 0) {
+                    boardContainer.innerHTML = boardData.map(renderBoardCard).join('');
+                } else {
+                    boardContainer.innerHTML = `<p class="text-sm text-podium-muted italic p-4">No hay partidos en el board hoy.</p>`;
+                }
+
+                const vipContainer = document.getElementById('vip-signals-container');
+                if (vipData.length > 0) {
+                    vipContainer.innerHTML = vipData.map(renderVipCard).join('');
+                } else {
+                    vipContainer.innerHTML = `
+                    <div class="flex flex-col items-center py-12 px-4 rounded-xl border border-podium-border bg-black/40 text-center">
+                        <svg class="w-10 h-10 text-podium-muted mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="text-sm text-podium-text">Ningún pick superó el EV umbral (+5.0%).</p>
+                        <p class="text-[11px] text-podium-muted mt-1 uppercase tracking-[0.1em]">Protegiendo Bankroll.</p>
+                    </div>`;
+                }
+            }
+
+        } catch (e) {
+            console.error("Catch Exception:", e);
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchData);
+  </script>
+</body>
+</html>
