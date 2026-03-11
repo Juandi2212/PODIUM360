@@ -49,7 +49,10 @@
       "Bash(powershell.exe -Command \"python -c \"\"import requests,json; r=requests.get\\(''https://data.fotmob.com/stats/47/season/27110/expected_goals_team.json'',headers={''User-Agent'':''Mozilla/5.0''},timeout=10\\); print\\(json.dumps\\(r.json\\(\\),indent=2\\)[:600]\\)\"\"\")",
       "Bash(python data_fetcher.py \"Arsenal\" \"Liverpool\" \"Premier League\")",
       "Bash(python data_fetcher.py \"Genoa\" \"Roma\" \"Serie A\")",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(where gh:*)",
+      "Read(//c/Program Files/GitHub CLI/**)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo view Juandi2212/PODIUM360 --json defaultBranchRef)"
     ]
   }
 }
