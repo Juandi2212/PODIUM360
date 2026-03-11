@@ -1,74 +1,80 @@
 {
   "partido": {
-    "local": "Atleti",
-    "visitante": "Tottenham",
+    "local": "PSG",
+    "visitante": "Chelsea",
     "liga": "Champions League",
     "estadio": null,
-    "hora_utc": null
+    "hora_utc": "2026-03-11T20:00:00Z"
   },
   "elo": {
     "local": null,
-    "visitante": 1789.4
+    "visitante": 1929.6
   },
   "xg": {
     "local": {
       "atk": [
-        1.57,
-        1.57,
-        1.57,
-        1.57,
-        1.57,
-        1.57,
-        1.57,
-        1.57
+        2.09,
+        2.09,
+        2.09,
+        2.09,
+        2.09,
+        2.09,
+        2.09,
+        2.09
       ],
       "def": [
-        1.09,
-        1.09,
-        1.09,
-        1.09,
-        1.09,
-        1.09,
-        1.09,
-        1.09
+        0.92,
+        0.92,
+        0.92,
+        0.92,
+        0.92,
+        0.92,
+        0.92,
+        0.92
       ]
     },
     "visitante": {
       "atk": [
-        1.04,
-        1.04,
-        1.04,
-        1.04,
-        1.04,
-        1.04,
-        1.04,
-        1.04
+        1.97,
+        1.97,
+        1.97,
+        1.97,
+        1.97,
+        1.97,
+        1.97,
+        1.97
       ],
       "def": [
-        1.51,
-        1.51,
-        1.51,
-        1.51,
-        1.51,
-        1.51,
-        1.51,
-        1.51
+        1.35,
+        1.35,
+        1.35,
+        1.35,
+        1.35,
+        1.35,
+        1.35,
+        1.35
       ]
     }
   },
-  "liga_avg_goals": 3.44,
+  "liga_avg_goals": 3.47,
   "standings": {
-    "pos_local": null,
-    "pts_local": null,
-    "pos_visitante": 4,
-    "pts_visitante": 17
+    "pos_local": 11,
+    "pts_local": 14,
+    "pos_visitante": 6,
+    "pts_visitante": 16
   },
   "forma": {
-    "local": null,
+    "local": [
+      "D",
+      "L",
+      "D",
+      "W",
+      "D"
+    ],
     "visitante": [
+      "D",
       "W",
       "L",
-      "W",
       "W",
       "W"
     ]
@@ -84,15 +90,15 @@
   },
   "odds": {
     "pinnacle": {
-      "local": null,
-      "empate": null,
-      "visitante": null
+      "local": 1.94,
+      "empate": 3.81,
+      "visitante": 3.86
     },
     "mejor_cuota": {
-      "local": null,
-      "empate": null,
-      "visitante": null,
-      "over25": null,
+      "local": 2.0,
+      "empate": 4.0,
+      "visitante": 3.98,
+      "over25": 1.64,
       "btts": null
     },
     "corners": {
@@ -100,5 +106,7 @@
       "avg_visitante": null,
       "linea": null
     }
-  }
+  },
+  "partido_no_disponible": false,
+  "odds_disponibles": true
 }

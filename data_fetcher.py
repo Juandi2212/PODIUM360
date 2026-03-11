@@ -401,9 +401,10 @@ def _get(url: str, headers: dict = None, params: dict = None, timeout: int = 15,
         return None, err
 
 
+from utils.naming import fuzzy_match, log_naming_error
+
 def _fuzzy(a: str, b: str) -> bool:
-    a, b = a.lower().strip(), b.lower().strip()
-    return a in b or b in a
+    return fuzzy_match(a, b)
 
 
 def _current_season() -> int:
@@ -491,7 +492,12 @@ def _fotmob_cdn_stats(league_id: int, season_id: int) -> dict:
         if not data:
             continue
         try:
-            stat_list = data["TopLists"][0]["StatList"]
+            top_lists = data.get("TopLists")
+            if not top_lists:
+                continue
+            stat_list = top_lists[0].get("StatList")
+            if not stat_list:
+                continue
             for entry in stat_list:
                 tid      = entry.get("TeamId")
                 total    = entry.get("StatValue", 0.0)
@@ -528,10 +534,13 @@ def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> tuple[int
         return None
 
     try:
-        rows = (data.get("table", [{}])[0]
-                    .get("data", {})
-                    .get("table", {})
-                    .get("all", []))
+        tables = data.get("table", [])
+        if not tables:
+            return None
+        table_obj = tables[0].get("data", {}).get("table", {})
+        if not table_obj:
+            return None
+        rows = table_obj.get("all", [])
     except Exception as e:
         _errors.append(f"Fotmob: standings parse error for '{liga}': {e}")
         return None
@@ -917,6 +926,8 @@ def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
 
     if not target:
         _errors.append(f"Odds API: event not found — {local} vs {visitante} in {sport_key}")
+        print("\n      [!] The Odds API: partido no encontrado o sin cuotas — el modelo usará solo probabilidades propias.")
+        log_naming_error("The Odds API", f"{local} vs {visitante}")
         return None
 
     home_key = target["home_team"]
@@ -993,6 +1004,8 @@ def fetch_all(local: str, visitante: str, liga: str) -> dict:
                             "over25": None, "btts": None},
             "corners":     {"avg_local": None, "avg_visitante": None, "linea": None},
         },
+        "partido_no_disponible": False,
+        "odds_disponibles": True,
     }
 
     # ── 1. ClubElo ─────────────────────────────────────────────────────────
@@ -1053,8 +1066,16 @@ def fetch_all(local: str, visitante: str, liga: str) -> dict:
     odds = fetch_odds(local, visitante, liga)
     if odds:
         output["odds"] = odds
+    else:
+        output["odds_disponibles"] = False
+        
     print(f"      Pinnacle   : {output['odds']['pinnacle']}")
     print(f"      Best cuota : {output['odds']['mejor_cuota']}")
+
+    # ── C3 Check for match cancellation/unlisted ───────────────────────────
+    if output["partido"].get("hora_utc") is None and not output["odds_disponibles"]:
+        print(f"\n      [!] CUIDADO: El partido no se encontró ni en Fixtures ni en The Odds API.")
+        output["partido_no_disponible"] = True
 
     # ── Summary ────────────────────────────────────────────────────────────
     elapsed = round(time.time() - t0, 2)

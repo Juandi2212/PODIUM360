@@ -202,6 +202,36 @@
         const xgDiff = parseFloat(item.xg_diff) || 0;
         const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
 
+        // Generar filas de la Value Matrix o UI de Cortesía
+        const markets = item.mercados_completos || [];
+        let matrixRows = '';
+        let isCourtesyUI = false;
+        let courtesyData = null;
+
+        if (markets.length === 1 && markets[0].mercado === 'IA_ANALYSIS') {
+            isCourtesyUI = true;
+            courtesyData = markets[0];
+        } else if (markets.length > 0) {
+            matrixRows = markets.map(m => {
+                let evColor = 'text-podium-muted';
+                if (m.ev_pct > 5.0) evColor = 'text-podium-green font-bold';
+                else if (m.ev_pct >= 1.0) evColor = 'text-emerald-300';
+                else if (m.ev_pct >= -3.0) evColor = 'text-gray-300';
+                else evColor = 'text-podium-red';
+
+                return `
+                <tr class="border-b border-podium-border/30 hover:bg-black/40 transition">
+                    <td class="py-2 text-[11px] text-podium-text uppercase tracking-wider">${m.mercado.replace('1x2_', '')}</td>
+                    <td class="py-2 text-[11px] text-podium-muted text-right">${m.cuota || '-'}</td>
+                    <td class="py-2 text-[11px] text-podium-muted text-right">${m.diagnostico_interno ? m.diagnostico_interno.consenso_modelos : '-'}/3</td>
+                    <td class="py-2 text-[11px] ${evColor} text-right">${m.ev_pct > 0 ? '+'+m.ev_pct : m.ev_pct}%</td>
+                </tr>
+                `;
+            }).join('');
+        } else {
+            matrixRows = `<tr><td colspan="4" class="py-4 text-center text-xs text-podium-muted">Matriz no disponible</td></tr>`;
+        }
+
         return `
         <div class="relative overflow-hidden p-4 rounded-2xl border border-podium-border bg-black/60 transition hover:bg-black/80">
             <div class="flex justify-between items-start mb-3">
@@ -236,10 +266,117 @@
                     ${xgDiff > 0 ? '+'+item.xg_diff : item.xg_diff}
                 </span>
             </div>
+            
+            <!-- Value Matrix / Courtesy UI Toggle -->
+            <div class="mt-3 pt-3 border-t border-podium-border/30">
+                ${isCourtesyUI 
+                  ? `<button onclick="toggleMatrix(this)" class="w-full flex items-center justify-between py-1.5 text-[10px] uppercase tracking-[0.2em] text-podium-muted hover:text-white transition group focus:outline-none">
+                        <span class="text-emerald-400">Análisis de Probabilidad Disponible</span>
+                        <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>`
+                  : (markets.length > 0
+                      ? `<button onclick="toggleMatrix(this)" class="w-full flex items-center justify-between py-1.5 text-[10px] uppercase tracking-[0.2em] text-podium-muted hover:text-white transition group focus:outline-none">
+                            <span>Ver Value Matrix Completa</span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover:text-podium-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>`
+                      : `<div class="w-full flex items-center justify-between py-1.5 text-[10px] uppercase tracking-[0.2em] text-podium-muted/50 cursor-not-allowed">
+                            <span>Analizando mercados secundarios...</span>
+                        </div>`)
+                }
+            </div>
+            
+            <!-- Value Matrix / Courtesy UI Table (Hidden by default) -->
+            ${isCourtesyUI ? `
+            <div class="hidden mt-3 bg-black/40 rounded-lg p-4 border border-emerald-400/20">
+                <p class="text-[11px] uppercase tracking-[0.24em] text-emerald-400 mb-2 font-semibold">Lectura de IA (1X2)</p>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-[0.1em] text-podium-gold mb-1">Matemático</p>
+                        <p class="text-[12px] text-podium-muted leading-relaxed">${courtesyData.angulo_matematico}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-[0.1em] text-podium-gold mb-1">Tendencia</p>
+                        <p class="text-[12px] text-podium-muted leading-relaxed">${courtesyData.angulo_tendencia}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-[0.1em] text-podium-gold mb-1">Contexto</p>
+                        <p class="text-[12px] text-podium-muted leading-relaxed">${courtesyData.angulo_contexto}</p>
+                    </div>
+                </div>
+            </div>` 
+            : (markets.length > 0 ? `
+            <div class="hidden mt-3 bg-black/40 rounded-lg p-3 border border-podium-border/50">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-podium-border/50 uppercase tracking-[0.15em] text-[10px] text-podium-muted">
+                            <th class="pb-2 font-normal">Mercado</th>
+                            <th class="pb-2 font-normal text-right">Cuota</th>
+                            <th class="pb-2 font-normal text-right">Consenso</th>
+                            <th class="pb-2 font-normal text-right">EV%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${matrixRows}
+                    </tbody>
+                </table>
+            </div>` : '')}
+
         </div>`;
     }
 
+    // Toggle logic for the Matrix
+    window.toggleMatrix = function(btn) {
+        if (!btn || !btn.parentElement || !btn.parentElement.nextElementSibling) return;
+        const matrixDiv = btn.parentElement.nextElementSibling;
+        const icon = btn.querySelector('svg');
+        if (matrixDiv.classList.contains('hidden')) {
+            matrixDiv.classList.remove('hidden');
+            if (icon) icon.style.transform = 'rotate(180deg)';
+        } else {
+            matrixDiv.classList.add('hidden');
+            if (icon) icon.style.transform = 'rotate(0deg)';
+        }
+    };
+
+    function getHumanizedMarket(mercado, home, away) {
+        if (!mercado) return '--';
+        const m = mercado.toLowerCase();
+        if (m === '1x2_local') return `Victoria ${home}`;
+        if (m === '1x2_visitante') return `Victoria ${away}`;
+        if (m === '1x2_empate') return 'Empate';
+        if (m === 'over25') return 'Más de 2.5 Goles';
+        if (m === 'btts') return 'Ambos Anotan';
+        return mercado.replace('1x2_', '').toUpperCase();
+    }
+
     function renderVipCard(item) {
+        // Encontrar mercado procesado
+        let mainMarketText = 'Ver en Ángulo 1';
+        let mainMarketOdd = item.cuota || '--';
+        let mainEv = item.ev_pct || item.ev_initial || '--';
+        
+        let mercadoName = null;
+        if (item.id && item.id.split('_').length >= 4) {
+            // Suponemos ID = match_date_fecha_local_visitante_MERCADO (No siempre confiable)
+            // Analizaremos del angulo matematico donde guardamos el mercado en [Mercado: XXXX]
+        }
+        
+        if (item.angulo_matematico && item.angulo_matematico.includes('[Mercado:')) {
+            const match = item.angulo_matematico.match(/\[Mercado: (.*?)\]/i);
+            if (match) {
+                mercadoName = match[1].toLowerCase();
+            }
+        }
+        
+        if (mercadoName) {
+            mainMarketText = getHumanizedMarket(mercadoName, item.home_team, item.away_team);
+        }
+
+        // Limpiar el angulo_matematico de la etiqueta de mercado para no ensuciar la UI
+        let cleanAnguloMatematico = item.angulo_matematico || 'Procesando narrativa...';
+        if (cleanAnguloMatematico.includes('[Mercado:')) {
+            cleanAnguloMatematico = cleanAnguloMatematico.replace(/\[Mercado: .*?\]\s*/i, '');
+        }
         return `
         <article class="relative overflow-hidden rounded-2xl border border-podium-gold/30 bg-gradient-to-br from-[#0f1428] via-[#050716] to-black p-6 shadow-podium-gold">
             <!-- Glow BG -->
@@ -259,18 +396,18 @@
                 <div class="mt-4 sm:mt-0 p-3 rounded-xl border border-emerald-400/30 bg-[#0a1720] flex items-center gap-5 shadow-[0_0_15px_rgba(37,212,102,0.1)]">
                     <div class="text-center">
                         <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-1">Mercado</p>
-                        <p class="text-xs font-semibold text-podium-gold">Ver en Ángulo 1</p>
+                        <p class="text-xs font-semibold text-podium-gold">${mainMarketText}</p>
                     </div>
                     <div class="w-px h-8 bg-podium-border"></div>
                     <div class="text-center">
                         <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-1">Cuota</p>
-                        <p class="text-base font-bold text-white">${item.cuota || '--'}</p>
+                        <p class="text-base font-bold text-white">${mainMarketOdd}</p>
                     </div>
                     <div class="w-px h-8 bg-podium-border"></div>
                     <div class="text-center">
                         <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-1">Valor (EV)</p>
                         <p class="text-xl font-display text-podium-green">
-                           +${item.ev_pct || item.ev_initial}%
+                           +${mainEv}%
                         </p>
                     </div>
                 </div>
@@ -281,7 +418,7 @@
                 <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
                     <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">1. Matemático</p>
                     <p class="text-[13px] leading-relaxed text-podium-muted font-body">
-                        ${item.angulo_matematico || 'Procesando narrativa...'}
+                        ${cleanAnguloMatematico}
                     </p>
                 </div>
                 <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">

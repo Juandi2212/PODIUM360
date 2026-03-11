@@ -354,7 +354,7 @@ def paso_h_regla_de_oro(
     lam_local:       float,
     lam_visit:       float,
     mejor_cuota:     dict,
-) -> list[dict]:
+) -> tuple[list[dict], list[dict]]:
     """
     Evaluate every market and return the top 3 picks (highest EV, >0).
     Mark as VIP if they pass all three Regla de Oro criteria.
@@ -407,14 +407,26 @@ def paso_h_regla_de_oro(
 
     # Sort descending by EV
     candidates.sort(key=lambda x: x["ev"], reverse=True)
-    return candidates[:3]
+    return candidates[:3], candidates
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Diccionario Maestro de Normalización
+# ══════════════════════════════════════════════════════════════════════════════
+from utils.naming import normalize_team_name
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Main engine
 # ══════════════════════════════════════════════════════════════════════════════
 def run_model(data: dict) -> dict:
     partido      = data["partido"]
+    
+    # Aplicar normalización
+    if "local" in partido:
+        partido["local"] = normalize_team_name(partido["local"])
+    if "visitante" in partido:
+        partido["visitante"] = normalize_team_name(partido["visitante"])
+        
     elo          = data["elo"]
     xg           = data.get("xg") or {}
     liga_avg     = data.get("liga_avg_goals") or 2.5
@@ -466,10 +478,13 @@ def run_model(data: dict) -> dict:
         xg_usado = "fallback_goles"
 
     # ── C. Lambdas ────────────────────────────────────────────────────────────
+    # Prevent division by zero and extreme lambdas (Fix M4)
+    liga_avg_safe = max(2.0, liga_avg)
+    
     lam_local, lam_visit = paso_c_lambdas(
         xg_atk_local, xg_def_local,
         xg_atk_visit, xg_def_visit,
-        liga_avg, factor_elo,
+        liga_avg_safe, factor_elo,
     )
 
     # ── D. Poisson matrix ─────────────────────────────────────────────────────
@@ -484,19 +499,33 @@ def run_model(data: dict) -> dict:
     # ── G. EV per market ──────────────────────────────────────────────────────
     ev_por_mercado = paso_g_ev(p_final, mejor_cuota)
 
-    top_3_picks = paso_h_regla_de_oro(
+    top_3_picks, all_markets = paso_h_regla_de_oro(
         ev_por_mercado, p_modelo, p_final, fair_pinnacle,
         p_elo_local, lam_local, lam_visit, mejor_cuota,
     )
 
-    # Extract internal diagnostics from picks before saving
     processed_picks = []
     for pick in top_3_picks:
         consenso_mod = pick.pop("_consenso", 0)
         div_merc     = pick.pop("_divergencia", 0.0)
-        pick.pop("ev", None)
+        _ev          = pick.pop("ev", None)
         processed_picks.append({
             **pick,
+            "bookie": "Best available",
+            "diagnostico_interno": {
+                "consenso_modelos": consenso_mod,
+                "divergencia_mercado": div_merc
+            }
+        })
+
+    # Prepare all_markets array preserving original keys needed for UI
+    processed_all_markets = []
+    for m in all_markets:
+        consenso_mod = m.pop("_consenso", 0)
+        div_merc     = m.pop("_divergencia", 0.0)
+        _ev          = m.pop("ev", None)
+        processed_all_markets.append({
+            **m,
             "bookie": "Best available",
             "diagnostico_interno": {
                 "consenso_modelos": consenso_mod,
@@ -518,7 +547,8 @@ def run_model(data: dict) -> dict:
             "visitante": p_modelo["visitante"]
         },
         "diferencial_xg_rolling": round(xg_atk_local - xg_atk_visit, 3),
-        "estado_mercado": "Oportunidad Detectada" if any(p.get("ev_pct", 0) >= 5.0 for p in processed_picks) else "Mercado Eficiente"
+        "estado_mercado": "Oportunidad Detectada" if any(p.get("ev_pct", 0) >= 5.0 for p in processed_picks) else "Mercado Eficiente",
+        "all_markets": processed_all_markets
     }
 
     return {
@@ -567,7 +597,7 @@ def print_report(data_in: dict, out: dict):
 
     # ── Elo ──────────────────────────────────────────────────────────────────
     elo_fallback = out.get("diagnostico_global", {}).get("elo_fallback", False)
-    if not elo_fallback:
+    if not elo_fallback and elo.get("local") is not None and elo.get("visitante") is not None:
         p_elo = 1 / (1 + 10 ** ((elo["visitante"] - elo["local"] - 60) / 400))
         print(f"\n  ELO")
         print(f"    {L:<22}  {elo['local']:.1f}  →  P(win) = {p_elo*100:.1f}%")
@@ -579,6 +609,17 @@ def print_report(data_in: dict, out: dict):
         print(f"\n  ELO")
         print(f"    ⚠️ Datos Elo incompletos o no encontrados. Se utilizó Elo fallback de 1500/ajustado.")
         print(f"    Esto degrada parcialmente la fiabilidad del pick final.")
+
+    # ── Report Generation ─────────────────────────────────────────────────────
+    print(f"\n{'═'*56}")
+    print(f"  PODIUM — VIP Report")
+    print(f"  {L} vs {V}")
+    print(f"{'═'*56}")
+
+    if data_in.get("partido_no_disponible", False):
+        print(f"\n  [!] PARTIDO NO DISPONIBLE: No se encontraron cuotas ni datos de calendarización.")
+        print(f"  El análisis no continuará para evitar predicciones falsas.")
+        return
 
     # ── Lambdas ───────────────────────────────────────────────────────────────
     lam = out["lambdas"]
@@ -604,7 +645,7 @@ def print_report(data_in: dict, out: dict):
     # ── EV per market ─────────────────────────────────────────────────────────
     ev = out.get("ev_por_mercado") or {}
     odds_data = data_in.get("odds") or {}
-    mc = odds_data.get("mejor_cuota") or {}
+    mc = (data_in.get("odds") or {}).get("mejor_cuota") or {}
 
     print(f"\n  EXPECTED VALUE  (umbral VIP: EV > +{EV_MIN:.0f}%)")
     print(f"    {'Mercado':<24} {'Cuota':>6}  {'EV%':>8}")
@@ -665,23 +706,38 @@ def main():
     try:
         with open(INPUT_FILE, encoding="utf-8") as f:
             data = json.load(f)
+            
+        # Basic validation
+        if not isinstance(data, dict):
+            raise TypeError(f"El archivo JSON debe contener un objeto, no {type(data).__name__}")
+        if not data.get("partido"):
+            raise KeyError("Falta el objeto 'partido' en el JSON de entrada")
+            
+        # Optional: Inject some mock better odds to ensure something fires if best aren't provided
+        # This is strictly to ensure the format holds. (Not strictly needed since pipeline provides this).
     except FileNotFoundError:
         print(f"Error: '{INPUT_FILE}' no encontrado. Ejecuta data_fetcher.py primero.")
+        sys.exit(1)
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        print(f"Error: '{INPUT_FILE}' es inválido o está corrupto: {e}")
         sys.exit(1)
 
     output = run_model(data)
 
-    # Format output file name: LOCAL_VISITANTE_DD_MM_YY.json
+    # Format output file name variables
     local_name = data["partido"].get("local", "Local").replace(" ", "")[:3].upper()
     visitante_name = data["partido"].get("visitante", "Visitante").replace(" ", "")[:3].upper()
     date_str = datetime.now().strftime("%d_%m_%y")
-    output_filename = os.path.join(OUTPUT_DIR, f"{local_name}_{visitante_name}_{date_str}.json")
 
-    with open(output_filename, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
-
-    print_report(data, output)
-    print(f"  ✓ Guardado → {output_filename}\n")
+    # ── Save Standard Output ──────────────────────────────────────────────────
+    std_output = {
+        "partido": data.get("partido"),
+        **output
+    }
+    std_filename = os.path.join(OUTPUT_DIR, f"{local_name}_{visitante_name}_{date_str}.json")
+    with open(std_filename, "w", encoding="utf-8") as f:
+        json.dump(std_output, f, ensure_ascii=False, indent=2)
+    print(f"  [OK] Resultados del modelo guardados en: {std_filename}")
 
     # ── Trigger & Alert Logic (SaaS) ──────────────────────────────────────────
     high_value_picks = [p for p in output.get("top_3_picks", []) if p.get("ev_pct", 0) >= 5.0]
