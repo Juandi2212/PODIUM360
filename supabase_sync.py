@@ -2,8 +2,26 @@ import os
 import json
 import glob
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
+from utils.naming import normalize_team_name
+
+def delete_all_rows(url, key, table_name):
+    """Purga todos los registros de una tabla antes de reinsertar."""
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+    endpoint = f"{url}/rest/v1/{table_name}?id=not.is.null"
+    try:
+        resp = requests.delete(endpoint, headers=headers)
+        if resp.status_code in [200, 204]:
+            print(f"[PURGE] Tabla '{table_name}' limpiada antes de sync.")
+        else:
+            print(f"[WARN] No se pudo purgar '{table_name}' (HTTP {resp.status_code}): {resp.text}")
+    except Exception as e:
+        print(f"[ERROR] Error al purgar '{table_name}': {e}")
 
 def upsert_via_rest(url, key, table_name, data_list):
     if not data_list: return
@@ -62,7 +80,7 @@ Basado EXCLUSIVAMENTE en estos datos (y deducciones lógicas breves), genera un 
 Responde SOLO con un JSON válido y parseable, sin bloques asincrónicos (sin ```json).
     """
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    url_api = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     headers = {'Content-Type': 'application/json'}
     data = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -70,7 +88,7 @@ Responde SOLO con un JSON válido y parseable, sin bloques asincrónicos (sin ``
     }
     
     try:
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url_api, headers=headers, json=data)
         if response.status_code == 200:
             res_json = response.json()
             text_response = res_json['candidates'][0]['content']['parts'][0]['text']
@@ -83,6 +101,50 @@ Responde SOLO con un JSON válido y parseable, sin bloques asincrónicos (sin ``
         print(f"[ERROR] Error al procesar IA con Gemini: {e}")
         
     return None
+
+
+def _extract_event_date(partido, fecha_reporte):
+    """
+    Extrae la fecha REAL del evento (YYYY-MM-DD) desde hora_utc del partido.
+    Si no existe hora_utc, convierte la fecha del reporte DD_MM_YY a YYYY-MM-DD.
+    """
+    hora_utc = partido.get("hora_utc") if partido else None
+    if hora_utc:
+        return hora_utc.split("T")[0]  # "2026-03-11T20:00:00Z" → "2026-03-11"
+    
+    # Fallback: convertir fecha del reporte (DD_MM_YY) a YYYY-MM-DD
+    parts = fecha_reporte.split("_")
+    if len(parts) == 3:
+        return f"20{parts[2]}-{parts[1]}-{parts[0]}"  # "11_03_26" → "2026-03-11"
+    return fecha_reporte
+
+
+def _build_unique_id(event_date, local, visit):
+    """
+    Construye un ID determinístico usando fecha real + nombres normalizados.
+    Siempre produce el mismo ID para el mismo partido real.
+    """
+    norm_local = normalize_team_name(local).replace(" ", "_")
+    norm_visit = normalize_team_name(visit).replace(" ", "_")
+    return f"{event_date}_{norm_local}_{norm_visit}"
+
+
+def _compute_status(hora_utc_str):
+    """
+    Determina si el partido está activo o finalizado basado en hora_utc.
+    Si no hay hora_utc, devuelve 'active' por defecto.
+    """
+    if not hora_utc_str:
+        return "active"
+    try:
+        match_dt = datetime.strptime(hora_utc_str, "%Y-%m-%dT%H:%M:%SZ")
+        match_dt = match_dt.replace(tzinfo=timezone.utc)
+        if match_dt < datetime.now(timezone.utc):
+            return "finished"
+    except Exception:
+        pass
+    return "active"
+
 
 def main():
     print("==================================================")
@@ -119,26 +181,31 @@ def main():
     
     print(f"[INFO] Parseando {len(board)} partidos en Daily Board y {len(vips)} señales VIP.")
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # Filtrar entradas con partido=null (datos corruptos de ejecuciones previas)
+    # ══════════════════════════════════════════════════════════════════════════
+    board = [item for item in board if item.get("partido")]
+    vips = [item for item in vips if item.get("partido")]
+    print(f"[INFO] Tras filtrado de nulos: {len(board)} partidos, {len(vips)} VIP.")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Generar análisis IA para toda la jornada
+    # ══════════════════════════════════════════════════════════════════════════
     ai_cache = {}
     print("[INFO] Evaluando generación IA para toda la jornada...")
     for item in board:
         partido = item.get("partido")
         summary = item.get("match_summary") or {}
         if not partido: continue
-        local = partido.get("local", "")
-        visit = partido.get("visitante", "")
         
-        # ID uses Real match date (hora_utc), fallback to fecha
-        hora_utc_str = partido.get("hora_utc")
-        if hora_utc_str:
-            # Extract YYYY-MM-DD
-            real_date = hora_utc_str.split("T")[0]
-        else:
-            real_date = fecha
-            
-        unique_id = f"{real_date}_{local}_{visit}".replace(" ", "_")
+        local = normalize_team_name(partido.get("local", ""))
+        visit = normalize_team_name(partido.get("visitante", ""))
+        event_date = _extract_event_date(partido, fecha)
+        unique_id = _build_unique_id(event_date, local, visit)
 
-        match_vip = next((v for v in vips if v.get("partido", {}).get("local") == local and v.get("partido", {}).get("visitante") == visit), None)
+        match_vip = next((v for v in vips 
+                         if normalize_team_name(v.get("partido", {}).get("local", "")) == local 
+                         and normalize_team_name(v.get("partido", {}).get("visitante", "")) == visit), None)
         picks = match_vip.get("picks_valiosos", []) if match_vip else []
         triple_angulo = match_vip.get("analisis_triple_angulo") if match_vip else None
 
@@ -159,8 +226,19 @@ def main():
                     "angulo_contexto": triple_angulo if isinstance(triple_angulo, str) else "Esperando conexión a Gemini..."
                 }
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # PURGE: Limpiar tablas antes de insertar datos frescos
+    # ══════════════════════════════════════════════════════════════════════════
+    print("[INFO] Purgando tablas de Supabase antes de reinsertar...")
+    delete_all_rows(url, key, "daily_board")
+    delete_all_rows(url, key, "vip_signals")
+
+    # ══════════════════════════════════════════════════════════════════════════
     # TABLA 1: daily_board
+    # ══════════════════════════════════════════════════════════════════════════
     upsert_board_data = []
+    seen_board_ids = set()  # Deduplicación extra
+    
     for item in board:
         partido = item.get("partido")
         summary = item.get("match_summary") or {}
@@ -168,27 +246,19 @@ def main():
         
         if not partido: continue
              
-        local = partido.get("local", "")
-        visit = partido.get("visitante", "")
-        
+        local = normalize_team_name(partido.get("local", ""))
+        visit = normalize_team_name(partido.get("visitante", ""))
         hora_utc_str = partido.get("hora_utc")
-        if hora_utc_str:
-            real_date = hora_utc_str.split("T")[0]
-        else:
-            real_date = fecha
-            
-        unique_id = f"{real_date}_{local}_{visit}".replace(" ", "_")
+        event_date = _extract_event_date(partido, fecha)
+        unique_id = _build_unique_id(event_date, local, visit)
         
-        # Calculate Status
-        match_status = "active"
-        if hora_utc_str:
-            try:
-                # Basic compare against UTC now
-                match_dt = datetime.strptime(hora_utc_str, "%Y-%m-%dT%H:%M:%SZ")
-                if match_dt < datetime.utcnow():
-                    match_status = "finished"
-            except:
-                pass
+        # Deduplicación: si ya procesamos este partido, saltar
+        if unique_id in seen_board_ids:
+            print(f"[DEDUP] Saltando duplicado en board: {unique_id}")
+            continue
+        seen_board_ids.add(unique_id)
+        
+        match_status = _compute_status(hora_utc_str)
         
         mercados_completos = summary.get("all_markets", [])
         if not mercados_completos:
@@ -202,7 +272,7 @@ def main():
             
         row = {
             "id": unique_id,
-            "match_date": fecha,
+            "match_date": event_date,  # ← FECHA REAL DEL EVENTO, no del reporte
             "home_team": local,
             "away_team": visit,
             "poisson_1": poisson.get("local"),
@@ -217,33 +287,24 @@ def main():
 
     upsert_via_rest(url, key, "daily_board", upsert_board_data)
 
+    # ══════════════════════════════════════════════════════════════════════════
     # TABLA 2: vip_signals
+    # ══════════════════════════════════════════════════════════════════════════
     upsert_vip_data = []
+    seen_vip_ids = set()  # Deduplicación extra
+    
     for item in vips:
         partido = item.get("partido")
         picks = item.get("picks_valiosos", [])
         
         if not partido or not picks: continue
             
-        local = partido.get("local", "")
-        visit = partido.get("visitante", "")
-        
+        local = normalize_team_name(partido.get("local", ""))
+        visit = normalize_team_name(partido.get("visitante", ""))
         hora_utc_str = partido.get("hora_utc")
-        if hora_utc_str:
-            real_date = hora_utc_str.split("T")[0]
-        else:
-            real_date = fecha
-            
-        unique_id = f"{real_date}_{local}_{visit}".replace(" ", "_")
-        
-        match_status = "active"
-        if hora_utc_str:
-            try:
-                match_dt = datetime.strptime(hora_utc_str, "%Y-%m-%dT%H:%M:%SZ")
-                if match_dt < datetime.utcnow():
-                    match_status = "finished"
-            except:
-                pass
+        event_date = _extract_event_date(partido, fecha)
+        unique_id = _build_unique_id(event_date, local, visit)
+        match_status = _compute_status(hora_utc_str)
         
         ai_data = ai_cache.get(unique_id, {})
         ang_mat = ai_data.get("angulo_matematico", "No generado.")
@@ -252,14 +313,20 @@ def main():
             
         for pick in picks:
             mercado = pick.get("mercado", "")
-            unique_pick_id = f"{fecha}_{local}_{visit}_{mercado}".replace(" ", "_")
+            vip_id = f"{unique_id}_{mercado}".replace(" ", "_")
+            
+            # Deduplicación
+            if vip_id in seen_vip_ids:
+                print(f"[DEDUP] Saltando duplicado en VIP: {vip_id}")
+                continue
+            seen_vip_ids.add(vip_id)
             
             # Empaquetamos mercado en el ángulo porque su esquema de DB no tiene columna mercado
             packed_matematico = f"[Mercado: {mercado.upper()}] " + ang_mat
             
             row = {
-                "id": f"{unique_id}_{mercado}".replace(" ", "_"),
-                "match_date": fecha,
+                "id": vip_id,
+                "match_date": event_date,  # ← FECHA REAL DEL EVENTO
                 "home_team": local,
                 "away_team": visit,
                 "cuota": pick.get("cuota"),

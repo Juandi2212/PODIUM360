@@ -2,33 +2,39 @@ import datetime
 import os
 
 # Diccionario Maestro de Normalización
+# Cada variante conocida (Odds API, Football-Data, Fotmob, test_runner) → nombre canónico
 MAESTRO_ALIASES = {
     # PSG
     "PSG": "Paris Saint Germain",
     "PARIS SAINT-GERMAIN": "Paris Saint Germain",
     "PARIS SG": "Paris Saint Germain",
     "PARIS SAINT GERMAIN": "Paris Saint Germain",
+    "PARIS S-G": "Paris Saint Germain",
     
-    # Man City
+    # Manchester City
     "MAN CITY": "Manchester City",
     "MANCHESTER CITY": "Manchester City",
+    "MAN. CITY": "Manchester City",
     
-    # Man Utd
+    # Manchester United
     "MAN UTD": "Manchester United",
     "MANCHESTER UTD": "Manchester United",
     "MANCHESTER UNITED": "Manchester United",
+    "MAN. UNITED": "Manchester United",
+    "MAN UNITED": "Manchester United",
     
     # Athletic
     "ATHLETIC": "Athletic Club",
     "ATHLETIC BILBAO": "Athletic Club",
     "ATHLETIC CLUB": "Athletic Club",
     
-    # Bodø
+    # Bodø/Glimt
     "BODO/GLIMT": "Bodø/Glimt",
     "BODO / GLIMT": "Bodø/Glimt",
     "BODO GLIMT": "Bodø/Glimt",
+    "BODØ/GLIMT": "Bodø/Glimt",
     
-    # Dortmund
+    # Borussia Dortmund
     "BVB": "Borussia Dortmund",
     "DORTMUND": "Borussia Dortmund",
     "BORUSSIA DORTMUND": "Borussia Dortmund",
@@ -37,14 +43,170 @@ MAESTRO_ALIASES = {
     "CHELSEA": "Chelsea",
     "CHELSEA FC": "Chelsea",
     
-    # Spurs
+    # Tottenham
     "SPURS": "Tottenham Hotspur",
     "TOTTENHAM HOTSPUR": "Tottenham Hotspur",
+    "TOTTENHAM": "Tottenham Hotspur",
     
-    # Atletico
+    # Atletico Madrid
     "ATLETI": "Atletico Madrid",
     "ATLÉTICO DE MADRID": "Atletico Madrid",
     "ATLETICO DE MADRID": "Atletico Madrid",
+    "ATLETICO MADRID": "Atletico Madrid",
+    "ATL. MADRID": "Atletico Madrid",
+    "ATL MADRID": "Atletico Madrid",
+
+    # Bayern Munich
+    "BAYERN": "Bayern Munich",
+    "BAYERN MUNICH": "Bayern Munich",
+    "BAYERN MUNCHEN": "Bayern Munich",
+    "BAYERN MÜNCHEN": "Bayern Munich",
+    "FC BAYERN": "Bayern Munich",
+    "FC BAYERN MUNICH": "Bayern Munich",
+    "FC BAYERN MÜNCHEN": "Bayern Munich",
+    
+    # Bayer Leverkusen
+    "LEVERKUSEN": "Bayer Leverkusen",
+    "BAYER LEVERKUSEN": "Bayer Leverkusen",
+    "B. LEVERKUSEN": "Bayer Leverkusen",
+    "BAYER 04 LEVERKUSEN": "Bayer Leverkusen",
+    
+    # Real Madrid
+    "REAL MADRID": "Real Madrid",
+    "REAL MADRID CF": "Real Madrid",
+    "R. MADRID": "Real Madrid",
+    
+    # Barcelona
+    "BARCELONA": "Barcelona",
+    "FC BARCELONA": "Barcelona",
+    "BARCA": "Barcelona",
+    "BARÇA": "Barcelona",
+    
+    # Inter Milan
+    "INTER": "Inter Milan",
+    "INTER MILAN": "Inter Milan",
+    "INTERNAZIONALE": "Inter Milan",
+    "FC INTERNAZIONALE": "Inter Milan",
+    
+    # AC Milan
+    "MILAN": "AC Milan",
+    "AC MILAN": "AC Milan",
+    
+    # AS Roma
+    "ROMA": "AS Roma",
+    "AS ROMA": "AS Roma",
+    
+    # SS Lazio
+    "LAZIO": "SS Lazio",
+    "SS LAZIO": "SS Lazio",
+    
+    # Napoli
+    "NAPOLI": "Napoli",
+    "SSC NAPOLI": "Napoli",
+    
+    # Juventus
+    "JUVENTUS": "Juventus",
+    "JUVE": "Juventus",
+    
+    # Arsenal
+    "ARSENAL": "Arsenal",
+    "ARSENAL FC": "Arsenal",
+    
+    # Liverpool
+    "LIVERPOOL": "Liverpool",
+    "LIVERPOOL FC": "Liverpool",
+    
+    # RB Leipzig
+    "RB LEIPZIG": "RB Leipzig",
+    "LEIPZIG": "RB Leipzig",
+    "RASENBALLSPORT LEIPZIG": "RB Leipzig",
+    
+    # Sporting CP
+    "SPORTING CP": "Sporting CP",
+    "SPORTING": "Sporting CP",
+    "SPORTING LISBON": "Sporting CP",
+    "SPORTING LISBOA": "Sporting CP",
+    
+    # Porto
+    "PORTO": "Porto",
+    "FC PORTO": "Porto",
+    
+    # Benfica
+    "BENFICA": "Benfica",
+    "SL BENFICA": "Benfica",
+    
+    # Sevilla
+    "SEVILLA": "Sevilla",
+    "SEVILLA FC": "Sevilla",
+    
+    # Villarreal
+    "VILLARREAL": "Villarreal",
+    "VILLARREAL CF": "Villarreal",
+    
+    # Monaco
+    "MONACO": "Monaco",
+    "AS MONACO": "Monaco",
+    
+    # Marseille
+    "MARSEILLE": "Marseille",
+    "OLYMPIQUE DE MARSEILLE": "Marseille",
+    "OLYMPIQUE MARSEILLE": "Marseille",
+    "OM": "Marseille",
+    
+    # Lyon
+    "LYON": "Lyon",
+    "OLYMPIQUE LYONNAIS": "Lyon",
+    "OL LYON": "Lyon",
+    
+    # Newcastle
+    "NEWCASTLE": "Newcastle United",
+    "NEWCASTLE UNITED": "Newcastle United",
+    "NEWCASTLE UTD": "Newcastle United",
+    
+    # West Ham
+    "WEST HAM": "West Ham United",
+    "WEST HAM UNITED": "West Ham United",
+    
+    # Aston Villa
+    "ASTON VILLA": "Aston Villa",
+    
+    # Wolves
+    "WOLVES": "Wolverhampton",
+    "WOLVERHAMPTON WANDERERS": "Wolverhampton",
+    "WOLVERHAMPTON": "Wolverhampton",
+    
+    # Brighton
+    "BRIGHTON": "Brighton",
+    "BRIGHTON & HOVE ALBION": "Brighton",
+    "BRIGHTON AND HOVE ALBION": "Brighton",
+    
+    # Feyenoord
+    "FEYENOORD": "Feyenoord",
+    
+    # Ajax
+    "AJAX": "Ajax",
+    "AFC AJAX": "Ajax",
+    
+    # PSV
+    "PSV": "PSV Eindhoven",
+    "PSV EINDHOVEN": "PSV Eindhoven",
+    
+    # Atalanta
+    "ATALANTA": "Atalanta",
+    "ATALANTA BC": "Atalanta",
+    
+    # Galatasaray
+    "GALATASARAY": "Galatasaray",
+    "GALATASARAY SK": "Galatasaray",
+    
+    # Lille
+    "LILLE": "Lille",
+    "LOSC LILLE": "Lille",
+    "LOSC": "Lille",
+    
+    # Brest
+    "BREST": "Brest",
+    "STADE BRESTOIS": "Brest",
 }
 
 def normalize_team_name(name: str) -> str:

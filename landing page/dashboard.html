@@ -661,7 +661,6 @@
         
         try {
             console.log("--- DEBUG: Iniciando FETCH a Supabase ---");
-            console.log("URL de conexión:", SUPABASE_URL);
             
             // Obtenemos todos los datos reales inyectados por python supabase_sync.py
             const { data: dbBoard, error: err1 } = await supabase.from('daily_board').select('*').order('estado_mercado', { ascending: false });
@@ -680,24 +679,42 @@
                 return;
             }
 
-            // Filtrado por Fecha (Igual o mayor a hoy)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // ══════════════════════════════════════════════════════════
+            // FILTRADO ROBUSTO
+            // ══════════════════════════════════════════════════════════
+            
+            // 1. Filtrar registros con datos vacíos/nulos
+            const validBoard = (dbBoard || []).filter(item => 
+                item.home_team && item.away_team && item.home_team.trim() !== ''
+            );
+            const validVip = (dbVip || []).filter(item => 
+                item.home_team && item.away_team && item.home_team.trim() !== ''
+            );
 
-            function isDateValidOrFuture(itemFecha) {
-                if (!itemFecha) return true; // Si no tiene el formato fecha, lo pasamos
-                const parts = itemFecha.split('_');
-                if (parts.length === 3) {
-                    // Formato esperado: DD_MM_YY
-                    const itemDate = new Date(`20${parts[2]}`, parseInt(parts[1]) - 1, parseInt(parts[0]));
-                    itemDate.setHours(0, 0, 0, 0);
-                    return itemDate >= today;
-                }
-                return true; 
+            // 2. Deduplicación del lado del cliente (por si acaso)
+            function deduplicateByMatch(items) {
+                const seen = {};
+                return items.filter(item => {
+                    const key = `${item.home_team}_${item.away_team}`.toLowerCase();
+                    if (seen[key]) return false;
+                    seen[key] = true;
+                    return true;
+                });
             }
 
-            const boardData = (dbBoard || []).filter(item => isDateValidOrFuture(item.match_date));
-            const vipData = (dbVip || []).filter(item => isDateValidOrFuture(item.match_date));
+            // Para VIP, deduplicar por home_team + away_team + mercado (extraído del ángulo)
+            function deduplicateVip(items) {
+                const seen = {};
+                return items.filter(item => {
+                    const key = (item.id || `${item.home_team}_${item.away_team}`).toLowerCase();
+                    if (seen[key]) return false;
+                    seen[key] = true;
+                    return true;
+                });
+            }
+
+            const boardData = deduplicateByMatch(validBoard);
+            const vipData = deduplicateVip(validVip);
 
             if (boardData.length === 0 && vipData.length === 0) {
                 document.getElementById('empty-state').classList.remove('hidden');
