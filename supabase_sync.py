@@ -186,7 +186,21 @@ def main():
     # ══════════════════════════════════════════════════════════════════════════
     board = [item for item in board if item.get("partido")]
     vips = [item for item in vips if item.get("partido")]
-    print(f"[INFO] Tras filtrado de nulos: {len(board)} partidos, {len(vips)} VIP.")
+    
+    # Filtro de seguridad: excluir partidos fantasma (sin fixture ni odds)
+    def _is_real_match(item):
+        partido = item.get("partido", {})
+        summary = item.get("match_summary", {})
+        has_hora = bool(partido.get("hora_utc"))
+        has_markets = bool(summary.get("all_markets"))
+        return has_hora or has_markets
+    
+    board_before = len(board)
+    board = [item for item in board if _is_real_match(item)]
+    if len(board) < board_before:
+        print(f"[FILTER] Excluidos {board_before - len(board)} partidos fantasma (sin fixture ni odds).")
+    
+    print(f"[INFO] Tras filtrado: {len(board)} partidos reales, {len(vips)} VIP.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # Generar análisis IA para toda la jornada

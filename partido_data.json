@@ -1,88 +1,64 @@
 {
   "partido": {
-    "local": "Paris Saint-Germain",
-    "visitante": "Barcelona",
+    "local": "Bodø/Glimt",
+    "visitante": "Sporting CP",
     "liga": "Champions League",
     "estadio": null,
     "hora_utc": null
   },
   "elo": {
     "local": null,
-    "visitante": 1948.4
+    "visitante": 1850.9
   },
   "xg": {
     "local": {
-      "atk": [
-        2.09,
-        2.09,
-        2.09,
-        2.09,
-        2.09,
-        2.09,
-        2.09,
-        2.09
-      ],
-      "def": [
-        0.92,
-        0.92,
-        0.92,
-        0.92,
-        0.92,
-        0.92,
-        0.92,
-        0.92
-      ]
+      "atk": null,
+      "def": null
     },
     "visitante": {
       "atk": [
-        2.52,
-        2.52,
-        2.52,
-        2.52,
-        2.52,
-        2.52,
-        2.52,
-        2.52
+        2.13,
+        2.13,
+        2.13,
+        2.13,
+        2.13,
+        2.13,
+        2.13,
+        2.13
       ],
       "def": [
-        1.27,
-        1.27,
-        1.27,
-        1.27,
-        1.27,
-        1.27,
-        1.27,
-        1.27
+        0.68,
+        0.68,
+        0.68,
+        0.68,
+        0.68,
+        0.68,
+        0.68,
+        0.68
       ]
     }
   },
   "liga_avg_goals": 3.47,
   "standings": {
-    "pos_local": 11,
-    "pts_local": 14,
-    "pos_visitante": 5,
-    "pts_visitante": 16
+    "pos_local": 23,
+    "pts_local": 9,
+    "pos_visitante": null,
+    "pts_visitante": null
   },
   "forma": {
     "local": [
       "D",
-      "L",
-      "D",
       "W",
-      "D"
+      "W",
+      "W",
+      "W"
     ],
-    "visitante": [
-      "L",
-      "W",
-      "W",
-      "W",
-      "D"
-    ]
+    "visitante": null
   },
   "h2h": {
-    "victorias_local": 1,
-    "empates": 0,
-    "victorias_visitante": 0
+    "victorias_local": null,
+    "empates": null,
+    "victorias_visitante": null
   },
   "bajas": {
     "local": null,
@@ -90,16 +66,36 @@
   },
   "odds": {
     "pinnacle": {
-      "local": null,
-      "empate": null,
-      "visitante": null
+      "local": 2.35,
+      "empate": 3.71,
+      "visitante": 2.98
     },
     "mejor_cuota": {
-      "local": null,
-      "empate": null,
-      "visitante": null,
-      "over25": null,
+      "local": 2.4,
+      "empate": 3.85,
+      "visitante": 3.1,
+      "over25": 1.67,
       "btts": null
+    },
+    "mejores_cuotas_extra": {
+      "totals": {
+        "over_3.0": 2.04,
+        "under_3.0": 1.88,
+        "over_2.5": 1.67,
+        "under_2.5": 2.4,
+        "over_2.75": 1.82,
+        "under_2.75": 2.02,
+        "over_1.5": 1.22,
+        "under_1.5": 5.4
+      },
+      "spreads": {
+        "spread_local_-0.25": 2.06,
+        "spread_visitante_0.25": 1.87,
+        "spread_local_0.0": 1.75,
+        "spread_visitante_0.0": 2.25,
+        "spread_local_0.25": 1.59,
+        "spread_visitante_-0.25": 2.64
+      }
     },
     "corners": {
       "avg_local": null,
@@ -107,6 +103,6 @@
       "linea": null
     }
   },
-  "partido_no_disponible": true,
-  "odds_disponibles": false
+  "partido_no_disponible": false,
+  "odds_disponibles": true
 }
