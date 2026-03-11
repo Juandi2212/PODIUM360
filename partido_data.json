@@ -1,14 +1,14 @@
 {
   "partido": {
-    "local": "PSG",
-    "visitante": "Chelsea",
+    "local": "Paris Saint-Germain",
+    "visitante": "Barcelona",
     "liga": "Champions League",
     "estadio": null,
-    "hora_utc": "2026-03-11T20:00:00Z"
+    "hora_utc": null
   },
   "elo": {
     "local": null,
-    "visitante": 1929.6
+    "visitante": 1948.4
   },
   "xg": {
     "local": {
@@ -35,24 +35,24 @@
     },
     "visitante": {
       "atk": [
-        1.97,
-        1.97,
-        1.97,
-        1.97,
-        1.97,
-        1.97,
-        1.97,
-        1.97
+        2.52,
+        2.52,
+        2.52,
+        2.52,
+        2.52,
+        2.52,
+        2.52,
+        2.52
       ],
       "def": [
-        1.35,
-        1.35,
-        1.35,
-        1.35,
-        1.35,
-        1.35,
-        1.35,
-        1.35
+        1.27,
+        1.27,
+        1.27,
+        1.27,
+        1.27,
+        1.27,
+        1.27,
+        1.27
       ]
     }
   },
@@ -60,7 +60,7 @@
   "standings": {
     "pos_local": 11,
     "pts_local": 14,
-    "pos_visitante": 6,
+    "pos_visitante": 5,
     "pts_visitante": 16
   },
   "forma": {
@@ -72,17 +72,17 @@
       "D"
     ],
     "visitante": [
-      "D",
-      "W",
       "L",
       "W",
-      "W"
+      "W",
+      "W",
+      "D"
     ]
   },
   "h2h": {
-    "victorias_local": null,
-    "empates": null,
-    "victorias_visitante": null
+    "victorias_local": 1,
+    "empates": 0,
+    "victorias_visitante": 0
   },
   "bajas": {
     "local": null,
@@ -90,15 +90,15 @@
   },
   "odds": {
     "pinnacle": {
-      "local": 1.94,
-      "empate": 3.81,
-      "visitante": 3.86
+      "local": null,
+      "empate": null,
+      "visitante": null
     },
     "mejor_cuota": {
-      "local": 2.0,
-      "empate": 4.0,
-      "visitante": 3.98,
-      "over25": 1.64,
+      "local": null,
+      "empate": null,
+      "visitante": null,
+      "over25": null,
       "btts": null
     },
     "corners": {
@@ -107,6 +107,6 @@
       "linea": null
     }
   },
-  "partido_no_disponible": false,
-  "odds_disponibles": true
+  "partido_no_disponible": true,
+  "odds_disponibles": false
 }

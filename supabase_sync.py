@@ -127,7 +127,16 @@ def main():
         if not partido: continue
         local = partido.get("local", "")
         visit = partido.get("visitante", "")
-        unique_id = f"{fecha}_{local}_{visit}".replace(" ", "_")
+        
+        # ID uses Real match date (hora_utc), fallback to fecha
+        hora_utc_str = partido.get("hora_utc")
+        if hora_utc_str:
+            # Extract YYYY-MM-DD
+            real_date = hora_utc_str.split("T")[0]
+        else:
+            real_date = fecha
+            
+        unique_id = f"{real_date}_{local}_{visit}".replace(" ", "_")
 
         match_vip = next((v for v in vips if v.get("partido", {}).get("local") == local and v.get("partido", {}).get("visitante") == visit), None)
         picks = match_vip.get("picks_valiosos", []) if match_vip else []
@@ -161,7 +170,25 @@ def main():
              
         local = partido.get("local", "")
         visit = partido.get("visitante", "")
-        unique_id = f"{fecha}_{local}_{visit}".replace(" ", "_")
+        
+        hora_utc_str = partido.get("hora_utc")
+        if hora_utc_str:
+            real_date = hora_utc_str.split("T")[0]
+        else:
+            real_date = fecha
+            
+        unique_id = f"{real_date}_{local}_{visit}".replace(" ", "_")
+        
+        # Calculate Status
+        match_status = "active"
+        if hora_utc_str:
+            try:
+                # Basic compare against UTC now
+                match_dt = datetime.strptime(hora_utc_str, "%Y-%m-%dT%H:%M:%SZ")
+                if match_dt < datetime.utcnow():
+                    match_status = "finished"
+            except:
+                pass
         
         mercados_completos = summary.get("all_markets", [])
         if not mercados_completos:
@@ -183,7 +210,8 @@ def main():
             "poisson_2": poisson.get("visitante"),
             "xg_diff": summary.get("diferencial_xg_rolling"),
             "estado_mercado": summary.get("estado_mercado", "Desconocido"),
-            "mercados_completos": mercados_completos
+            "mercados_completos": mercados_completos,
+            "status": match_status
         }
         upsert_board_data.append(row)
 
@@ -199,7 +227,23 @@ def main():
             
         local = partido.get("local", "")
         visit = partido.get("visitante", "")
-        unique_id = f"{fecha}_{local}_{visit}".replace(" ", "_")
+        
+        hora_utc_str = partido.get("hora_utc")
+        if hora_utc_str:
+            real_date = hora_utc_str.split("T")[0]
+        else:
+            real_date = fecha
+            
+        unique_id = f"{real_date}_{local}_{visit}".replace(" ", "_")
+        
+        match_status = "active"
+        if hora_utc_str:
+            try:
+                match_dt = datetime.strptime(hora_utc_str, "%Y-%m-%dT%H:%M:%SZ")
+                if match_dt < datetime.utcnow():
+                    match_status = "finished"
+            except:
+                pass
         
         ai_data = ai_cache.get(unique_id, {})
         ang_mat = ai_data.get("angulo_matematico", "No generado.")
@@ -214,7 +258,7 @@ def main():
             packed_matematico = f"[Mercado: {mercado.upper()}] " + ang_mat
             
             row = {
-                "id": unique_pick_id,
+                "id": f"{unique_id}_{mercado}".replace(" ", "_"),
                 "match_date": fecha,
                 "home_team": local,
                 "away_team": visit,
@@ -223,7 +267,8 @@ def main():
                 "ev_initial": pick.get("ev_pct"), 
                 "angulo_matematico": packed_matematico,
                 "angulo_tendencia": ang_ten,
-                "angulo_contexto": ang_ctx
+                "angulo_contexto": ang_ctx,
+                "status": match_status
             }
             upsert_vip_data.append(row)
 

@@ -903,7 +903,7 @@ def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
         params={
             "apiKey":     ODDS_API_KEY,
             "regions":    "eu",
-            "markets":    "h2h,totals",
+            "markets":    "h2h,totals,spreads",
             "oddsFormat": "decimal",
         },
         cache_ttl_seconds=3600
@@ -937,8 +937,17 @@ def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
         "pinnacle":    {"local": None, "empate": None, "visitante": None},
         "mejor_cuota": {"local": None, "empate": None, "visitante": None,
                         "over25": None, "btts": None},
+        "mejores_cuotas_extra": {
+            "totals": {},
+            "spreads": {},
+        },
         "corners":     {"avg_local": None, "avg_visitante": None, "linea": None},
     }
+
+    def _best_extra(category: str, key: str, val):
+        if val is not None:
+            cur = result["mejores_cuotas_extra"][category].get(key)
+            result["mejores_cuotas_extra"][category][key] = round(max(cur or 0.0, val), 3)
 
     def _best(key: str, val):
         if val is not None:
@@ -965,8 +974,27 @@ def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
 
             elif mkt == "totals":
                 for o in market.get("outcomes", []):
-                    if o.get("point") == 2.5 and o["name"] == "Over":
-                        _best("over25", o["price"])
+                    pt = o.get("point")
+                    price = o["price"]
+                    if pt is not None:
+                        # Extra totals collection
+                        key_name = f"{o['name']}_{pt}".lower()
+                        _best_extra("totals", key_name, price)
+                        # Keep the legacy variable running
+                        if pt == 2.5 and o["name"] == "Over":
+                            _best("over25", price)
+
+            elif mkt == "spreads":
+                for o in market.get("outcomes", []):
+                    pt = o.get("point")
+                    nm = o.get("name")
+                    price = o["price"]
+                    if pt is not None:
+                        is_home = (nm == home_key)
+                        # We label it based on home/away perspective
+                        prefix = "local" if is_home else "visitante"
+                        key_name = f"spread_{prefix}_{pt}"
+                        _best_extra("spreads", key_name, price)
 
             elif mkt == "btts":
                 for o in market.get("outcomes", []):

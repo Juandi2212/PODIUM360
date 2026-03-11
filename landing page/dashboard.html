@@ -126,6 +126,18 @@
             </p>
         </header>
 
+        <!-- Tabs Navigation -->
+        <div class="mb-8 border-b border-podium-border/40">
+            <nav class="flex gap-6 -mb-px" aria-label="Tabs">
+                <button onclick="switchTab('general')" id="tab-btn-general" class="border-podium-gold text-podium-gold whitespace-nowrap py-4 px-1 border-b-2 font-display text-xl uppercase tracking-[0.14em]">
+                    Jornada General
+                </button>
+                <button onclick="switchTab('vip')" id="tab-btn-vip" class="border-transparent text-podium-muted hover:text-white hover:border-podium-border/80 whitespace-nowrap py-4 px-1 border-b-2 font-display text-xl uppercase tracking-[0.14em] transition">
+                    Pronósticos VIP
+                </button>
+            </nav>
+        </div>
+
         <div id="loading-state" class="flex flex-col items-center justify-center py-20 rounded-3xl border border-podium-border bg-black/40 backdrop-blur">
             <div class="loader mb-4"></div>
             <p class="text-sm uppercase tracking-[0.22em] text-podium-muted">Conectando matriz de Supabase...</p>
@@ -139,39 +151,90 @@
             <p class="text-sm text-podium-muted font-body max-w-md">No se han detectado ineficiencias matemáticas en la jornada actual. Próximo escaneo en 12 horas. Protegiendo bankroll.</p>
         </div>
 
-        <!-- Dashboard Grid Layout -->
-        <div id="dashboard-content" class="hidden grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-8">
-            
-            <!-- RADAR 1X2 -->
-            <div class="flex flex-col space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-podium-border/80">
+        <!-- TAB 1: JORNADA GENERAL -->
+        <div id="tab-general" class="hidden space-y-12">
+            <!-- SECCIÓN A: PRÓXIMOS EVENTOS -->
+            <div>
+                <div class="flex items-center justify-between pb-3 mb-6 border-b border-podium-border/80">
                     <h2 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-text drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
-                        Radar 1x2 <span class="text-podium-muted text-lg tracking-[0.1em]">(Global)</span>
+                        Próximos Eventos
                     </h2>
-                    <span id="board-count" class="text-[11px] uppercase tracking-[0.24em] text-podium-muted bg-black/60 px-2 py-1 rounded border border-podium-border"></span>
+                    <span id="board-active-count" class="text-[11px] uppercase tracking-[0.24em] text-podium-green bg-black/60 px-2 py-1 rounded border border-podium-green/30"></span>
                 </div>
-                
-                <div id="daily-board-container" class="space-y-4 overflow-y-auto max-h-[800px] pr-2">
-                    <!-- Renders here -->
+                <div id="daily-board-active-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Match cards go here -->
                 </div>
             </div>
 
-            <!-- VIP SIGNALS -->
+            <!-- SECCIÓN B: HISTORIAL DE ANÁLISIS -->
+            <div>
+                <div class="flex items-center justify-between pb-3 mb-6 border-b border-podium-border/80">
+                    <h2 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-muted drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">
+                        Historial de Análisis
+                    </h2>
+                    <span id="board-finished-count" class="text-[11px] uppercase tracking-[0.24em] text-podium-muted bg-black/60 px-2 py-1 rounded border border-podium-border"></span>
+                </div>
+                <div id="daily-board-finished-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 opacity-70 hover:opacity-100 transition duration-300">
+                    <!-- Match cards go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PRONÓSTICOS VIP -->
+        <div id="tab-vip" class="hidden space-y-12">
+            <!-- SECCIÓN A: VIP ACTIVOS -->
             <div class="flex flex-col space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-podium-gold/30">
                     <h2 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-gold drop-shadow-[0_0_12px_rgba(245,188,47,0.4)]">
-                        Alertas VIP <span class="text-podium-muted text-lg tracking-[0.1em]">(EV ≥ 5.0%)</span>
+                        Pronósticos Activos
                     </h2>
-                    <span id="vip-count" class="text-[11px] uppercase font-bold tracking-[0.24em] text-black bg-podium-gold px-3 py-1 rounded"></span>
+                    <span id="vip-active-count" class="text-[11px] uppercase font-bold tracking-[0.24em] text-black bg-podium-gold px-3 py-1 rounded"></span>
                 </div>
-
-                <div id="vip-signals-container" class="space-y-6">
+                <div id="vip-signals-active-container" class="space-y-6">
                     <!-- Renders here -->
                 </div>
             </div>
 
+            <!-- SECCIÓN B: VIP HISTORIAL -->
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-podium-muted/30">
+                    <h2 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-muted drop-shadow-[0_0_12px_rgba(255,255,255,0.1)]">
+                        Historial VIP
+                    </h2>
+                    <span id="vip-finished-count" class="text-[11px] uppercase font-bold tracking-[0.24em] text-black bg-podium-muted px-3 py-1 rounded"></span>
+                </div>
+                <div id="vip-signals-finished-container" class="space-y-6 opacity-70 hover:opacity-100 transition duration-300">
+                    <!-- Renders here -->
+                </div>
+            </div>
         </div>
+        
     </main>
+
+    <!-- Modal Detalles de Partido (Match View) -->
+    <div id="match-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Background backdrop -->
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeMatchModal()"></div>
+
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                
+                <div class="relative transform overflow-hidden rounded-2xl border border-podium-border bg-[#0a0f1c] text-left shadow-xl transition-all sm:my-8 w-full max-w-5xl">
+                    <!-- Boton Cerrar -->
+                    <button onclick="closeMatchModal()" class="absolute right-4 top-4 text-podium-muted hover:text-white group z-10 transition">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    <!-- Content Injected via JS -->
+                    <div id="match-modal-content" class="h-full">
+                        <!-- Loading or match details -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- FOOTER (Mismo de index.html) -->
     <footer class="mt-8 border-t border-podium-border/70 pt-6 pb-8 mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -192,8 +255,53 @@
     const SUPABASE_URL = 'https://ssvnixnqczpvpiomgrje.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdm5peG5xY3pwdnBpb21ncmplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY3NTYxOSwiZXhwIjoyMDg4MjUxNjE5fQ.xBR4JOau1uOPsr9xNSiXr7atmgb65SYgLNmPf13Tg00';
     
+    // Global Data Cache
+    let GLOBAL_MATCHES = {};
+    let GLOBAL_BOARD = [];
+    let GLOBAL_VIP = [];
+
+    // Tabs Logic
+    function switchTab(tab) {
+        if (tab === 'general') {
+            document.getElementById('tab-general').classList.remove('hidden');
+            document.getElementById('tab-vip').classList.add('hidden');
+            document.getElementById('tab-btn-general').classList.add('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-general').classList.remove('border-transparent', 'text-podium-muted');
+            document.getElementById('tab-btn-vip').classList.remove('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-vip').classList.add('border-transparent', 'text-podium-muted');
+        } else {
+            document.getElementById('tab-vip').classList.remove('hidden');
+            document.getElementById('tab-general').classList.add('hidden');
+            document.getElementById('tab-btn-vip').classList.add('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-vip').classList.remove('border-transparent', 'text-podium-muted');
+            document.getElementById('tab-btn-general').classList.remove('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-general').classList.add('border-transparent', 'text-podium-muted');
+        }
+    }
+
+    // Modal UI Helpers
+    function openMatchModal(matchKey) {
+        document.getElementById('match-modal').classList.remove('hidden');
+        renderMatchDetailView(matchKey);
+    }
+
+    function closeMatchModal() {
+        document.getElementById('match-modal').classList.add('hidden');
+        document.getElementById('match-modal-content').innerHTML = ''; // Clean up
+    }
+
     // UI Helpers
+    function getEvColorClass(ev) {
+        const value = parseFloat(ev);
+        if (isNaN(value)) return 'text-podium-muted';
+        if (value < 1.0) return 'text-podium-red';
+        if (value >= 1.0 && value < 5.0) return 'text-podium-gold';
+        if (value >= 5.0) return 'text-podium-green font-bold';
+        return 'text-podium-muted';
+    }
+
     function renderBoardCard(item) {
+        const matchKey = `${item.home_team}_${item.away_team}`; 
         const isEvAlta = item.estado_mercado === 'Oportunidad Detectada';
         const beacon = isEvAlta 
             ? `<span class="h-1.5 w-1.5 rounded-full bg-podium-gold animate-pulse"></span> Oportunidad` 
@@ -202,141 +310,219 @@
         const xgDiff = parseFloat(item.xg_diff) || 0;
         const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
 
-        // Generar filas de la Value Matrix o UI de Cortesía
-        const markets = item.mercados_completos || [];
-        let matrixRows = '';
-        let isCourtesyUI = false;
-        let courtesyData = null;
-
-        if (markets.length === 1 && markets[0].mercado === 'IA_ANALYSIS') {
-            isCourtesyUI = true;
-            courtesyData = markets[0];
-        } else if (markets.length > 0) {
-            matrixRows = markets.map(m => {
-                let evColor = 'text-podium-muted';
-                if (m.ev_pct > 5.0) evColor = 'text-podium-green font-bold';
-                else if (m.ev_pct >= 1.0) evColor = 'text-emerald-300';
-                else if (m.ev_pct >= -3.0) evColor = 'text-gray-300';
-                else evColor = 'text-podium-red';
-
-                return `
-                <tr class="border-b border-podium-border/30 hover:bg-black/40 transition">
-                    <td class="py-2 text-[11px] text-podium-text uppercase tracking-wider">${m.mercado.replace('1x2_', '')}</td>
-                    <td class="py-2 text-[11px] text-podium-muted text-right">${m.cuota || '-'}</td>
-                    <td class="py-2 text-[11px] text-podium-muted text-right">${m.diagnostico_interno ? m.diagnostico_interno.consenso_modelos : '-'}/3</td>
-                    <td class="py-2 text-[11px] ${evColor} text-right">${m.ev_pct > 0 ? '+'+m.ev_pct : m.ev_pct}%</td>
-                </tr>
-                `;
-            }).join('');
-        } else {
-            matrixRows = `<tr><td colspan="4" class="py-4 text-center text-xs text-podium-muted">Matriz no disponible</td></tr>`;
-        }
-
         return `
-        <div class="relative overflow-hidden p-4 rounded-2xl border border-podium-border bg-black/60 transition hover:bg-black/80">
-            <div class="flex justify-between items-start mb-3">
-                <span class="text-[10px] uppercase tracking-[0.28em] text-podium-muted">Competición Global</span>
-                <span class="inline-flex items-center gap-1.5 text-[10px] uppercase font-semibold tracking-[0.22em] ${isEvAlta ? 'text-podium-gold' : 'text-podium-muted'}">
-                    ${beacon}
-                </span>
-            </div>
-            <h3 class="font-display text-xl uppercase tracking-[0.12em] text-white mb-4">
-                ${item.home_team} <span class="text-podium-muted font-light px-1">vs</span> ${item.away_team}
-            </h3>
-            
-            <div class="space-y-1.5 text-[11px] text-podium-muted">
-                <div class="flex justify-between">
-                    <span>Probabilidades 1X2</span>
+        <div onclick="openMatchModal('${matchKey}')" class="group relative overflow-hidden p-5 rounded-2xl border border-podium-border bg-[#090d18] transition hover:bg-[#0c1328] hover:border-podium-border/80 cursor-pointer shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.03)] flex flex-col justify-between h-full">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <span class="text-[10px] uppercase tracking-[0.28em] text-podium-muted">${item.liga || 'Competición Global'}</span>
+                    <span class="inline-flex items-center gap-1.5 text-[10px] uppercase font-semibold tracking-[0.22em] ${isEvAlta ? 'text-podium-gold' : 'text-podium-muted'}">
+                        ${beacon}
+                    </span>
                 </div>
-                <div class="flex h-2.5 overflow-hidden rounded-full bg-[#090b16]">
-                    <div class="flex items-center justify-center bg-podium-green text-[9px] text-black font-bold opacity-90" style="width: ${item.poisson_1 || 33}%"></div>
-                    <div class="flex items-center justify-center bg-podium-muted text-[9px] text-black font-bold opacity-60" style="width: ${item.poisson_x || 33}%"></div>
-                    <div class="flex items-center justify-center bg-podium-red text-[9px] text-black font-bold opacity-90" style="width: ${item.poisson_2 || 33}%"></div>
-                </div>
-                <div class="flex justify-between text-[10px] pt-1">
-                    <span class="text-podium-green">${item.poisson_1 || '-'}% 1</span>
-                    <span class="text-podium-muted">${item.poisson_x || '-'}% X</span>
-                    <span class="text-podium-red">${item.poisson_2 || '-'}% 2</span>
-                </div>
-            </div>
-            
-            <div class="mt-4 pt-3 border-t border-podium-border/50 flex justify-between items-center text-[11px]">
-                <span class="text-podium-muted uppercase tracking-[0.15em]">xG Rolling Diff</span>
-                <span class="font-mono bg-black/40 px-2 py-0.5 rounded border border-podium-border ${xgColor}">
-                    ${xgDiff > 0 ? '+'+item.xg_diff : item.xg_diff}
-                </span>
-            </div>
-            
-            <!-- Value Matrix / Courtesy UI Toggle -->
-            <div class="mt-3 pt-3 border-t border-podium-border/30">
-                ${isCourtesyUI 
-                  ? `<button onclick="toggleMatrix(this)" class="w-full flex items-center justify-between py-1.5 text-[10px] uppercase tracking-[0.2em] text-podium-muted hover:text-white transition group focus:outline-none">
-                        <span class="text-emerald-400">Análisis de Probabilidad Disponible</span>
-                        <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </button>`
-                  : (markets.length > 0
-                      ? `<button onclick="toggleMatrix(this)" class="w-full flex items-center justify-between py-1.5 text-[10px] uppercase tracking-[0.2em] text-podium-muted hover:text-white transition group focus:outline-none">
-                            <span>Ver Value Matrix Completa</span>
-                            <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover:text-podium-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>`
-                      : `<div class="w-full flex items-center justify-between py-1.5 text-[10px] uppercase tracking-[0.2em] text-podium-muted/50 cursor-not-allowed">
-                            <span>Analizando mercados secundarios...</span>
-                        </div>`)
-                }
-            </div>
-            
-            <!-- Value Matrix / Courtesy UI Table (Hidden by default) -->
-            ${isCourtesyUI ? `
-            <div class="hidden mt-3 bg-black/40 rounded-lg p-4 border border-emerald-400/20">
-                <p class="text-[11px] uppercase tracking-[0.24em] text-emerald-400 mb-2 font-semibold">Lectura de IA (1X2)</p>
-                <div class="space-y-3">
-                    <div>
-                        <p class="text-[10px] uppercase tracking-[0.1em] text-podium-gold mb-1">Matemático</p>
-                        <p class="text-[12px] text-podium-muted leading-relaxed">${courtesyData.angulo_matematico}</p>
+                <h3 class="font-display text-2xl uppercase tracking-[0.12em] text-white mb-6 leading-none">
+                    ${item.home_team} <br><span class="text-podium-muted font-light text-xl">vs</span> ${item.away_team}
+                </h3>
+                
+                <div class="space-y-1.5 text-[11px] text-podium-muted">
+                    <div class="flex justify-between">
+                        <span class="uppercase tracking-widest text-[10px]">Probabilidades 1X2</span>
                     </div>
-                    <div>
-                        <p class="text-[10px] uppercase tracking-[0.1em] text-podium-gold mb-1">Tendencia</p>
-                        <p class="text-[12px] text-podium-muted leading-relaxed">${courtesyData.angulo_tendencia}</p>
+                    <div class="flex h-2.5 overflow-hidden rounded-full bg-[#050710]">
+                        <div class="flex items-center justify-center bg-podium-green text-[9px] text-black font-bold opacity-90" style="width: ${item.poisson_1 || 33}%"></div>
+                        <div class="flex items-center justify-center bg-podium-muted text-[9px] text-black font-bold opacity-60" style="width: ${item.poisson_x || 33}%"></div>
+                        <div class="flex items-center justify-center bg-podium-red text-[9px] text-black font-bold opacity-90" style="width: ${item.poisson_2 || 33}%"></div>
                     </div>
-                    <div>
-                        <p class="text-[10px] uppercase tracking-[0.1em] text-podium-gold mb-1">Contexto</p>
-                        <p class="text-[12px] text-podium-muted leading-relaxed">${courtesyData.angulo_contexto}</p>
+                    <div class="flex justify-between text-[10px] pt-1">
+                        <span class="text-podium-green">${item.poisson_1 || '-'}% 1</span>
+                        <span class="text-podium-muted">${item.poisson_x || '-'}% X</span>
+                        <span class="text-podium-red">${item.poisson_2 || '-'}% 2</span>
                     </div>
                 </div>
-            </div>` 
-            : (markets.length > 0 ? `
-            <div class="hidden mt-3 bg-black/40 rounded-lg p-3 border border-podium-border/50">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="border-b border-podium-border/50 uppercase tracking-[0.15em] text-[10px] text-podium-muted">
-                            <th class="pb-2 font-normal">Mercado</th>
-                            <th class="pb-2 font-normal text-right">Cuota</th>
-                            <th class="pb-2 font-normal text-right">Consenso</th>
-                            <th class="pb-2 font-normal text-right">EV%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${matrixRows}
-                    </tbody>
-                </table>
-            </div>` : '')}
-
+            </div>
+            
+            <div class="mt-6">
+                <div class="pt-3 border-t border-podium-border/50 flex justify-between items-center text-[11px] mb-4">
+                    <span class="text-podium-muted uppercase tracking-[0.15em]">xG Rolling Diff</span>
+                    <span class="font-mono bg-black/40 px-2 py-0.5 rounded border border-podium-border ${xgColor}">
+                        ${xgDiff > 0 ? '+'+item.xg_diff : item.xg_diff}
+                    </span>
+                </div>
+                
+                <button class="w-full flex justify-center items-center py-2.5 rounded border border-podium-border/80 bg-black/30 group-hover:bg-podium-border text-[11px] text-white uppercase tracking-[0.2em] transition">
+                    Ver Análisis Completo
+                </button>
+            </div>
         </div>`;
     }
 
-    // Toggle logic for the Matrix
-    window.toggleMatrix = function(btn) {
-        if (!btn || !btn.parentElement || !btn.parentElement.nextElementSibling) return;
-        const matrixDiv = btn.parentElement.nextElementSibling;
-        const icon = btn.querySelector('svg');
-        if (matrixDiv.classList.contains('hidden')) {
-            matrixDiv.classList.remove('hidden');
-            if (icon) icon.style.transform = 'rotate(180deg)';
-        } else {
-            matrixDiv.classList.add('hidden');
-            if (icon) icon.style.transform = 'rotate(0deg)';
+    // Agrupa y renderiza el Match Detail
+    function renderMatchDetailView(matchKey) {
+        const item = GLOBAL_MATCHES[matchKey];
+        if(!item) return;
+
+        const container = document.getElementById('match-modal-content');
+        
+        // Separating completely all the markets inside item.mercados_completos
+        const markets = item.mercados_completos || [];
+        
+        let h2hData = [];
+        let totalsData = [];
+        let spreadsData = [];
+        let aiCourtesyData = null;
+
+        // Limpiar el angulo_matematico si existe para el Triple Angulo
+        let anguloMatematico = 'Generando modelo heurístico...';
+        let anguloTendencia = item.ultimo_diagnostico_tendencia || 'Evaluando métricas subyacentes...';
+        let anguloContexto = item.ultimo_diagnostico_contexto || 'Sin alteraciones sistémicas reportadas.';
+
+        markets.forEach(m => {
+            const mKey = m.mercado.toLowerCase();
+            
+            // Buscar una narrativa completa que enviar al Triple Angulo
+            if(m.mercado === 'IA_ANALYSIS' && !aiCourtesyData) aiCourtesyData = m;
+            // Ocasionalmente las vip_signals ya traen la narrativa en sus rows
+            if (m.angulo_matematico && m.angulo_matematico !== 'Pendiente de generación') {
+                anguloMatematico = m.angulo_matematico.replace(/\[Mercado: .*?\]\s*/i, '');
+                anguloTendencia = m.angulo_tendencia || anguloTendencia;
+                anguloContexto = m.angulo_contexto || anguloContexto;
+            }
+
+            if(mKey === 'ia_analysis') return;
+
+            if(mKey.includes('1x2') || mKey === 'h2h') {
+                h2hData.push(m);
+            } else if(mKey.includes('over') || mKey.includes('under') || mKey === 'totals') {
+                totalsData.push(m);
+            } else {
+                spreadsData.push(m); // Any other like handicaps
+            }
+        });
+        
+        // Si teníamos un IA Courtesy explícito, sobreescribimos
+        if (aiCourtesyData) {
+            anguloMatematico = aiCourtesyData.angulo_matematico || anguloMatematico;
+            anguloTendencia = aiCourtesyData.angulo_tendencia || anguloTendencia;
+            anguloContexto = aiCourtesyData.angulo_contexto || anguloContexto;
         }
-    };
+
+        const xgDiff = parseFloat(item.xg_diff) || 0;
+        const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
+
+        // Función para renderizar una tabla según su array
+        function buildTable(dataArray, title) {
+            if (dataArray.length === 0) return '';
+
+            const rows = dataArray.map(m => {
+                let evValue = m.ev_pct || m.ev_initial || 0;
+                let oddValue = m.cuota || '--';
+                let name = m.mercado.replace('1x2_', '').replace('_', ' ').toUpperCase();
+                
+                // Color Code (Rojo, Amarillo, Verde)
+                const evColorClass = getEvColorClass(evValue);
+                const showPrefix = evValue > 0 ? '+' : '';
+
+                // Reverse engineer fair odds
+                let probModelo = '--';
+                let cuotaJusta = '--';
+                if (oddValue !== '--' && evValue !== '--' && parseFloat(oddValue) > 0) {
+                    let probDecimal = (parseFloat(evValue) / 100 + 1) / parseFloat(oddValue);
+                    probModelo = (probDecimal * 100).toFixed(1) + '%';
+                    cuotaJusta = (1 / probDecimal).toFixed(2);
+                }
+
+                return `
+                <tr class="border-b border-podium-border/30 hover:bg-black/60 transition group">
+                    <td class="py-3 pl-4 text-xs font-semibold tracking-wider text-white uppercase">${name}</td>
+                    <td class="py-3 text-[11px] sm:text-xs text-podium-muted text-right hidden sm:table-cell">${probModelo}</td>
+                    <td class="py-3 text-[11px] sm:text-xs text-podium-muted text-right hidden sm:table-cell">${cuotaJusta}</td>
+                    <td class="py-3 text-[11px] sm:text-xs text-white font-semibold text-right">${oddValue}</td>
+                    <td class="py-3 pr-4 text-xs ${evColorClass} text-right">${showPrefix}${evValue}%</td>
+                </tr>`;
+            }).join('');
+
+            return `
+            <div class="overflow-hidden rounded-xl border border-podium-border bg-black/20 mb-6">
+                <div class="bg-podium-border/20 px-4 py-2 border-b border-podium-border/40">
+                    <h4 class="font-display text-lg uppercase tracking-widest text-podium-muted">${title}</h4>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left whitespace-nowrap">
+                        <thead>
+                            <tr class="border-b border-podium-border/50 uppercase tracking-[0.15em] text-[10px] text-podium-muted/70">
+                                <th class="py-2.5 pl-4 font-normal">Mercado</th>
+                                <th class="py-2.5 font-normal text-right hidden sm:table-cell">Prob Modelo</th>
+                                <th class="py-2.5 font-normal text-right hidden sm:table-cell">Cuota Justa</th>
+                                <th class="py-2.5 font-normal text-right">Cuota Bookie</th>
+                                <th class="py-2.5 pr-4 font-normal text-right">Ventaja (EV)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        container.innerHTML = `
+        <div class="flex flex-col h-full mx-auto pb-8">
+            <!-- Header Modal -->
+            <div class="px-6 py-8 md:px-10 border-b border-podium-border/60 bg-gradient-to-br from-[#0a1020] to-[#0a0f1c]">
+                <div class="flex items-center space-x-2 mb-3">
+                    <span class="text-xs text-podium-muted font-semibold uppercase tracking-[0.24em]">${item.liga || 'JORNADA GLOBAL'}</span>
+                </div>
+                <h3 class="font-display text-4xl sm:text-5xl uppercase tracking-[0.12em] text-white">
+                    ${item.home_team} <span class="text-podium-gold font-light px-2" style="font-family: 'Barlow Condensed';">VS</span> ${item.away_team}
+                </h3>
+            </div>
+
+            <!-- Modal Content Padding -->
+            <div class="px-6 md:px-10 py-8 space-y-10">
+                
+                <!-- Triple Angulo (Análisis IA) -->
+                <div>
+                    <h4 class="font-display text-2xl uppercase tracking-widest text-podium-text mb-5 border-b border-podium-border pb-2 border-podium-gold/20 flex items-center gap-2">
+                        <svg class="h-5 w-5 text-podium-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Triple Ángulo <span class="text-podium-muted ml-2 text-lg">(Motor Analítico)</span>
+                    </h4>
+                    <div class="grid gap-5 md:grid-cols-3">
+                        <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5 shadow-inner">
+                            <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-gold">1. Matemático</p>
+                            <p class="text-sm leading-relaxed text-podium-muted font-body">${anguloMatematico}</p>
+                        </div>
+                        <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5 shadow-inner">
+                            <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-gold">2. Tendencia xG/Data</p>
+                            <p class="text-sm leading-relaxed text-podium-muted font-body">${anguloTendencia}</p>
+                        </div>
+                        <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5 shadow-inner">
+                            <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-gold">3. Contexto de Mercado</p>
+                            <p class="text-sm leading-relaxed text-podium-muted font-body">${anguloContexto}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Tables (Value Matrix) -->
+                <div>
+                    <h4 class="font-display text-2xl uppercase tracking-widest text-podium-text mb-5 border-b border-podium-border pb-2 flex items-center gap-2">
+                         <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Value Matrices <span class="text-podium-muted ml-2 text-lg">(Radar Algorítmico)</span>
+                    </h4>
+
+                    ${buildTable(h2hData, 'Match Odds (H2H)')}
+                    ${buildTable(totalsData, 'Over / Under (Totals)')}
+                    ${buildTable(spreadsData, 'Hándicaps (Spreads)')}
+                    
+                    ${markets.length === 0 ? '<p class="text-center text-podium-muted text-sm italic py-8 border border-podium-border/40 rounded-xl">Profundidad de mercado no disponible para este encuentro.</p>' : ''}
+                </div>
+
+            </div>
+        </div>
+        `;
+    }
 
     function getHumanizedMarket(mercado, home, away) {
         if (!mercado) return '--';
@@ -353,12 +539,12 @@
         // Encontrar mercado procesado
         let mainMarketText = 'Ver en Ángulo 1';
         let mainMarketOdd = item.cuota || '--';
-        let mainEv = item.ev_pct || item.ev_initial || '--';
+        let evValue = item.ev_pct || item.ev_initial || 0;
+        let mainEv = evValue !== '--' ? parseFloat(evValue).toFixed(1) : '--';
         
         let mercadoName = null;
         if (item.id && item.id.split('_').length >= 4) {
-            // Suponemos ID = match_date_fecha_local_visitante_MERCADO (No siempre confiable)
-            // Analizaremos del angulo matematico donde guardamos el mercado en [Mercado: XXXX]
+            // Suponemos ID = match_date_fecha_local_visitante_MERCADO
         }
         
         if (item.angulo_matematico && item.angulo_matematico.includes('[Mercado:')) {
@@ -377,6 +563,16 @@
         if (cleanAnguloMatematico.includes('[Mercado:')) {
             cleanAnguloMatematico = cleanAnguloMatematico.replace(/\[Mercado: .*?\]\s*/i, '');
         }
+        
+        // Reverse-engineer Prob Modelo and Cuota Justa from EV% and Cuota Bookie
+        let probModelo = '--';
+        let cuotaJusta = '--';
+        if (mainMarketOdd !== '--' && evValue !== '--' && parseFloat(mainMarketOdd) > 0) {
+            let probDecimal = (parseFloat(evValue) / 100 + 1) / parseFloat(mainMarketOdd);
+            probModelo = (probDecimal * 100).toFixed(1) + '%';
+            cuotaJusta = (1 / probDecimal).toFixed(2);
+        }
+
         return `
         <article class="relative overflow-hidden rounded-2xl border border-podium-gold/30 bg-gradient-to-br from-[#0f1428] via-[#050716] to-black p-6 shadow-podium-gold">
             <!-- Glow BG -->
@@ -413,6 +609,30 @@
                 </div>
             </div>
 
+            <!-- Value Matrix Table -->
+            <div class="mb-6 overflow-hidden rounded-xl border border-podium-border/60 bg-[#0a0f1c]">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-podium-border/50 bg-black/40 uppercase tracking-[0.15em] text-[10px] text-podium-muted">
+                            <th class="py-2.5 pl-4 font-normal">Mercado</th>
+                            <th class="py-2.5 font-normal text-right hidden sm:table-cell">Prob Modelo</th>
+                            <th class="py-2.5 font-normal text-right hidden sm:table-cell">Cuota Justa</th>
+                            <th class="py-2.5 font-normal text-right">Cuota Bookie</th>
+                            <th class="py-2.5 pr-4 font-normal text-right">Ventaja (EV)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="hover:bg-podium-card/50 transition">
+                            <td class="py-3 pl-4 text-[11px] sm:text-xs text-podium-text font-semibold uppercase tracking-wider">${mainMarketText}</td>
+                            <td class="py-3 text-[11px] sm:text-xs text-podium-muted text-right hidden sm:table-cell">${probModelo}</td>
+                            <td class="py-3 text-[11px] sm:text-xs text-podium-muted text-right hidden sm:table-cell">${cuotaJusta}</td>
+                            <td class="py-3 text-[11px] sm:text-xs text-white font-semibold text-right">${mainMarketOdd}</td>
+                            <td class="py-3 pr-4 text-[11px] sm:text-xs font-bold text-right ${parseFloat(mainEv) >= 5 ? 'text-podium-green' : 'text-podium-gold'}">+${mainEv}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <!-- Triple Angulo Layout -->
             <div class="relative grid gap-5 md:grid-cols-3">
                 <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
@@ -436,9 +656,7 @@
             </div>
             
         </article>`;
-    }
-
-    async function fetchData() {
+    }    async function fetchData() {
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         try {
@@ -484,28 +702,79 @@
             if (boardData.length === 0 && vipData.length === 0) {
                 document.getElementById('empty-state').classList.remove('hidden');
             } else {
-                document.getElementById('dashboard-content').classList.remove('hidden');
                 
-                document.getElementById('board-count').innerText = `${boardData.length} PARTIDOS`;
-                document.getElementById('vip-count').innerText = `${vipData.length} SEÑALES DETECTADAS`;
+                // Set first tab Active
+                switchTab('general');
+                
+                // Group match data by team names
+                GLOBAL_BOARD = boardData;
+                GLOBAL_VIP = vipData;
+                boardData.forEach(item => {
+                    const matchKey = `${item.home_team}_${item.away_team}`;
+                    GLOBAL_MATCHES[matchKey] = item;
+                });
+                
+                // Inject cross-referencial data from VIP signals to the Global Match Objects
+                vipData.forEach(vip => {
+                    const matchKey = `${vip.home_team}_${vip.away_team}`;
+                    if(GLOBAL_MATCHES[matchKey]) {
+                        // Inherit the narrative if available
+                        if(vip.angulo_matematico) {
+                            if(!GLOBAL_MATCHES[matchKey].mercados_completos) GLOBAL_MATCHES[matchKey].mercados_completos = [];
+                            GLOBAL_MATCHES[matchKey].mercados_completos.push({
+                                mercado: 'IA_ANALYSIS',
+                                angulo_matematico: vip.angulo_matematico,
+                                angulo_tendencia: vip.angulo_tendencia,
+                                angulo_contexto: vip.angulo_contexto
+                            });
+                        }
+                    }
+                });
+                
+                // Split active vs finished using the DB status tag
+                const boardActiveData = boardData.filter(item => item.status !== 'finished');
+                const boardFinishedData = boardData.filter(item => item.status === 'finished');
+                
+                const vipActiveData = vipData.filter(item => item.status !== 'finished');
+                const vipFinishedData = vipData.filter(item => item.status === 'finished');
+                
+                document.getElementById('board-active-count').innerText = `${boardActiveData.length} EN VIVO / PRÓXIMO${boardActiveData.length!==1?'S':''}`;
+                document.getElementById('board-finished-count').innerText = `${boardFinishedData.length} FINALIZADO${boardFinishedData.length!==1?'S':''}`;
+                
+                document.getElementById('vip-active-count').innerText = `${vipActiveData.length} ACTIVA${vipActiveData.length!==1?'S':''}`;
+                document.getElementById('vip-finished-count').innerText = `${vipFinishedData.length} FINALIZADA${vipFinishedData.length!==1?'S':''}`;
 
-                const boardContainer = document.getElementById('daily-board-container');
-                if (boardData.length > 0) {
-                    boardContainer.innerHTML = boardData.map(renderBoardCard).join('');
+                const boardActiveContainer = document.getElementById('daily-board-active-container');
+                if (boardActiveData.length > 0) {
+                    boardActiveContainer.innerHTML = boardActiveData.map(renderBoardCard).join('');
                 } else {
-                    boardContainer.innerHTML = `<p class="text-sm text-podium-muted italic p-4">No hay partidos en el board hoy.</p>`;
+                    boardActiveContainer.innerHTML = `<p class="text-sm text-podium-muted italic p-4">No hay próximos eventos.</p>`;
                 }
 
-                const vipContainer = document.getElementById('vip-signals-container');
-                if (vipData.length > 0) {
-                    vipContainer.innerHTML = vipData.map(renderVipCard).join('');
+                const boardFinishedContainer = document.getElementById('daily-board-finished-container');
+                if (boardFinishedData.length > 0) {
+                    boardFinishedContainer.innerHTML = boardFinishedData.map(renderBoardCard).join('');
                 } else {
-                    vipContainer.innerHTML = `
+                    boardFinishedContainer.innerHTML = `<p class="text-sm text-podium-muted italic p-4">Historial en blanco.</p>`;
+                }
+
+                const vipActiveContainer = document.getElementById('vip-signals-active-container');
+                if (vipActiveData.length > 0) {
+                    vipActiveContainer.innerHTML = vipActiveData.map(renderVipCard).join('');
+                } else {
+                    vipActiveContainer.innerHTML = `
                     <div class="flex flex-col items-center py-12 px-4 rounded-xl border border-podium-border bg-black/40 text-center">
                         <svg class="w-10 h-10 text-podium-muted mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <p class="text-sm text-podium-text">Ningún pick superó el EV umbral (+5.0%).</p>
+                        <p class="text-sm text-podium-text">Ningún pick activo superó el umbral.</p>
                         <p class="text-[11px] text-podium-muted mt-1 uppercase tracking-[0.1em]">Protegiendo Bankroll.</p>
                     </div>`;
+                }
+
+                const vipFinishedContainer = document.getElementById('vip-signals-finished-container');
+                if (vipFinishedData.length > 0) {
+                    vipFinishedContainer.innerHTML = vipFinishedData.map(renderVipCard).join('');
+                } else {
+                    vipFinishedContainer.innerHTML = `<p class="text-sm text-podium-muted italic p-4">Historial de señales VIP en blanco.</p>`;
                 }
             }
 
