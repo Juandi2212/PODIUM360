@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS public.historical_results (
   poisson_2            FLOAT,
   xg_diff              FLOAT,
   estado_mercado       TEXT,
+  mercado              TEXT,        -- mercado del pick (1x2_local, over25, etc.)
+  cuota                FLOAT,       -- cuota al momento del pick
+  ev_pct               FLOAT,       -- EV% calculado por el modelo
   mercados_completos   JSONB,
   ai_analysis          JSONB,
   status               TEXT DEFAULT 'finished',
@@ -20,6 +23,11 @@ CREATE TABLE IF NOT EXISTS public.historical_results (
   status_win_loss      TEXT DEFAULT 'pending',
   archived_at          TIMESTAMPTZ DEFAULT now()
 );
+
+-- Si la tabla ya existe, agregar columnas faltantes:
+ALTER TABLE public.historical_results ADD COLUMN IF NOT EXISTS mercado   TEXT;
+ALTER TABLE public.historical_results ADD COLUMN IF NOT EXISTS cuota     FLOAT;
+ALTER TABLE public.historical_results ADD COLUMN IF NOT EXISTS ev_pct    FLOAT;
 
 -- Permisos: solo service_role puede leer/escribir (sin acceso anónimo)
 ALTER TABLE public.historical_results ENABLE ROW LEVEL SECURITY;

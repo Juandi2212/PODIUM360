@@ -1,8 +1,15 @@
 """
-Script único: archiva los partidos del 12-Mar-2026 en historical_results
-con resultados reales ya conocidos.
+Script único: archiva los picks VIP del 12-Mar-2026 en historical_results.
+Un registro por pick VIP (igual que los IDs de vip_signals).
 
-Ejecutar DESPUÉS de haber creado la tabla con migrations/create_historical_results.sql
+Resultados reales confirmados:
+  Bologna 1-1 AS Roma
+  Celta Vigo 1-1 Lyon
+  Genk 1-0 Freiburg
+  Lille 0-1 Aston Villa
+  Nottingham Forest 0-1 Midtjylland
+  Panathinaikos 1-0 Real Betis
+  Stuttgart 1-2 Porto
 """
 
 import os, requests, json
@@ -20,54 +27,161 @@ HEADERS = {
     "Prefer": "resolution=merge-duplicates",
 }
 
-# Resultados reales del 12-Mar-2026 (UEL Round of 16 - 1st leg)
-RESULTADOS = {
-    "2026-03-12_Bologna_AS_Roma":              ("1-1", "loss"),   # VIP: 1x2_visitante Roma
-    "2026-03-12_Celta_Vigo_Lyon":              ("1-0", "loss"),   # VIP: 1x2_visitante Lyon
-    "2026-03-12_Genk_Freiburg":                ("1-0", "loss"),   # VIP: over25
-    "2026-03-12_Lille_Aston_Villa":            ("0-1", "loss"),   # VIP: 1x2_local Lille
-    "2026-03-12_Nottingham_Forest_Midtjylland":("0-0", "loss"),   # VIP: 1x2_visitante Midtjylland
-    "2026-03-12_Panathinaikos_Real_Betis":     ("1-0", "win"),    # VIP: 1x2_local Panathinaikos ✅
-    "2026-03-12_Stuttgart_Porto":              ("1-2", "win"),    # VIP: 1x2_visitante Porto ✅
-}
-
-def get_daily_board():
-    """Lee todos los partidos del 12-Mar de daily_board."""
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/daily_board?match_date=eq.2026-03-12&select=*",
-        headers=HEADERS,
-    )
-    if r.status_code != 200:
-        print(f"[ERROR] No se pudo leer daily_board: {r.status_code} {r.text[:200]}")
-        return []
-    return r.json()
-
-
-def build_archive_rows(rows):
-    """Construye las filas para historical_results."""
-    archive = []
-    for row in rows:
-        rid = row.get("id")
-        resultado, win_loss = RESULTADOS.get(rid, (None, "pending"))
-        archive.append({
-            "id":                  rid,
-            "match_date":          row.get("match_date"),
-            "home_team":           row.get("home_team"),
-            "away_team":           row.get("away_team"),
-            "competition":         "Europa League",
-            "hora_utc":            row.get("hora_utc"),
-            "poisson_1":           row.get("poisson_1"),
-            "poisson_x":           row.get("poisson_x"),
-            "poisson_2":           row.get("poisson_2"),
-            "xg_diff":             row.get("xg_diff"),
-            "estado_mercado":      row.get("estado_mercado"),
-            "mercados_completos":  row.get("mercados_completos"),
-            "ai_analysis":         row.get("ai_analysis"),
-            "status":              "finished",
-            "actual_result":       resultado,
-            "status_win_loss":     win_loss,
-        })
-    return archive
+# Resultados y evaluacion por pick-level ID (mismo formato que vip_signals)
+# over25 requiere >2.5 goles totales (3+). Con 2 goles = LOSS.
+PICKS = [
+    # Bologna 1-1 AS Roma
+    {
+        "id":             "2026-03-12_Bologna_AS_Roma_1x2_visitante",
+        "home_team":      "Bologna",
+        "away_team":      "AS Roma",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_visitante",
+        "cuota":          2.62,
+        "ev_pct":         10.88,
+        "actual_result":  "1-1",
+        "status_win_loss":"loss",   # Roma no gano (empate)
+    },
+    # Celta Vigo 1-1 Lyon
+    {
+        "id":             "2026-03-12_Celta_Vigo_Lyon_1x2_visitante",
+        "home_team":      "Celta Vigo",
+        "away_team":      "Lyon",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_visitante",
+        "cuota":          4.10,
+        "ev_pct":         28.12,
+        "actual_result":  "1-1",
+        "status_win_loss":"loss",   # Lyon no gano (empate)
+    },
+    {
+        "id":             "2026-03-12_Celta_Vigo_Lyon_over25",
+        "home_team":      "Celta Vigo",
+        "away_team":      "Lyon",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "over25",
+        "cuota":          2.08,
+        "ev_pct":         6.87,
+        "actual_result":  "1-1",
+        "status_win_loss":"loss",   # 2 goles totales, necesitaba 3+
+    },
+    # Genk 1-0 Freiburg
+    {
+        "id":             "2026-03-12_Genk_Freiburg_over25",
+        "home_team":      "Genk",
+        "away_team":      "Freiburg",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "over25",
+        "cuota":          2.20,
+        "ev_pct":         19.83,
+        "actual_result":  "1-0",
+        "status_win_loss":"loss",   # 1 gol total
+    },
+    {
+        "id":             "2026-03-12_Genk_Freiburg_1x2_visitante",
+        "home_team":      "Genk",
+        "away_team":      "Freiburg",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_visitante",
+        "cuota":          2.92,
+        "ev_pct":         8.36,
+        "actual_result":  "1-0",
+        "status_win_loss":"loss",   # Genk gano
+    },
+    # Lille 0-1 Aston Villa
+    {
+        "id":             "2026-03-12_Lille_Aston_Villa_1x2_local",
+        "home_team":      "Lille",
+        "away_team":      "Aston Villa",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_local",
+        "cuota":          3.57,
+        "ev_pct":         20.31,
+        "actual_result":  "0-1",
+        "status_win_loss":"loss",   # Lille no gano
+    },
+    {
+        "id":             "2026-03-12_Lille_Aston_Villa_over25",
+        "home_team":      "Lille",
+        "away_team":      "Aston Villa",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "over25",
+        "cuota":          2.32,
+        "ev_pct":         18.37,
+        "actual_result":  "0-1",
+        "status_win_loss":"loss",   # 1 gol total
+    },
+    # Nottingham Forest 0-1 Midtjylland
+    {
+        "id":             "2026-03-12_Nottingham_Forest_Midtjylland_1x2_visitante",
+        "home_team":      "Nottingham Forest",
+        "away_team":      "Midtjylland",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_visitante",
+        "cuota":          6.75,
+        "ev_pct":         138.68,
+        "actual_result":  "0-1",
+        "status_win_loss":"win",    # Midtjylland gano ✅
+    },
+    {
+        "id":             "2026-03-12_Nottingham_Forest_Midtjylland_over25",
+        "home_team":      "Nottingham Forest",
+        "away_team":      "Midtjylland",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "over25",
+        "cuota":          1.83,
+        "ev_pct":         10.97,
+        "actual_result":  "0-1",
+        "status_win_loss":"loss",   # 1 gol total
+    },
+    # Panathinaikos 1-0 Real Betis
+    {
+        "id":             "2026-03-12_Panathinaikos_Real_Betis_1x2_local",
+        "home_team":      "Panathinaikos",
+        "away_team":      "Real Betis",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_local",
+        "cuota":          3.70,
+        "ev_pct":         50.66,
+        "actual_result":  "1-0",
+        "status_win_loss":"win",    # Panathinaikos gano ✅
+    },
+    {
+        "id":             "2026-03-12_Panathinaikos_Real_Betis_over25",
+        "home_team":      "Panathinaikos",
+        "away_team":      "Real Betis",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "over25",
+        "cuota":          2.21,
+        "ev_pct":         10.81,
+        "actual_result":  "1-0",
+        "status_win_loss":"loss",   # 1 gol total
+    },
+    # Stuttgart 1-2 Porto
+    {
+        "id":             "2026-03-12_Stuttgart_Porto_1x2_visitante",
+        "home_team":      "Stuttgart",
+        "away_team":      "Porto",
+        "competition":    "Europa League",
+        "match_date":     "2026-03-12",
+        "mercado":        "1x2_visitante",
+        "cuota":          4.60,
+        "ev_pct":         69.65,
+        "actual_result":  "1-2",
+        "status_win_loss":"win",    # Porto gano ✅
+    },
+]
 
 
 def insert_historical(rows):
@@ -77,25 +191,21 @@ def insert_historical(rows):
         json=rows,
     )
     if r.status_code in [200, 201]:
-        print(f"[OK] {len(rows)} partido(s) insertado(s) en historical_results.")
+        print(f"[OK] {len(rows)} picks insertados en historical_results.")
     else:
         print(f"[ERROR] HTTP {r.status_code}: {r.text[:400]}")
 
 
 def main():
-    print("=== INSERT HISTORICAL — 12 Mar 2026 ===")
-    rows = get_daily_board()
-    if not rows:
-        print("[WARN] No se encontraron partidos en daily_board para 2026-03-12.")
-        return
+    print("=== INSERT HISTORICAL (pick-level) -- 12 Mar 2026 ===")
+    wins  = [p for p in PICKS if p["status_win_loss"] == "win"]
+    loses = [p for p in PICKS if p["status_win_loss"] == "loss"]
+    print(f"[INFO] {len(PICKS)} picks totales | {len(wins)} WIN / {len(loses)} LOSS")
+    for p in PICKS:
+        tag = "WIN " if p["status_win_loss"] == "win" else "LOSS"
+        print(f"  [{tag}] {p['id']}")
 
-    archive_rows = build_archive_rows(rows)
-    print(f"[INFO] Preparando {len(archive_rows)} registros...")
-    for r in archive_rows:
-        wl = r['status_win_loss'].upper()
-        print(f"  {r['id']:55s} | {r['actual_result']:5s}  {wl}")
-
-    insert_historical(archive_rows)
+    insert_historical(PICKS)
 
 
 if __name__ == "__main__":
