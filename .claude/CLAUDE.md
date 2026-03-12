@@ -1,4 +1,4 @@
-# CLAUDE.md — Podium 360 v1.5 (ROI Auto-Calificador)
+# CLAUDE.md — Podium 360 v1.6 (ROI Pick-Level + UEL R16 Archivado)
 
 Este es el documento maestro del repositorio. Léelo completo antes de cualquier acción.
 
@@ -28,14 +28,14 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
          → Genera database/daily_report_DD_MM_YY.json
 
 4. python supabase_sync.py
-         → Archiva partidos finalizados en historical_results (ANTES del purge)
+         → Archiva picks VIP finalizados en historical_results (ANTES del purge)  ⚠️ ver nota v1.6
          → Lee daily_report, llama a Gemini 2.5 Flash (Triple Ángulo)
          → Sube datos a Supabase (daily_board + vip_signals)
 
-5. python result_updater.py                                         ← NUEVO v1.5
+5. python result_updater.py
          → Consulta historical_results (solo status_win_loss='pending')
          → Obtiene scores de Football-Data.org (caché en memoria por fecha)
-         → Evalúa el pick de mayor EV y actualiza: actual_result + status_win_loss
+         → Actualiza: actual_result + status_win_loss  ⚠️ ver nota v1.6
 
 6. Abrir: landing page/dashboard.html  (conecta a Supabase vía JS)
 ```
@@ -74,21 +74,19 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 ### `supabase_sync.py` — Backend + IA
 - Lee `database/daily_report_DD_MM_YY.json`
 - Filtra "partidos fantasma" (sin `hora_utc` ni `all_markets`)
-- Construye **Match ID único:** `YYYYMMDD_Local_Visitante` (evita duplicados)
+- Construye **Match ID único:** `YYYYMMDD_Local_Visitante` (evita duplicados en `daily_board`)
 - Calcula `status`: `active` (partido futuro) o `finished` (partido pasado)
 - Llama a **Gemini 2.5 Flash** → genera `angulo_matematico`, `angulo_tendencia`, `angulo_contexto`
-- **`archive_finished_matches(url, key)`** (v1.4): antes del PURGE, consulta `daily_board` por `status=finished` y hace upsert en `historical_results`. No sobreescribe filas ya archivadas (preserva `actual_result` y `status_win_loss` si ya fueron cargados).
+- **`archive_finished_matches(url, key)`**: antes del PURGE, consulta `daily_board` por `status=finished` y hace upsert en `historical_results`.
+- **⚠️ PENDIENTE v1.6:** `archive_finished_matches()` aún genera IDs match-level (`YYYYMMDD_Local_Visitante`). Debe migrarse a IDs pick-level (`YYYYMMDD_Local_Visitante_mercado`) para alinearse con la nueva arquitectura de `historical_results`.
 - **PURGE total** de `daily_board` + `vip_signals` → luego UPSERT con datos frescos
 - **Tablas Supabase:** `daily_board` (jornada activa) + `vip_signals` (picks profundos) + `historical_results` (archivo ROI permanente)
 
-### `result_updater.py` — ROI Auto-Calificador ✨ NUEVO v1.5
+### `result_updater.py` — ROI Auto-Calificador
 - **Propósito:** Cierra el loop de ROI calificando automáticamente los picks archivados en `historical_results`.
-- **Query mínimo:** Solo lee `id, home_team, away_team, match_date, mercados_completos` donde `status_win_loss = 'pending'`. No lee filas ya calificadas.
-- **Caché en memoria:** Agrupa llamadas a Football-Data por fecha. Si hay N partidos el mismo día, hace 1 sola llamada a la API (no N).
-- **Selección del pick a evaluar** (prioridad descendente):
-  1. Pick con `es_vip: true` de mayor `ev_pct`
-  2. Pick con mayor `ev_pct` positivo
-  3. Primer pick de la lista como fallback final
+- **Query mínimo:** Solo lee `id, home_team, away_team, match_date, mercados_completos` donde `status_win_loss = 'pending'`.
+- **Caché en memoria:** Agrupa llamadas a Football-Data por fecha (1 llamada por día, no por partido).
+- **⚠️ PENDIENTE v1.6:** `result_updater.py` fue diseñado para IDs match-level y selecciona el pick de mayor EV de `mercados_completos`. Con la nueva arquitectura pick-level, debe leer la columna `mercado` directamente del registro y evaluar ese mercado específico.
 - **Mercados soportados para evaluación:**
 
   | Código | Lógica |
@@ -100,9 +98,8 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
   | `spread_local_N`, `spread_visitante_N` | Asian Handicap (push si línea exacta) |
   | `btts_yes`, `btts_no` | Ambos marcan |
 
-- **Valores de salida:** `win`, `loss`, `push` (handicap 0.0 o total exacto), `pending` (sin tocar si partido no encontrado o no terminado).
-- **Fuzzy matching:** Intenta match exacto con `normalize_team_name()`; si falla, intenta subcadena bidireccional.
-- **PATCH quirúrgico:** Solo actualiza `actual_result` y `status_win_loss`. No toca `mercados_completos`, `ai_analysis` ni ninguna otra columna.
+- **Valores de salida:** `win`, `loss`, `push`, `pending` (sin tocar si partido no encontrado o no terminado).
+- **PATCH quirúrgico:** Solo actualiza `actual_result` y `status_win_loss`.
 - **Dependencias:** `SUPABASE_URL`, `SUPABASE_KEY`, `FOOTBALL_DATA_KEY` (del `.env`)
 
 ### `landing page/dashboard.html` — Frontend
@@ -120,6 +117,16 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - **Deduplicación automática:** matches de API tienen prioridad; los manuales se agregan solo si no están ya en la respuesta de la API
 - **`partidos_manuales.json`** → Archivo editable en raíz del proyecto. Formato: `[{"local": "X", "visitante": "Y", "liga": "Z"}]`
   - Úsalo cuando Football-Data no retorne partidos EL/CL (ej: tier API insuficiente, partidos con fecha incorrecta)
+  - **Vaciar antes de cada jornada nueva** para evitar procesar partidos de jornadas pasadas
+
+### `migrations/create_historical_results.sql` — DDL Supabase
+- Script de creación de la tabla `historical_results` con todas sus columnas.
+- Incluye `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para migraciones incrementales.
+- **Ya ejecutado** en producción (12-Mar-2026).
+
+### `insert_historical_12_03_26.py` — Script de Archivado Manual (UEL R16)
+- Script **one-shot** para archivar los 12 picks VIP de la jornada del 12-Mar-2026.
+- **Ya ejecutado.** Sirve como plantilla para futuros archivados manuales de emergencia.
 
 ---
 
@@ -135,30 +142,57 @@ FOOTBALL_DATA_KEY=<football-data.org>
 
 ---
 
-## Esquema de Supabase (v1.5)
+## Esquema de Supabase (v1.6)
 
 | Tabla | Propósito | Acceso dashboard JS |
 |-------|-----------|-------------------|
 | `daily_board` | Jornada activa (se purga en cada sync) | ✅ anon read |
 | `vip_signals` | Picks EV ≥ 5% de la jornada activa | ✅ anon read |
-| `historical_results` | Archivo permanente de partidos finalizados + ROI | ❌ solo service_role |
+| `historical_results` | Archivo permanente de picks finalizados + ROI | ❌ solo service_role |
 
-### `historical_results` — columnas clave para ROI
+### `historical_results` — arquitectura pick-level (v1.6) ⚠️
+
+**Cada fila representa UN pick VIP, no un partido.** El ID es el mismo que en `vip_signals`.
 
 | Columna | Tipo | Descripción |
 |---------|------|-------------|
-| `id` | TEXT PK | `YYYYMMDD_Local_Visitante` |
+| `id` | TEXT PK | `YYYYMMDD_Local_Visitante_mercado` (ej: `2026-03-12_Stuttgart_Porto_1x2_visitante`) |
+| `home_team` | TEXT | Equipo local |
+| `away_team` | TEXT | Equipo visitante |
+| `competition` | TEXT | Liga/torneo |
+| `match_date` | DATE | Fecha del partido |
+| `mercado` | TEXT | Mercado del pick (`1x2_local`, `over25`, etc.) |
+| `cuota` | FLOAT | Cuota al momento del pick |
+| `ev_pct` | FLOAT | EV% calculado por el modelo |
 | `actual_result` | TEXT | Score final ej. `"2-1"`. Llenado por `result_updater.py` o manualmente. |
 | `status_win_loss` | TEXT | `'win'` · `'loss'` · `'push'` · `'void'` · `'pending'` (default) |
-| `archived_at` | TIMESTAMPTZ | Timestamp de archivado (seteado por `supabase_sync.py`) |
-| `mercados_completos` | JSONB | Array de todos los mercados evaluados por el modelo (fuente de verdad para `result_updater`) |
+| `mercados_completos` | JSONB | Array completo de mercados del partido (contexto) |
+| `archived_at` | TIMESTAMPTZ | Timestamp de archivado |
 
 **Para actualizar resultados manualmente (override):**
 ```sql
 UPDATE historical_results
 SET actual_result = '2-1', status_win_loss = 'win'
-WHERE id = '2026-03-11_Arsenal_Chelsea';
+WHERE id = '2026-03-12_Stuttgart_Porto_1x2_visitante';
 ```
+
+**Query ROI acumulado:**
+```sql
+SELECT
+  COUNT(*) FILTER (WHERE status_win_loss = 'win')  AS wins,
+  COUNT(*) FILTER (WHERE status_win_loss = 'loss') AS losses,
+  SUM(CASE WHEN status_win_loss = 'win'  THEN cuota - 1
+           WHEN status_win_loss = 'loss' THEN -1
+           ELSE 0 END)                              AS profit_units
+FROM historical_results
+WHERE status_win_loss IN ('win', 'loss');
+```
+
+### Historial de jornadas archivadas
+
+| Fecha | Competición | Picks | W | L | ROI |
+|-------|-------------|------:|--:|--:|----:|
+| 2026-03-12 | UEL R16 1ª ida | 12 | 3 | 9 | +33.75% |
 
 ---
 
@@ -166,13 +200,13 @@ WHERE id = '2026-03-11_Arsenal_Chelsea';
 
 | Problema | Impacto | Solución |
 |----------|---------|----------|
-| `naming_errors.log` puede tener errores con equipos nuevos | Equipos sin cruzar entre APIs → fallback a nombre raw | Agregar alias a `MAESTRO_ALIASES` en `utils/naming.py` |
-| Football-Data API no retorna partidos EL (posible tier) | `get_upcoming_el_matches()` devuelve `[]` silenciosamente | Usar `partidos_manuales.json` como fallback manual |
-| `partidos_manuales.json` requiere mantenimiento manual | Si no se actualiza, el pipeline corre con datos de jornadas pasadas | Vaciar o actualizar el archivo antes de cada jornada nueva |
+| `archive_finished_matches()` en `supabase_sync.py` genera IDs match-level | Desalineado con arquitectura pick-level de `historical_results` v1.6 | Refactorizar para iterar sobre `vip_signals` y generar IDs `YYYYMMDD_Local_Visitante_mercado` |
+| `result_updater.py` selecciona el pick de mayor EV de `mercados_completos` | Con IDs pick-level, debe leer la columna `mercado` del registro directamente | Actualizar lógica de selección de mercado en `result_updater.py` |
+| Football-Data API no retorna partidos EL/CL (tier insuficiente) | `result_updater.py` no puede calificar partidos EL automáticamente; requiere archivado manual | Integrar fuente alternativa (ej: API-Football) o upgrade de tier |
+| `partidos_manuales.json` requiere mantenimiento manual | Si no se vacía, el pipeline corre con datos de jornadas pasadas | Vaciar o actualizar antes de cada jornada nueva |
 | `test_runner.py` solo escanea CL y EL | Otras ligas (LaLiga, BL, etc.) no se procesan automáticamente | Extender `get_upcoming_matches()` con nuevos competition codes |
-| Inconsistencia de nomenclatura O/U en `model_engine.py` | `over25` emitido sin guion bajo ni decimal junto a `over_2.5` | `result_updater.py` ya lo maneja; pendiente normalizar en `model_engine.py` |
-| `result_updater.py` no califica mercados Asian Handicap complejos (`void`) | Picks en mercados no soportados quedan `pending` indefinidamente | Implementar `void` para cancelaciones y lógica AH avanzada (ej: `-1`, `-2`) |
-| `result_updater.py` depende de Football-Data para encontrar el partido | Si FD no tiene el partido en su base (ej: ligas menores) quedará `pending` | Integrar fuente de resultados alternativa (ej: API-Football) como fallback |
+| Inconsistencia de nomenclatura O/U en `model_engine.py` | `over25` emitido sin guion bajo junto a `over_2.5` | `result_updater.py` ya lo maneja; pendiente normalizar en `model_engine.py` |
+| `result_updater.py` no califica mercados Asian Handicap complejos | Picks AH complejos quedan `pending` indefinidamente | Implementar `void` y lógica AH avanzada (`-1`, `-2`) |
 | `mercado` embedded en `angulo_matematico` de `vip_signals` | Parsing con regex en dashboard | Workaround funcional, baja prioridad |
 
 ---
