@@ -207,6 +207,59 @@ MAESTRO_ALIASES = {
     # Brest
     "BREST": "Brest",
     "STADE BRESTOIS": "Brest",
+
+    # Bologna
+    "BOLOGNA": "Bologna",
+    "BOLOGNA FC": "Bologna",
+    "FC BOLOGNA": "Bologna",
+
+    # Real Betis
+    "BETIS": "Real Betis",
+    "REAL BETIS": "Real Betis",
+    "R. BETIS": "Real Betis",
+    "REAL BETIS BALOMPIÉ": "Real Betis",
+
+    # VfB Stuttgart
+    "STUTTGART": "Stuttgart",
+    "VFB STUTTGART": "Stuttgart",
+
+    # Celta Vigo
+    "CELTA": "Celta Vigo",
+    "CELTA VIGO": "Celta Vigo",
+    "RC CELTA": "Celta Vigo",
+    "RC CELTA DE VIGO": "Celta Vigo",
+
+    # Panathinaikos
+    "PANATHINAIKOS": "Panathinaikos",
+    "PANATHINAIKOS FC": "Panathinaikos",
+
+    # Ferencvaros
+    "FERENCVAROS": "Ferencvaros",
+    "FERENCVAROSI TC": "Ferencvaros",
+    "FERENCVÁROS": "Ferencvaros",
+    "FTC": "Ferencvaros",
+
+    # SC Braga
+    "BRAGA": "Braga",
+    "SC BRAGA": "Braga",
+    "SPORTING DE BRAGA": "Braga",
+
+    # KRC Genk
+    "GENK": "Genk",
+    "KRC GENK": "Genk",
+
+    # SC Freiburg
+    "FREIBURG": "Freiburg",
+    "SC FREIBURG": "Freiburg",
+
+    # Nottingham Forest
+    "NOTTINGHAM FOREST": "Nottingham Forest",
+    "NOTTM FOREST": "Nottingham Forest",
+    "FOREST": "Nottingham Forest",
+
+    # FC Midtjylland
+    "MIDTJYLLAND": "Midtjylland",
+    "FC MIDTJYLLAND": "Midtjylland",
 }
 
 def normalize_team_name(name: str) -> str:

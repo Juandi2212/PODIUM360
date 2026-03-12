@@ -102,6 +102,7 @@ FOTMOB_LEAGUE_IDS = {
     "Serie A":          55,
     "Ligue 1":          53,
     "Champions League": 42,
+    "Europa League":    73,
     "Eredivisie":       57,
     "Primeira Liga":    61,
 }
@@ -224,6 +225,16 @@ FOTMOB_TEAM_IDS = {
     "Sporting CP":              9768,
     "Benfica":                  9772,
     "SL Benfica":               9772,
+    # Europa League — extra clubs not in domestic league lists above
+    "Panathinaikos":            8261,
+    "Ferencvaros":              9920,
+    "Braga":                    9816,
+    "SC Braga":                 9816,
+    "Genk":                     8005,
+    "KRC Genk":                 8005,
+    "Midtjylland":              8398,
+    "FC Midtjylland":           8398,
+    "Real Betis":               8603,
 }
 
 # ── Football-Data.org competition codes ───────────────────────────────────────
@@ -234,6 +245,7 @@ FDORG_CODES = {
     "Serie A":          "SA",
     "Ligue 1":          "FL1",
     "Champions League": "CL",
+    "Europa League":    "EL",
     "Eredivisie":       "DED",
     "Primeira Liga":    "PPL",
     "Championship":     "ELC",
@@ -250,6 +262,7 @@ ODDS_SPORT_KEYS = {
     "Serie A":           "soccer_italy_serie_a",
     "Ligue 1":           "soccer_france_ligue_one",
     "Champions League":  "soccer_uefa_champs_league",
+    "Europa League":     "soccer_uefa_europa_league",
     "Eredivisie":        "soccer_netherlands_eredivisie",
     "Primeira Liga":     "soccer_portugal_primeira_liga",
     "Championship":      "soccer_england_league1",
@@ -274,6 +287,7 @@ CLUBELO_ALIASES = {
     "psg":                     "Paris",
     "atletico madrid":         "Atletico",
     "atlético de madrid":      "Atletico",
+    "betis":                   "RealBetis",
     "real betis":              "RealBetis",
     "real sociedad":           "RealSociedad",
     "athletic club":           "Athletic",
