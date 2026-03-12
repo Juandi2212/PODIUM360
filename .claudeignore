@@ -1,0 +1,19 @@
+# ============================================================
+# .claudeignore — Podium 360 v1.2
+# Claude no debe leer estos archivos/carpetas por defecto.
+# ============================================================
+
+# Ignorar librerías y sistema
+venv/
+.git/
+__pycache__/
+
+# Ignorar archivos de datos pesados por defecto
+database/
+*.json
+*.log
+
+# Instrucción especial para la IA:
+# Si necesitas leer un archivo ignorado para completar una tarea,
+# detente y solicita permiso explícito al usuario con una alerta ⚠️
+# antes de acceder a cualquiera de estos archivos o carpetas.

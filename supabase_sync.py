@@ -6,6 +6,87 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from utils.naming import normalize_team_name
 
+def archive_finished_matches(url, key):
+    """
+    Antes del PURGE: lee los partidos con status='finished' en daily_board
+    y los archiva en historical_results (upsert, no sobreescribe si ya existe).
+    Devuelve el número de filas archivadas.
+    """
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+    # 1. Obtener finished desde daily_board
+    fetch_url = f"{url}/rest/v1/daily_board?status=eq.finished&select=*"
+    try:
+        resp = requests.get(fetch_url, headers=headers)
+        if resp.status_code != 200:
+            print(f"[WARN] No se pudo leer daily_board para archivar (HTTP {resp.status_code}): {resp.text}")
+            return 0
+        finished_rows = resp.json()
+    except Exception as e:
+        print(f"[ERROR] Fallo al leer daily_board: {e}")
+        return 0
+
+    if not finished_rows:
+        print("[ARCHIVE] No hay partidos finalizados que archivar.")
+        return 0
+
+    # 2. Obtener IDs ya archivados para no sobreescribir actual_result / status_win_loss
+    existing_ids_url = f"{url}/rest/v1/historical_results?select=id"
+    try:
+        resp_ex = requests.get(existing_ids_url, headers=headers)
+        existing_ids = {row["id"] for row in resp_ex.json()} if resp_ex.status_code == 200 else set()
+    except Exception:
+        existing_ids = set()
+
+    # 3. Construir payload solo con filas nuevas
+    to_archive = []
+    for row in finished_rows:
+        if row.get("id") in existing_ids:
+            continue  # ya archivado, no tocar actual_result ni status_win_loss
+        archive_row = {
+            "id":                  row.get("id"),
+            "match_date":          row.get("match_date"),
+            "home_team":           row.get("home_team"),
+            "away_team":           row.get("away_team"),
+            "poisson_1":           row.get("poisson_1"),
+            "poisson_x":           row.get("poisson_x"),
+            "poisson_2":           row.get("poisson_2"),
+            "xg_diff":             row.get("xg_diff"),
+            "estado_mercado":      row.get("estado_mercado"),
+            "mercados_completos":  row.get("mercados_completos"),
+            "status":              "finished",
+            # ROI — null hasta carga manual o futura integración de resultados
+            "actual_result":       None,
+            "status_win_loss":     "pending",
+        }
+        to_archive.append(archive_row)
+
+    if not to_archive:
+        print(f"[ARCHIVE] {len(finished_rows)} partido(s) finalizado(s) ya estaban archivados.")
+        return 0
+
+    # 4. Insertar en historical_results
+    insert_url = f"{url}/rest/v1/historical_results"
+    insert_headers = {**headers, "Prefer": "resolution=ignore-duplicates"}
+    try:
+        resp_ins = requests.post(insert_url, headers=insert_headers, json=to_archive)
+        if resp_ins.status_code in [200, 201]:
+            print(f"[ARCHIVE] {len(to_archive)} partido(s) archivado(s) en historical_results.")
+        else:
+            print(f"[WARN] Fallo al insertar en historical_results (HTTP {resp_ins.status_code}): {resp_ins.text}")
+            return 0
+    except Exception as e:
+        print(f"[ERROR] Excepción al archivar: {e}")
+        return 0
+
+    return len(to_archive)
+
+
 def delete_all_rows(url, key, table_name):
     """Purga todos los registros de una tabla antes de reinsertar."""
     headers = {
@@ -239,6 +320,14 @@ def main():
                     "angulo_tendencia": "Análisis IA Pendiente...",
                     "angulo_contexto": triple_angulo if isinstance(triple_angulo, str) else "Esperando conexión a Gemini..."
                 }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # ARCHIVE: Mover partidos finalizados a historical_results ANTES del PURGE
+    # ══════════════════════════════════════════════════════════════════════════
+    print("[INFO] Archivando partidos finalizados en historical_results...")
+    archived_count = archive_finished_matches(url, key)
+    if archived_count > 0:
+        print(f"[ARCHIVE] {archived_count} partido(s) nuevo(s) guardados para auditoría ROI.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # PURGE: Limpiar tablas antes de insertar datos frescos
