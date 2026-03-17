@@ -1,6 +1,8 @@
 import os
+import re
 import json
 import glob
+import time
 import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -8,8 +10,8 @@ from utils.naming import normalize_team_name
 
 def archive_finished_matches(url, key):
     """
-    Antes del PURGE: lee los partidos con status='finished' en daily_board
-    y los archiva en historical_results (upsert, no sobreescribe si ya existe).
+    Antes del PURGE: lee los picks VIP con status='finished' en vip_signals
+    y los archiva en historical_results (pick-level, ignora duplicados).
     Devuelve el número de filas archivadas.
     """
     headers = {
@@ -19,20 +21,20 @@ def archive_finished_matches(url, key):
         "Prefer": "return=representation",
     }
 
-    # 1. Obtener finished desde daily_board
-    fetch_url = f"{url}/rest/v1/daily_board?status=eq.finished&select=*"
+    # 1. Obtener picks VIP finalizados desde vip_signals (ya tienen IDs pick-level)
+    fetch_url = f"{url}/rest/v1/vip_signals?status=eq.finished&select=*"
     try:
         resp = requests.get(fetch_url, headers=headers)
         if resp.status_code != 200:
-            print(f"[WARN] No se pudo leer daily_board para archivar (HTTP {resp.status_code}): {resp.text}")
+            print(f"[WARN] No se pudo leer vip_signals para archivar (HTTP {resp.status_code}): {resp.text}")
             return 0
         finished_rows = resp.json()
     except Exception as e:
-        print(f"[ERROR] Fallo al leer daily_board: {e}")
+        print(f"[ERROR] Fallo al leer vip_signals: {e}")
         return 0
 
     if not finished_rows:
-        print("[ARCHIVE] No hay partidos finalizados que archivar.")
+        print("[ARCHIVE] No hay picks VIP finalizados que archivar.")
         return 0
 
     # 2. Obtener IDs ya archivados para no sobreescribir actual_result / status_win_loss
@@ -43,31 +45,35 @@ def archive_finished_matches(url, key):
     except Exception:
         existing_ids = set()
 
-    # 3. Construir payload solo con filas nuevas
+    # 3. Construir payload solo con picks nuevos
+    _mercado_re = re.compile(r'\[Mercado:\s*(.+?)\]', re.IGNORECASE)
     to_archive = []
     for row in finished_rows:
-        if row.get("id") in existing_ids:
+        pick_id = row.get("id")
+        if pick_id in existing_ids:
             continue  # ya archivado, no tocar actual_result ni status_win_loss
+
+        # Extraer mercado del campo angulo_matematico: "[Mercado: 1x2_local] ..."
+        ang_mat = row.get("angulo_matematico", "")
+        mercado_match = _mercado_re.search(ang_mat)
+        mercado = mercado_match.group(1).lower().strip() if mercado_match else None
+
         archive_row = {
-            "id":                  row.get("id"),
-            "match_date":          row.get("match_date"),
-            "home_team":           row.get("home_team"),
-            "away_team":           row.get("away_team"),
-            "poisson_1":           row.get("poisson_1"),
-            "poisson_x":           row.get("poisson_x"),
-            "poisson_2":           row.get("poisson_2"),
-            "xg_diff":             row.get("xg_diff"),
-            "estado_mercado":      row.get("estado_mercado"),
-            "mercados_completos":  row.get("mercados_completos"),
-            "status":              "finished",
-            # ROI — null hasta carga manual o futura integración de resultados
-            "actual_result":       None,
-            "status_win_loss":     "pending",
+            "id":              pick_id,
+            "match_date":      row.get("match_date"),
+            "home_team":       row.get("home_team"),
+            "away_team":       row.get("away_team"),
+            "mercado":         mercado,
+            "cuota":           row.get("cuota"),
+            "ev_pct":          row.get("ev_pct"),
+            "actual_result":   None,
+            "status_win_loss": "pending",
+            "archived_at":     datetime.now(timezone.utc).isoformat(),
         }
         to_archive.append(archive_row)
 
     if not to_archive:
-        print(f"[ARCHIVE] {len(finished_rows)} partido(s) finalizado(s) ya estaban archivados.")
+        print(f"[ARCHIVE] {len(finished_rows)} pick(s) VIP ya estaban archivados.")
         return 0
 
     # 4. Insertar en historical_results
@@ -76,9 +82,9 @@ def archive_finished_matches(url, key):
     try:
         resp_ins = requests.post(insert_url, headers=insert_headers, json=to_archive)
         if resp_ins.status_code in [200, 201]:
-            print(f"[ARCHIVE] {len(to_archive)} partido(s) archivado(s) en historical_results.")
+            print(f"[ARCHIVE] {len(to_archive)} pick(s) VIP archivado(s) en historical_results.")
         else:
-            print(f"[WARN] Fallo al insertar en historical_results (HTTP {resp_ins.status_code}): {resp_ins.text}")
+            print(f"[WARN] Fallo al insertar en historical_results (HTTP {resp_ins.status_code})")
             return 0
     except Exception as e:
         print(f"[ERROR] Excepción al archivar: {e}")
@@ -100,7 +106,7 @@ def delete_all_rows(url, key, table_name):
         if resp.status_code in [200, 204]:
             print(f"[PURGE] Tabla '{table_name}' limpiada antes de sync.")
         else:
-            print(f"[WARN] No se pudo purgar '{table_name}' (HTTP {resp.status_code}): {resp.text}")
+            print(f"[WARN] No se pudo purgar '{table_name}' (HTTP {resp.status_code})")
     except Exception as e:
         print(f"[ERROR] Error al purgar '{table_name}': {e}")
 
@@ -120,7 +126,6 @@ def upsert_via_rest(url, key, table_name, data_list):
             print(f"[OK] Sincronizados {len(data_list)} registros en '{table_name}'.")
         else:
             print(f"[ERROR] Falló upsert en '{table_name}' (Status: {response.status_code})")
-            print(f"        Respuesta: {response.text}")
     except Exception as e:
         print(f"[ERROR] Error de conexión REST al sincronizar '{table_name}': {e}")
 
@@ -177,7 +182,7 @@ Responde SOLO con un JSON válido y parseable, sin bloques asincrónicos (sin ``
             text_response = text_response.replace("```json", "").replace("```", "").strip()
             return json.loads(text_response)
         else:
-            print(f"[ERROR] Gemini API falló (HTTP {response.status_code}): {response.text}")
+            print(f"[ERROR] Gemini API falló (HTTP {response.status_code})")
     except Exception as e:
         print(f"[ERROR] Error al procesar IA con Gemini: {e}")
         
@@ -227,6 +232,31 @@ def _compute_status(hora_utc_str):
     return "active"
 
 
+def _build_dashboard_live(url: str, anon_key: str):
+    """
+    Lee landing page/dashboard.html (plantilla) y genera landing page/dashboard_live.html
+    reemplazando los placeholders __SUPABASE_URL__ y __SUPABASE_ANON_KEY__ con los
+    valores reales del .env. El archivo generado está en .gitignore.
+    """
+    template_path = os.path.join("landing page", "dashboard.html")
+    output_path   = os.path.join("landing page", "dashboard_live.html")
+
+    if not os.path.exists(template_path):
+        print(f"[WARN] No se encontró la plantilla del dashboard: {template_path}")
+        return
+
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    html = html.replace("'__SUPABASE_URL__'", f"'{url}'")
+    html = html.replace("'__SUPABASE_ANON_KEY__'", f"'{anon_key}'")
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    print("[DASHBOARD] dashboard_live.html generado -> abrir ese archivo en el navegador.")
+
+
 def main():
     print("==================================================")
     print("  PODIUM 360 - SUPABASE SYNC (VIA REST API)")
@@ -235,10 +265,15 @@ def main():
     load_dotenv()
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
+    anon_key = os.environ.get("SUPABASE_ANON_KEY")
 
     if not url or not key:
         print("[FAIL] Credenciales SUPABASE_URL o SUPABASE_KEY no encontradas en .env")
         return
+
+    if not anon_key:
+        print("[WARN] SUPABASE_ANON_KEY no encontrada en .env — dashboard_live.html no se generará.")
+        print("       Agregar SUPABASE_ANON_KEY (anon key, no service_role) al .env para habilitarlo.")
 
     # Buscar JSON
     date_str = datetime.now().strftime("%d_%m_%y")
@@ -288,19 +323,26 @@ def main():
     # ══════════════════════════════════════════════════════════════════════════
     ai_cache = {}
     print("[INFO] Evaluando generación IA para toda la jornada...")
+
+    # Pre-build O(1) lookup dict for VIP signals — avoids O(n²) linear scan per board item
+    vip_dict = {
+        (normalize_team_name(v.get("partido", {}).get("local", "")),
+         normalize_team_name(v.get("partido", {}).get("visitante", ""))): v
+        for v in vips
+        if v.get("partido")
+    }
+
     for item in board:
         partido = item.get("partido")
         summary = item.get("match_summary") or {}
         if not partido: continue
-        
+
         local = normalize_team_name(partido.get("local", ""))
         visit = normalize_team_name(partido.get("visitante", ""))
         event_date = _extract_event_date(partido, fecha)
         unique_id = _build_unique_id(event_date, local, visit)
 
-        match_vip = next((v for v in vips 
-                         if normalize_team_name(v.get("partido", {}).get("local", "")) == local 
-                         and normalize_team_name(v.get("partido", {}).get("visitante", "")) == visit), None)
+        match_vip = vip_dict.get((local, visit))
         picks = match_vip.get("picks_valiosos", []) if match_vip else []
         triple_angulo = match_vip.get("analisis_triple_angulo") if match_vip else None
 
@@ -320,6 +362,7 @@ def main():
                     "angulo_tendencia": "Análisis IA Pendiente...",
                     "angulo_contexto": triple_angulo if isinstance(triple_angulo, str) else "Esperando conexión a Gemini..."
                 }
+            time.sleep(12)  # Respetar rate limit de Gemini free tier (5 req/min)
 
     # ══════════════════════════════════════════════════════════════════════════
     # ARCHIVE: Mover partidos finalizados a historical_results ANTES del PURGE
@@ -424,17 +467,18 @@ def main():
                 continue
             seen_vip_ids.add(vip_id)
             
-            # Empaquetamos mercado en el ángulo porque su esquema de DB no tiene columna mercado
+            # Incluir mercado como columna propia + embed legado en ángulo para retrocompat. de regex
             packed_matematico = f"[Mercado: {mercado.upper()}] " + ang_mat
-            
+
             row = {
                 "id": vip_id,
                 "match_date": event_date,  # ← FECHA REAL DEL EVENTO
                 "home_team": local,
                 "away_team": visit,
+                "mercado": mercado,
                 "cuota": pick.get("cuota"),
                 "ev_pct": pick.get("ev_pct"),
-                "ev_initial": pick.get("ev_pct"), 
+                "ev_initial": pick.get("ev_pct"),
                 "angulo_matematico": packed_matematico,
                 "angulo_tendencia": ang_ten,
                 "angulo_contexto": ang_ctx,
@@ -443,6 +487,12 @@ def main():
             upsert_vip_data.append(row)
 
     upsert_via_rest(url, key, "vip_signals", upsert_vip_data)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # DASHBOARD: Generar dashboard_live.html con credenciales inyectadas
+    # ══════════════════════════════════════════════════════════════════════════
+    if anon_key:
+        _build_dashboard_live(url, anon_key)
 
     print("==================================================")
     print("  SINCRONIZACIÓN COMPLETADA")

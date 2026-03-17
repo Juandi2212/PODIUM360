@@ -59,7 +59,7 @@ class CacheManager:
             try:
                 with open(self.cache_file, "r", encoding="utf-8") as f:
                     return json.load(f)
-            except:
+            except (json.JSONDecodeError, OSError):
                 pass
         return {}
 
@@ -394,7 +394,7 @@ def _get(url: str, headers: dict = None, params: dict = None, timeout: int = 15,
         # Determine if JSON
         try:
             data = resp.json()
-        except:
+        except (ValueError, json.JSONDecodeError):
             data = resp.text
 
         if cache_ttl_seconds > 0:
@@ -950,7 +950,7 @@ def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
     result = {
         "pinnacle":    {"local": None, "empate": None, "visitante": None},
         "mejor_cuota": {"local": None, "empate": None, "visitante": None,
-                        "over25": None, "btts": None},
+                        "over_2.5": None, "btts": None},
         "mejores_cuotas_extra": {
             "totals": {},
             "spreads": {},
@@ -994,9 +994,9 @@ def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
                         # Extra totals collection
                         key_name = f"{o['name']}_{pt}".lower()
                         _best_extra("totals", key_name, price)
-                        # Keep the legacy variable running
+                        # Keep mejor_cuota in sync with extra totals for Over 2.5
                         if pt == 2.5 and o["name"] == "Over":
-                            _best("over25", price)
+                            _best("over_2.5", price)
 
             elif mkt == "spreads":
                 for o in market.get("outcomes", []):
@@ -1043,7 +1043,7 @@ def fetch_all(local: str, visitante: str, liga: str) -> dict:
         "odds": {
             "pinnacle":    {"local": None, "empate": None, "visitante": None},
             "mejor_cuota": {"local": None, "empate": None, "visitante": None,
-                            "over25": None, "btts": None},
+                            "over_2.5": None, "btts": None},
             "corners":     {"avg_local": None, "avg_visitante": None, "linea": None},
         },
         "partido_no_disponible": False,

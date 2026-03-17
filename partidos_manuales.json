@@ -1,10 +1,6 @@
 [
-  { "local": "Bologna",           "visitante": "AS Roma",             "liga": "Europa League" },
-  { "local": "Lille",             "visitante": "Aston Villa",         "liga": "Europa League" },
-  { "local": "Panathinaikos",     "visitante": "Real Betis",          "liga": "Europa League" },
-  { "local": "Stuttgart",         "visitante": "FC Porto",            "liga": "Europa League" },
-  { "local": "Celta Vigo",        "visitante": "Lyon",                "liga": "Europa League" },
-  { "local": "Ferencvaros",       "visitante": "Braga",               "liga": "Europa League" },
-  { "local": "Genk",              "visitante": "Freiburg",            "liga": "Europa League" },
-  { "local": "Nottingham Forest", "visitante": "Midtjylland",         "liga": "Europa League" }
+  { "local": "Sporting Lisbon",    "visitante": "Bodo/Glimt",          "liga": "Champions League" },
+  { "local": "Arsenal",            "visitante": "Bayer Leverkusen",     "liga": "Champions League" },
+  { "local": "Chelsea",            "visitante": "Paris Saint-Germain",  "liga": "Champions League" },
+  { "local": "Manchester City",    "visitante": "Real Madrid",          "liga": "Champions League" }
 ]

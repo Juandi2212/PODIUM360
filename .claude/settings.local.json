@@ -52,7 +52,13 @@
       "Bash(python -c \":*)",
       "Bash(where gh:*)",
       "Read(//c/Program Files/GitHub CLI/**)",
-      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo view Juandi2212/PODIUM360 --json defaultBranchRef)"
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo view Juandi2212/PODIUM360 --json defaultBranchRef)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d[k] for k in [''''local'''',''''visitante'''',''''liga'''',''''best_pick'''',''''ev_pct'''',''''es_vip''''] if k in d}, indent=2\\)\\)\")",
+      "Bash(python3 -c \":*)",
+      "Bash(python3 insert_historical_12_03_26.py)",
+      "Bash(python supabase_sync.py)",
+      "Bash(start \"\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\landing page\\\\dashboard.html\")",
+      "Bash(python model_engine.py)"
     ]
   }
 }

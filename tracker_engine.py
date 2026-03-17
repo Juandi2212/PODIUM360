@@ -18,7 +18,7 @@ def load_json(filepath):
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
-    except:
+    except (json.JSONDecodeError, OSError):
         return None
 
 def fetch_match_result(local_team, away_team):
@@ -53,7 +53,7 @@ def get_pick_outcome(pick, result_score):
         return "WON" if hs == as_ else "LOST"
     elif mercado == "1x2_visitante":
         return "WON" if as_ > hs else "LOST"
-    elif mercado == "over25":
+    elif mercado in ("over_2.5", "over25"):
         return "WON" if (hs + as_) > 2.5 else "LOST"
     elif mercado == "btts":
         return "WON" if (hs > 0 and as_ > 0) else "LOST"

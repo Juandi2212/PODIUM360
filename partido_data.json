@@ -1,64 +1,88 @@
 {
   "partido": {
-    "local": "Bodø/Glimt",
-    "visitante": "Sporting CP",
+    "local": "Manchester City",
+    "visitante": "Real Madrid",
     "liga": "Champions League",
     "estadio": null,
-    "hora_utc": null
+    "hora_utc": "2026-03-17T20:00:00Z"
   },
   "elo": {
-    "local": null,
-    "visitante": 1850.9
+    "local": 1952.1,
+    "visitante": 1931.5
   },
   "xg": {
     "local": {
-      "atk": null,
-      "def": null
+      "atk": [
+        1.84,
+        1.84,
+        1.84,
+        1.84,
+        1.84,
+        1.84,
+        1.84,
+        1.84
+      ],
+      "def": [
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1
+      ]
     },
     "visitante": {
       "atk": [
-        2.13,
-        2.13,
-        2.13,
-        2.13,
-        2.13,
-        2.13,
-        2.13,
-        2.13
+        2.21,
+        2.21,
+        2.21,
+        2.21,
+        2.21,
+        2.21,
+        2.21,
+        2.21
       ],
       "def": [
-        0.68,
-        0.68,
-        0.68,
-        0.68,
-        0.68,
-        0.68,
-        0.68,
-        0.68
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1,
+        1.1
       ]
     }
   },
   "liga_avg_goals": 3.47,
   "standings": {
-    "pos_local": 23,
-    "pts_local": 9,
-    "pos_visitante": null,
-    "pts_visitante": null
+    "pos_local": 8,
+    "pts_local": 16,
+    "pos_visitante": 9,
+    "pts_visitante": 15
   },
   "forma": {
     "local": [
-      "D",
+      "L",
       "W",
+      "L",
+      "W",
+      "L"
+    ],
+    "visitante": [
+      "W",
+      "L",
       "W",
       "W",
       "W"
-    ],
-    "visitante": null
+    ]
   },
   "h2h": {
-    "victorias_local": null,
-    "empates": null,
-    "victorias_visitante": null
+    "victorias_local": 1,
+    "empates": 0,
+    "victorias_visitante": 1
   },
   "bajas": {
     "local": null,
@@ -66,35 +90,35 @@
   },
   "odds": {
     "pinnacle": {
-      "local": 2.35,
-      "empate": 3.71,
-      "visitante": 2.98
+      "local": 1.45,
+      "empate": 5.61,
+      "visitante": 5.8
     },
     "mejor_cuota": {
-      "local": 2.4,
-      "empate": 3.85,
-      "visitante": 3.1,
-      "over25": 1.67,
+      "local": 1.48,
+      "empate": 5.9,
+      "visitante": 6.4,
+      "over_2.5": 1.36,
       "btts": null
     },
     "mejores_cuotas_extra": {
       "totals": {
-        "over_3.0": 2.04,
-        "under_3.0": 1.88,
-        "over_2.5": 1.67,
-        "under_2.5": 2.4,
-        "over_2.75": 1.82,
-        "under_2.75": 2.02,
-        "over_1.5": 1.22,
-        "under_1.5": 5.4
+        "over_3.5": 2.14,
+        "under_3.5": 1.84,
+        "over_2.5": 1.36,
+        "under_2.5": 2.8,
+        "over_3.25": 1.92,
+        "under_3.25": 2.02,
+        "over_0.5": 1.03,
+        "under_0.5": 29.0
       },
       "spreads": {
-        "spread_local_-0.25": 2.06,
-        "spread_visitante_0.25": 1.87,
-        "spread_local_0.0": 1.75,
-        "spread_visitante_0.0": 2.25,
-        "spread_local_0.25": 1.59,
-        "spread_visitante_-0.25": 2.64
+        "spread_local_-1.5": 2.19,
+        "spread_visitante_1.5": 1.79,
+        "spread_local_-1.25": 1.91,
+        "spread_visitante_1.25": 2.01,
+        "spread_local_2.5": 1.01,
+        "spread_visitante_-2.5": 38.0
       }
     },
     "corners": {

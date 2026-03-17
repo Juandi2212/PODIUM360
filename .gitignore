@@ -23,6 +23,9 @@ check_db_v360.py
 test_runner.py
 init_supabase.sql
 
+# Dashboard generado (contiene credenciales inyectadas desde .env)
+landing page/dashboard_live.html
+
 # SO y Editores
 .DS_Store
 .vscode/

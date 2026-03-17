@@ -36,7 +36,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ── Blend weights (Manual Parte 2) ────────────────────────────────────────────
 WEIGHTS = {
     "1x2":    {"modelo": 0.45, "market": 0.55},
-    "over25": {"modelo": 0.55, "market": 0.45},
+    "over_2.5": {"modelo": 0.55, "market": 0.45},
     "btts":   {"modelo": 0.60, "market": 0.40},
 }
 
@@ -178,55 +178,51 @@ def paso_e_extended_market_probs(matrix: list[list[float]]) -> dict:
         "local":    round(p_local  * 100, 2),
         "empate":   round(p_empate * 100, 2),
         "visitante":round(p_visit  * 100, 2),
-        "over25":   round(p_over25 * 100, 2),
+        "over_2.5": round(p_over25 * 100, 2),
         "btts":     round(p_btts   * 100, 2),
     }
 
-    # Totals extended
-    for pt in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.5]:
-        p_over = 0.0
-        p_under = 0.0
-        for i in range(n):
-            for j in range(n):
-                s = i + j
-                if s > pt: p_over += matrix[i][j]
-                elif s < pt: p_under += matrix[i][j]
-        
-        # We assume push money is returned, so probability of winning is calculated over non-push events
-        if (p_over + p_under) > 0:
-            extended[f"over_{pt}"] = round(p_over / (p_over + p_under) * 100, 2)
-            extended[f"under_{pt}"] = round(p_under / (p_over + p_under) * 100, 2)
+    # Totals extended — single matrix sweep accumulates all lines at once (was 12 sweeps)
+    total_lines  = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.5]
+    spread_lines = [-3.5, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]
+    p_over_acc   = {pt: 0.0 for pt in total_lines}
+    p_under_acc  = {pt: 0.0 for pt in total_lines}
+    p_hw_acc     = {pt: 0.0 for pt in spread_lines}
+    p_hl_acc     = {pt: 0.0 for pt in spread_lines}
+    p_aw_acc     = {pt: 0.0 for pt in spread_lines}
+    p_al_acc     = {pt: 0.0 for pt in spread_lines}
+
+    for i in range(n):
+        for j in range(n):
+            p   = matrix[i][j]
+            s   = i + j
+            diff = i - j
+            for pt in total_lines:
+                if s > pt:   p_over_acc[pt]  += p
+                elif s < pt: p_under_acc[pt] += p
+            for pt in spread_lines:
+                d  = diff + pt
+                dv = -diff + pt
+                if d  > 0:   p_hw_acc[pt] += p
+                elif d  < 0: p_hl_acc[pt] += p
+                if dv > 0:   p_aw_acc[pt] += p
+                elif dv < 0: p_al_acc[pt] += p
+
+    # Push money returned → normalise over non-push outcomes
+    for pt in total_lines:
+        denom = p_over_acc[pt] + p_under_acc[pt]
+        if denom > 0:
+            extended[f"over_{pt}"]  = round(p_over_acc[pt]  / denom * 100, 2)
+            extended[f"under_{pt}"] = round(p_under_acc[pt] / denom * 100, 2)
         else:
-            extended[f"over_{pt}"] = 0
+            extended[f"over_{pt}"]  = 0
             extended[f"under_{pt}"] = 0
 
-    # Spreads extended
-    for pt in [-3.5, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]:
-        p_home_win = 0.0
-        p_home_loss = 0.0
-        for i in range(n):
-            for j in range(n):
-                diff = i - j + pt
-                if diff > 0: p_home_win += matrix[i][j]
-                elif diff < 0: p_home_loss += matrix[i][j]
-        
-        if (p_home_win + p_home_loss) > 0:
-            extended[f"spread_local_{pt}"] = round(p_home_win / (p_home_win + p_home_loss) * 100, 2)
-        else:
-            extended[f"spread_local_{pt}"] = 0
-
-        p_away_win = 0.0
-        p_away_loss = 0.0
-        for i in range(n):
-            for j in range(n):
-                diff_v = j - i + pt
-                if diff_v > 0: p_away_win += matrix[i][j]
-                elif diff_v < 0: p_away_loss += matrix[i][j]
-                
-        if (p_away_win + p_away_loss) > 0:
-            extended[f"spread_visitante_{pt}"] = round(p_away_win / (p_away_win + p_away_loss) * 100, 2)
-        else:
-            extended[f"spread_visitante_{pt}"] = 0
+    for pt in spread_lines:
+        dh = p_hw_acc[pt] + p_hl_acc[pt]
+        da = p_aw_acc[pt] + p_al_acc[pt]
+        extended[f"spread_local_{pt}"]    = round(p_hw_acc[pt] / dh * 100, 2) if dh > 0 else 0
+        extended[f"spread_visitante_{pt}"] = round(p_aw_acc[pt] / da * 100, 2) if da > 0 else 0
 
     return extended
 
@@ -281,12 +277,12 @@ def paso_f_blend(p_modelo: dict, pinnacle: dict, mejor_cuota: dict) -> tuple[dic
         odds_blend = False
 
     # ── Over 2.5 ─────────────────────────────────────────────────────────────
-    fair_over = _fair_single(mejor_cuota.get("over25"))
+    fair_over = _fair_single(mejor_cuota.get("over_2.5"))
     if fair_over:
-        p_over = (WEIGHTS["over25"]["modelo"] * (p_modelo["over25"] / 100) +
-                  WEIGHTS["over25"]["market"] * fair_over)
+        p_over = (WEIGHTS["over_2.5"]["modelo"] * (p_modelo["over_2.5"] / 100) +
+                  WEIGHTS["over_2.5"]["market"] * fair_over)
     else:
-        p_over = p_modelo["over25"] / 100
+        p_over = p_modelo["over_2.5"] / 100
 
     # ── BTTS ─────────────────────────────────────────────────────────────────
     fair_btts = _fair_single(mejor_cuota.get("btts"))
@@ -300,7 +296,7 @@ def paso_f_blend(p_modelo: dict, pinnacle: dict, mejor_cuota: dict) -> tuple[dic
         "local":    round(p1x2["local"]     * 100, 2),
         "empate":   round(p1x2["empate"]    * 100, 2),
         "visitante":round(p1x2["visitante"] * 100, 2),
-        "over25":   round(p_over            * 100, 2),
+        "over_2.5": round(p_over            * 100, 2),
         "btts":     round(p_btts            * 100, 2),
     }
     
@@ -310,6 +306,68 @@ def paso_f_blend(p_modelo: dict, pinnacle: dict, mejor_cuota: dict) -> tuple[dic
             p_final[k] = v
 
     return p_final, odds_blend, fair_pin
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PASO F.5 — Double Chance synthetic markets
+# ══════════════════════════════════════════════════════════════════════════════
+DC_MIN_COMPONENT = 0.20  # Cada componente debe tener ≥ 20% de probabilidad (blended)
+
+def _compute_dc_markets(
+    p_modelo: dict,
+    p_final: dict,
+    fair_pinnacle: dict | None,
+    mejor_cuota: dict,
+) -> None:
+    """
+    Inyecta mercados de Doble Oportunidad (dc_1x, dc_x2, dc_12) en los dicts
+    existentes. Solo se agregan si ambas componentes cumplen DC_MIN_COMPONENT.
+
+    - p_modelo y p_final usan escala 0–100
+    - fair_pinnacle usa escala 0–1
+    - mejor_cuota recibe las cuotas sintéticas derivadas de Pinnacle no-vig
+    """
+    # Probabilidades blended (fracción)
+    p_h = p_final.get("local",     0) / 100
+    p_d = p_final.get("empate",    0) / 100
+    p_a = p_final.get("visitante", 0) / 100
+
+    # Probabilidades modelo Poisson (fracción)
+    m_h = p_modelo.get("local",     0) / 100
+    m_d = p_modelo.get("empate",    0) / 100
+    m_a = p_modelo.get("visitante", 0) / 100
+
+    combos = {
+        "dc_1x": (p_h, p_d, m_h, m_d),
+        "dc_x2": (p_d, p_a, m_d, m_a),
+        "dc_12": (p_h, p_a, m_h, m_a),
+    }
+
+    for code, (c1_blend, c2_blend, c1_mod, c2_mod) in combos.items():
+        # Filtro de componentes mínimas
+        if c1_blend < DC_MIN_COMPONENT or c2_blend < DC_MIN_COMPONENT:
+            continue
+
+        p_blend_dc = c1_blend + c2_blend
+        p_model_dc = c1_mod  + c2_mod
+
+        # Agregar a p_final y p_modelo (escala 0–100)
+        p_final[code]  = round(p_blend_dc * 100, 2)
+        p_modelo[code] = round(p_model_dc * 100, 2)
+
+        # Cuota sintética de mercado: derivada de Pinnacle no-vig
+        if fair_pinnacle:
+            keys = {
+                "dc_1x": ("local",  "empate"),
+                "dc_x2": ("empate", "visitante"),
+                "dc_12": ("local",  "visitante"),
+            }[code]
+            p_pinn_dc = fair_pinnacle.get(keys[0], 0) + fair_pinnacle.get(keys[1], 0)
+            if p_pinn_dc > 0:
+                # Almacenar en fair_pinnacle para el cálculo de divergencia en paso_h
+                fair_pinnacle[code] = p_pinn_dc
+                # Cuota justa (sin margen) como referencia de mercado
+                mejor_cuota[code] = round(1 / p_pinn_dc, 3)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -326,9 +384,9 @@ def paso_g_ev(p_final: dict, mejor_cuota: dict, extra: dict) -> dict:
         ("1x2_local",    p_final.get("local",0), mejor_cuota.get("local")),
         ("1x2_empate",   p_final.get("empate",0), mejor_cuota.get("empate")),
         ("1x2_visitante",p_final.get("visitante",0), mejor_cuota.get("visitante")),
-        ("over25",       p_final.get("over25",0), mejor_cuota.get("over25")),
         ("btts",         p_final.get("btts",0), mejor_cuota.get("btts")),
     ]
+    # over_2.5, over_1.5, under_1.5, over_3.5, etc. all flow via the extra totals loop below
     
     for tm, tc in (extra.get("totals", {})).items():
         if tm in p_final:
@@ -337,6 +395,11 @@ def paso_g_ev(p_final: dict, mejor_cuota: dict, extra: dict) -> dict:
     for sm, sc in (extra.get("spreads", {})).items():
         if sm in p_final:
             markets.append((sm, p_final[sm], sc))
+
+    # Double Chance (sintéticos, solo si fueron generados por _compute_dc_markets)
+    for dc_code in ("dc_1x", "dc_x2", "dc_12"):
+        if dc_code in p_final:
+            markets.append((dc_code, p_final[dc_code], mejor_cuota.get(dc_code)))
 
     ev = {}
     for name, prob_fair_pct, cuota in markets:
@@ -360,6 +423,13 @@ def _elo_favors(p_elo_local: float, outcome: str) -> bool:
         return p_elo_local < 0.5
     if outcome == "1x2_empate":
         return abs(p_elo_local - 0.5) < 0.1
+    # Double Chance
+    if outcome == "dc_1x":
+        return p_elo_local >= 0.40   # local no es el gran perdedor
+    if outcome == "dc_x2":
+        return p_elo_local <= 0.60   # visitante no es el gran perdedor
+    if outcome == "dc_12":
+        return abs(p_elo_local - 0.5) > 0.10  # hay favorito claro → el empate es improbable
     return False  # Elo not applicable to Over/BTTS (weight 0.05 in manual)
 
 
@@ -371,10 +441,21 @@ def _xg_favors(lam_local: float, lam_visit: float, outcome: str) -> bool:
         return lam_visit > lam_local
     if outcome == "1x2_empate":
         return abs(lam_local - lam_visit) < 0.25
-    if outcome == "over25":
+    if outcome == "over_2.5":
         return (lam_local + lam_visit) > 2.5
+    if outcome == "over_1.5":
+        return (lam_local + lam_visit) > 1.5
+    if outcome == "under_1.5":
+        return (lam_local + lam_visit) < 1.5
     if outcome == "btts":
         return lam_local > 0.65 and lam_visit > 0.65
+    # Double Chance
+    if outcome == "dc_1x":
+        return lam_local >= lam_visit * 0.80   # local no está muy por debajo en xG
+    if outcome == "dc_x2":
+        return lam_visit >= lam_local * 0.80   # visitante no está muy por debajo en xG
+    if outcome == "dc_12":
+        return abs(lam_local - lam_visit) > 0.30  # hay diferencia clara → el empate es menos probable
     return False
 
 
@@ -386,10 +467,21 @@ def _poisson_favors(p_modelo: dict, outcome: str) -> bool:
         return p_modelo["visitante"] > p_modelo["local"] and p_modelo["visitante"] > 35
     if outcome == "1x2_empate":
         return p_modelo["empate"] > 26
-    if outcome == "over25":
-        return p_modelo["over25"] > 52
+    if outcome == "over_2.5":
+        return p_modelo["over_2.5"] > 52
+    if outcome == "over_1.5":
+        return p_modelo.get("over_1.5", 0) > 70
+    if outcome == "under_1.5":
+        return p_modelo.get("under_1.5", 0) > 30
     if outcome == "btts":
         return p_modelo["btts"] > 52
+    # Double Chance
+    if outcome == "dc_1x":
+        return p_modelo.get("local", 0) + p_modelo.get("empate", 0) > 60
+    if outcome == "dc_x2":
+        return p_modelo.get("visitante", 0) + p_modelo.get("empate", 0) > 60
+    if outcome == "dc_12":
+        return p_modelo.get("local", 0) + p_modelo.get("visitante", 0) > 70
     return False
 
 
@@ -429,8 +521,13 @@ def paso_h_regla_de_oro(
         "1x2_local":    ("local",    "local",     "local"),
         "1x2_empate":   ("empate",   "empate",    "empate"),
         "1x2_visitante":("visitante","visitante",  "visitante"),
-        "over25":       ("over25",   "over25",    "over25"),
+        "over_2.5":     ("over_2.5", "over_2.5",  "over_2.5"),
+        "over_1.5":     ("over_1.5", "over_1.5",  "over_1.5"),
+        "under_1.5":    ("under_1.5","under_1.5", "under_1.5"),
         "btts":         ("btts",     "btts",      "btts"),
+        "dc_1x":        ("dc_1x",   "dc_1x",     "dc_1x"),
+        "dc_x2":        ("dc_x2",   "dc_x2",     "dc_x2"),
+        "dc_12":        ("dc_12",   "dc_12",     "dc_12"),
     }
 
     candidates = []  # dicts of picks
@@ -509,7 +606,95 @@ from utils.naming import normalize_team_name
 # ══════════════════════════════════════════════════════════════════════════════
 # Main engine
 # ══════════════════════════════════════════════════════════════════════════════
+def _validate_input(data: dict) -> None:
+    """Raise ValueError with a clear message if critical fields are missing."""
+    required = ["partido", "elo"]
+    for field in required:
+        if field not in data or data[field] is None:
+            raise ValueError(f"partido_data.json missing required field: '{field}'")
+    partido = data["partido"]
+    for sub in ("local", "visitante"):
+        if not partido.get(sub):
+            raise ValueError(f"partido_data.json missing partido.{sub}")
+
+
+def _impute_elo(elo_l, elo_v):
+    """Return (elo_l, elo_v, elo_fallback) with sensible defaults when data is absent."""
+    if not elo_l and not elo_v:
+        return 1500.0, 1500.0, True
+    if not elo_l:
+        return (1500.0 if not elo_v else elo_v - 50.0), elo_v, True
+    if not elo_v:
+        return elo_l, (1500.0 if not elo_l else elo_l - 50.0), True
+    return float(elo_l), float(elo_v), False
+
+
+def _process_market_outputs(top_3_picks, all_markets, m_extra, p_final):
+    """
+    Convert raw paso_h output into the cleaned processed_picks and
+    processed_all_markets lists used by the JSON output.
+    Also injects over_1.5 / under_1.5 entries when no cuota API was found.
+    """
+    def _get_extra_cuota(mk):
+        if mk.startswith("over_") or mk.startswith("under_"):
+            return m_extra.get("totals", {}).get(mk)
+        if mk.startswith("spread_"):
+            return m_extra.get("spreads", {}).get(mk)
+        return None
+
+    processed_picks = []
+    for pick in top_3_picks:
+        consenso_mod = pick.pop("_consenso", 0)
+        div_merc     = pick.pop("_divergencia", 0.0)
+        pick.pop("ev", None)
+        processed_picks.append({
+            **pick,
+            "bookie": "Best available",
+            "diagnostico_interno": {
+                "consenso_modelos": consenso_mod,
+                "divergencia_mercado": div_merc,
+            },
+        })
+
+    processed_all_markets = []
+    for m in all_markets:
+        consenso_mod = m.pop("_consenso", 0)
+        div_merc     = m.pop("_divergencia", 0.0)
+        m.pop("ev", None)
+        if m["cuota"] is None:
+            m["cuota"] = _get_extra_cuota(m["mercado"])
+        processed_all_markets.append({
+            **m,
+            "bookie": "Best available",
+            "diagnostico_interno": {
+                "consenso_modelos": consenso_mod,
+                "divergencia_mercado": div_merc,
+            },
+        })
+
+    # Always show over_1.5 / under_1.5 even without a bookie quote
+    existing = {m["mercado"] for m in processed_all_markets}
+    for ou_key in ("over_1.5", "under_1.5"):
+        if ou_key not in existing:
+            prob = p_final.get(ou_key)
+            if prob is not None:
+                processed_all_markets.append({
+                    "mercado":   ou_key,
+                    "cuota":     m_extra.get("totals", {}).get(ou_key),
+                    "ev_pct":    None,
+                    "es_vip":    False,
+                    "razon_rechazo":  "Sin cuota API",
+                    "cuota_minima":   None,
+                    "p_modelo_ext":   round(prob, 2),
+                    "bookie":    "Modelo puro",
+                    "diagnostico_interno": {"consenso_modelos": 0, "divergencia_mercado": 0.0},
+                })
+
+    return processed_picks, processed_all_markets
+
+
 def run_model(data: dict) -> dict:
+    _validate_input(data)
     partido      = data["partido"]
     
     # Aplicar normalización
@@ -527,19 +712,7 @@ def run_model(data: dict) -> dict:
     m_extra      = odds.get("mejores_cuotas_extra", {}) or {}
 
     # ── A. Elo ────────────────────────────────────────────────────────────────
-    # If Elo data is completely missing, we fall back to a baseline of 1500.
-    elo_l = elo.get("local")
-    elo_v = elo.get("visitante")
-
-    if not elo_l and not elo_v:
-        elo_l, elo_v = 1500.0, 1500.0
-    elif not elo_l:
-        elo_l = 1500.0 if not elo_v else elo_v - 50.0 # guess local is slightly weaker if missing
-    elif not elo_v:
-        elo_v = 1500.0 if not elo_l else elo_l - 50.0 # guess visitor is slightly weaker if missing
-
-    # Record if we used fallback Elo
-    elo_fallback = not (elo.get("local") and elo.get("visitante"))
+    elo_l, elo_v, elo_fallback = _impute_elo(elo.get("local"), elo.get("visitante"))
 
     p_elo_local, factor_elo = paso_a_elo(elo_l, elo_v)
 
@@ -588,54 +761,27 @@ def run_model(data: dict) -> dict:
     # ── F. Blend modelo + Pinnacle ────────────────────────────────────────────
     p_final, odds_blend, fair_pinnacle = paso_f_blend(p_modelo, pinnacle, mejor_cuota)
 
+    # ── F.5 Double Chance synthetic markets ───────────────────────────────────
+    _compute_dc_markets(p_modelo, p_final, fair_pinnacle, mejor_cuota)
+
     # ── G. EV per market ──────────────────────────────────────────────────────
     ev_por_mercado = paso_g_ev(p_final, mejor_cuota, m_extra)
+
+    # Merge over/under 1.5 cuotas en mejor_cuota para que paso_h pueda hacer el lookup
+    for _ou in ("over_1.5", "under_1.5"):
+        if _ou not in mejor_cuota:
+            _tc = m_extra.get("totals", {}).get(_ou)
+            if _tc:
+                mejor_cuota[_ou] = _tc
 
     top_3_picks, all_markets = paso_h_regla_de_oro(
         ev_por_mercado, p_modelo, p_final, fair_pinnacle,
         p_elo_local, lam_local, lam_visit, mejor_cuota,
     )
 
-    processed_picks = []
-    for pick in top_3_picks:
-        consenso_mod = pick.pop("_consenso", 0)
-        div_merc     = pick.pop("_divergencia", 0.0)
-        _ev          = pick.pop("ev", None)
-        processed_picks.append({
-            **pick,
-            "bookie": "Best available",
-            "diagnostico_interno": {
-                "consenso_modelos": consenso_mod,
-                "divergencia_mercado": div_merc
-            }
-        })
-
-    # Prepare all_markets array preserving original keys needed for UI
-    processed_all_markets = []
-    
-    # helper for cuota lookup
-    def get_extra_cuota(mk):
-        if mk.startswith("over_") or mk.startswith("under_"): return m_extra.get("totals", {}).get(mk)
-        if mk.startswith("spread_"): return m_extra.get("spreads", {}).get(mk)
-        return None
-
-    for m in all_markets:
-        consenso_mod = m.pop("_consenso", 0)
-        div_merc     = m.pop("_divergencia", 0.0)
-        _ev          = m.pop("ev", None)
-        
-        # Inject cuota back for extra markets
-        if m["cuota"] is None:
-            m["cuota"] = get_extra_cuota(m["mercado"])
-            
-        processed_all_markets.append({
-            **m,
-            "bookie": "Best available",
-            "diagnostico_interno": {
-                "consenso_modelos": consenso_mod,
-                "divergencia_mercado": div_merc
-            }
-        })
+    processed_picks, processed_all_markets = _process_market_outputs(
+        top_3_picks, all_markets, m_extra, p_final
+    )
 
     # Build fair Pinnacle probability display (%)
     p_mercado = {
@@ -754,24 +900,35 @@ def print_report(data_in: dict, out: dict):
     print(f"\n  EXPECTED VALUE  (umbral VIP: EV > +{EV_MIN:.0f}%)")
     print(f"    {'Mercado':<24} {'Cuota':>6}  {'EV%':>8}")
     print(f"    {line('-')[:42]}")
+    m_extra_pr = (data_in.get("odds") or {}).get("mejores_cuotas_extra", {}) or {}
     mc_map = {
         "1x2_local":    ("local",     mc.get("local")),
         "1x2_empate":   ("empate",    mc.get("empate")),
         "1x2_visitante":("visitante", mc.get("visitante")),
-        "over25":       ("over25",    mc.get("over25")),
+        "over_2.5":     ("over_2.5",  mc.get("over_2.5")),
+        "over_1.5":     ("over_1.5",  m_extra_pr.get("totals", {}).get("over_1.5")),
+        "under_1.5":    ("under_1.5", m_extra_pr.get("totals", {}).get("under_1.5")),
+        "over_3.5":     ("over_3.5",  m_extra_pr.get("totals", {}).get("over_3.5")),
+        "under_3.5":    ("under_3.5", m_extra_pr.get("totals", {}).get("under_3.5")),
         "btts":         ("btts",      mc.get("btts")),
     }
     label_map = {
         "1x2_local":    f"1  {L}",
         "1x2_empate":   "X  Empate",
         "1x2_visitante":f"2  {V}",
-        "over25":       "Over 2.5 goles",
+        "over_1.5":     "Over 1.5 goles",
+        "under_1.5":    "Under 1.5 goles",
+        "over_2.5":     "Over 2.5 goles",
+        "over_3.5":     "Over 3.5 goles",
+        "under_3.5":    "Under 3.5 goles",
         "btts":         "Ambos marcan (BTTS)",
     }
-    for key in ["1x2_local","1x2_empate","1x2_visitante","over25","btts"]:
+    for key in ["1x2_local","1x2_empate","1x2_visitante","over_1.5","under_1.5","over_2.5","over_3.5","under_3.5","btts"]:
         ev_val  = ev.get(key)
         cuota_v = mc_map[key][1]
         label   = label_map[key]
+        if cuota_v is None and key not in {"over_1.5", "under_1.5"}:
+            continue  # No mostrar líneas extra sin cuota (1.5 siempre se muestra)
         cuota_s = f"{cuota_v:.2f}" if cuota_v else "  N/D"
         if ev_val is not None:
             flag = "  ✓ EV+" if ev_val > EV_MIN else ""
