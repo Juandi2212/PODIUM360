@@ -1,0 +1,111 @@
+============================================================
+PODIUM 360 — Resumen de Sesión
+Fecha: 16 de Marzo de 2026 (sesión 2 — continuación)
+============================================================
+
+OBJETIVO COMPLETADO:
+Integrar forma reciente y H2H al modelo matemático + mostrar en dashboard.
+
+============================================================
+CAMBIOS REALIZADOS
+============================================================
+
+1. model_engine.py — v2.0 (Paso C.5)
+   ─────────────────────────────────
+   - Nuevas constantes: FORM_WEIGHT=0.15, FORM_DECAY=0.80, H2H_WEIGHT=0.10, H2H_MIN_GAMES=2
+   - _form_to_multiplier(forma): convierte ["W","L","D","W","W"] a multiplicador ~0.925–1.075
+   - _h2h_adjustments(h2h): retorna (adj_local, adj_visit) ~0.95–1.05
+   - Integración en run_model(): lambdas *= form_adj * h2h_adj (después de paso_c, antes de paso_d)
+   - diagnostico_global exporta los 4 ajustes para transparencia
+   - main() incluye forma y h2h en el output JSON de Pronosticos/
+
+2. test_runner.py — passthrough de forma/h2h
+   ──────────────────────────────────────────
+   - daily_report ahora incluye "forma", "h2h", "diagnostico_global" por partido
+   - Datos fluyen: model_engine → Pronosticos/ → daily_report → supabase_sync
+
+3. supabase_sync.py — MOMENTUM_DATA pattern
+   ─────────────────────────────────────────
+   - Inyecta forma, h2h y diagnostico_global dentro de mercados_completos JSONB
+   - Registro especial: {"mercado": "MOMENTUM_DATA", "forma": {...}, "h2h": {...}, "diagnostico_global": {...}}
+   - NO requiere migración de esquema en Supabase (usa columna JSONB existente)
+
+4. landing page/dashboard.html — UI Momentum
+   ──────────────────────────────────────────
+   - Helpers: extractMomentum(), renderFormDots(), renderFormRow(), formatAdj()
+   - TARJETAS: dots compactos de forma reciente por equipo (verde=W, amarillo=D, rojo=L)
+   - MODAL: Sección "Momentum" entre Triple Ángulo y Value Matrices
+     - "Forma Reciente": dots + ajuste % al modelo
+     - "Historial Directo (H2H)": contadores W-D-L + impacto %
+   - Diseño limpio, no intrusivo
+
+5. CLAUDE.md — actualizado a v2.0
+   ───────────────────────────────
+   - Estado Actual: 16/03/2026, model_engine v2.0
+   - Paso C.5 documentado con fórmulas y constantes
+   - supabase_sync: MOMENTUM_DATA pattern documentado
+   - test_runner: passthrough documentado
+   - dashboard: Momentum UI documentada
+   - Nuevos Problemas Conocidos: Gemini rate limit, MOMENTUM_DATA embebido, H2H min games
+
+============================================================
+ARQUITECTURA DEL FLUJO DE DATOS MOMENTUM
+============================================================
+
+data_fetcher.py  →  partido_data.json (ya tenía forma + h2h)
+                          ↓
+model_engine.py  →  Paso C.5: ajusta lambdas Poisson
+                 →  Output incluye forma, h2h, diagnostico_global
+                          ↓
+test_runner.py   →  daily_report incluye forma, h2h, diagnostico_global
+                          ↓
+supabase_sync.py →  Inyecta MOMENTUM_DATA en mercados_completos JSONB
+                          ↓
+Supabase         →  daily_board.mercados_completos contiene el registro especial
+                          ↓
+dashboard.html   →  extractMomentum() → renderiza en tarjeta + modal
+
+============================================================
+CONSTANTES DEL MODELO (PASO C.5)
+============================================================
+
+FORM_WEIGHT    = 0.15    # Máximo ±7.5% de ajuste por forma
+FORM_DECAY     = 0.80    # Decay exponencial por partido
+H2H_WEIGHT     = 0.10    # Máximo ±5% de ajuste por H2H
+H2H_MIN_GAMES  = 2       # Mínimo de partidos H2H para aplicar
+
+Forma:  W=3, D=1, L=0 → score normalizado → multiplicador
+H2H:    victorias + 0.5×empates → ratio → multiplicador
+Null:   cualquier dato null → multiplicador 1.0 (sin cambio)
+
+============================================================
+VERIFICACIÓN END-TO-END
+============================================================
+
+- Pipeline ejecutado con 4 partidos UCL (Man City vs Real Madrid, etc.)
+- Forma reciente aplicada correctamente (ej: Man City WLWLW → form_adj < 1.0)
+- H2H no aplicado en esta jornada (todos con < 2 partidos en historial directo) → correcto
+- Datos visibles en dashboard: tarjetas muestran dots, modal muestra sección completa
+- 1/4 narrativas Gemini generadas (rate limit free tier — re-ejecutar supabase_sync.py)
+
+============================================================
+PROBLEMAS CONOCIDOS NUEVOS
+============================================================
+
+1. Gemini free tier: ~50 req/día, 5 req/min. Con jornadas grandes, algunas narrativas
+   quedan vacías. Re-ejecutar supabase_sync.py cuando cuota se renueve.
+
+2. MOMENTUM_DATA embebido en JSONB: funcional pero no ideal. Migrar a columnas
+   dedicadas cuando se haga port a Next.js.
+
+3. H2H requiere ≥2 partidos: partidos de fases nuevas (UCL QF) típicamente no
+   cumplen el mínimo. Comportamiento correcto — no sesgar con muestra insuficiente.
+
+============================================================
+PRÓXIMOS PASOS SUGERIDOS
+============================================================
+
+- Vaciar partidos_manuales.json antes de la próxima jornada
+- Re-ejecutar supabase_sync.py para completar narrativas Gemini pendientes
+- Ejecutar migración de columna mercado en vip_signals (SQL pendiente)
+- Fase 1 MVP: Next.js + Supabase Auth + Stripe

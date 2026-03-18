@@ -416,6 +416,18 @@ def main():
                 "angulo_contexto": ai_text.get("angulo_contexto", "")
             }]
             
+        # Inject Form & H2H as a special entry in mercados_completos (v2.0)
+        forma_data = item.get("forma")
+        h2h_data = item.get("h2h")
+        diag_global = item.get("diagnostico_global")
+        if forma_data or h2h_data or diag_global:
+            mercados_completos.append({
+                "mercado": "MOMENTUM_DATA",
+                "forma": forma_data,
+                "h2h": h2h_data,
+                "diagnostico_global": diag_global,
+            })
+
         row = {
             "id": unique_id,
             "match_date": event_date,  # ← FECHA REAL DEL EVENTO, no del reporte

@@ -49,6 +49,12 @@ EV_MIN         = 3.0    # Regla de Oro: EV% threshold
 CONSENSUS_MIN  = 2      # Regla de Oro: minimum models aligned
 DIVERGENCIA_MAX = 8.0   # Regla de Oro: max market-vs-model divergence (pp)
 
+# ── Form & H2H adjustment weights ────────────────────────────────────────────
+FORM_WEIGHT    = 0.15   # Max ±7.5% lambda shift from recent form
+FORM_DECAY     = 0.80   # Decay per match (most recent = weight 1.0)
+H2H_WEIGHT     = 0.10   # Max ±5% lambda shift from H2H record
+H2H_MIN_GAMES  = 2      # Minimum H2H matches to apply adjustment
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PASO A — Elo: base probability and log-odds factor
@@ -121,6 +127,65 @@ def paso_c_lambdas(
     lam_visit = atk_v_idx * def_l_idx * xg_avg * math.exp(-ELO_EXP_WEIGHT * factor_elo)
 
     return lam_local, lam_visit
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PASO C.5 — Form & H2H lambda adjustments
+# ══════════════════════════════════════════════════════════════════════════════
+def _form_to_multiplier(forma: list | None) -> float:
+    """
+    Convert a recent-form list (e.g. ["W","L","D","W","W"]) into a lambda multiplier.
+    Most recent match is index 0 (highest weight via FORM_DECAY).
+
+    Returns 1.0 if forma is None/empty (no change to lambda).
+    Multiplier range: ~0.925 to ~1.075 with FORM_WEIGHT=0.15.
+    """
+    if not forma:
+        return 1.0
+
+    pts_map = {"W": 3, "D": 1, "L": 0}
+    weights = [FORM_DECAY ** i for i in range(len(forma))]
+    total_w = sum(weights)
+    if total_w == 0:
+        return 1.0
+
+    pts = sum(pts_map.get(r.upper(), 0) * w for r, w in zip(forma, weights))
+    max_pts = 3 * total_w  # perfect form (all W)
+
+    form_ratio = pts / max_pts  # 0.0 (all L) to 1.0 (all W)
+    return 1.0 + FORM_WEIGHT * (form_ratio - 0.5)
+
+
+def _h2h_adjustments(h2h: dict | None) -> tuple[float, float]:
+    """
+    Convert H2H record into (adj_local, adj_visit) lambda multipliers.
+
+    h2h format: {"victorias_local": N, "empates": N, "victorias_visitante": N}
+    Draws count as 0.5 wins for each side.
+    Minimum H2H_MIN_GAMES required to apply adjustment.
+
+    Returns (1.0, 1.0) if h2h is None or insufficient sample.
+    Multiplier range: ~0.95 to ~1.05 with H2H_WEIGHT=0.10.
+    """
+    if not h2h:
+        return 1.0, 1.0
+
+    wins_l = h2h.get("victorias_local", 0) or 0
+    draws  = h2h.get("empates", 0) or 0
+    wins_v = h2h.get("victorias_visitante", 0) or 0
+    total  = wins_l + draws + wins_v
+
+    if total < H2H_MIN_GAMES:
+        return 1.0, 1.0
+
+    # Each side's H2H "score": full credit for wins, half for draws
+    ratio_l = (wins_l + 0.5 * draws) / total  # 0.0 to 1.0
+    ratio_v = (wins_v + 0.5 * draws) / total
+
+    adj_l = 1.0 + H2H_WEIGHT * (ratio_l - 0.5)
+    adj_v = 1.0 + H2H_WEIGHT * (ratio_v - 0.5)
+
+    return adj_l, adj_v
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -752,6 +817,17 @@ def run_model(data: dict) -> dict:
         liga_avg_safe, factor_elo,
     )
 
+    # ── C.5 Form & H2H adjustments on lambdas ─────────────────────────────────
+    forma_data = data.get("forma") or {}
+    h2h_data   = data.get("h2h")
+
+    form_adj_l = _form_to_multiplier(forma_data.get("local"))
+    form_adj_v = _form_to_multiplier(forma_data.get("visitante"))
+    h2h_adj_l, h2h_adj_v = _h2h_adjustments(h2h_data)
+
+    lam_local  *= form_adj_l * h2h_adj_l
+    lam_visit  *= form_adj_v * h2h_adj_v
+
     # ── D. Poisson matrix ─────────────────────────────────────────────────────
     matrix = paso_d_matrix(lam_local, lam_visit)
 
@@ -823,6 +899,10 @@ def run_model(data: dict) -> dict:
             "xg_usado":            xg_usado,
             "odds_blend":          odds_blend,
             "elo_fallback":        elo_fallback,
+            "form_adj_local":      round(form_adj_l, 4),
+            "form_adj_visitante":  round(form_adj_v, 4),
+            "h2h_adj_local":       round(h2h_adj_l, 4),
+            "h2h_adj_visitante":   round(h2h_adj_v, 4),
         },
     }
 
@@ -993,6 +1073,8 @@ def main():
     # ── Save Standard Output ──────────────────────────────────────────────────
     std_output = {
         "partido": data.get("partido"),
+        "forma": data.get("forma"),
+        "h2h": data.get("h2h"),
         **output
     }
     std_filename = os.path.join(OUTPUT_DIR, f"{local_name}_{visitante_name}_{date_str}.json")

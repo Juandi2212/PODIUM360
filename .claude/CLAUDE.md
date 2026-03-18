@@ -1,4 +1,4 @@
-# CLAUDE.md — Podium 360 v2.0 (SaaS Vision + Freemium Architecture)
+# CLAUDE.md — Valior v2.0 (SaaS Vision + Freemium Architecture)
 
 Este es el documento maestro del repositorio. Léelo completo antes de cualquier acción.
 
@@ -6,12 +6,12 @@ Este es el documento maestro del repositorio. Léelo completo antes de cualquier
 
 ## Misión del Proyecto
 
-**Podium 360** es un SaaS de análisis de Valor Esperado (EV) en apuestas deportivas.
+**Valior** es un SaaS de análisis de Valor Esperado (EV) en apuestas deportivas.
 Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada por IA (Gemini 2.5 Flash) para auditar mercados de fútbol europeo — mostrando al usuario si las cuotas de una casa de apuestas están balanceadas o no respecto a la probabilidad real calculada por el modelo.
 
 **Propósito central:** No es un generador de señales ciegas. Es una herramienta de auditoría de mercado que empodera al usuario con metodología matemática transparente. Los "Pronósticos VIP" son simplemente los mercados con EV más alto del día — curados automáticamente por el modelo, no por criterio editorial.
 
-**Diferencial competitivo:** A diferencia de los canales de Telegram que venden pronósticos sin metodología verificable, Podium 360 muestra el trabajo matemático detrás de cada análisis y mantiene un historial público de ROI verificable.
+**Diferencial competitivo:** A diferencia de los canales de Telegram que venden pronósticos sin metodología verificable, Valior muestra el trabajo matemático detrás de cada análisis y mantiene un historial público de ROI verificable.
 
 ---
 
@@ -76,13 +76,15 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (15 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (17 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
 ### Última jornada procesada:
-- **15/03/2026 — Premier League (4 partidos) + Serie A (5 partidos)**
-- 9 partidos en `daily_board`, 6 señales VIP en `vip_signals`
+- **16/03/2026 — Champions League (4 partidos)**
+- 4 partidos en `daily_board`, 4 señales VIP en `vip_signals`
+- **model_engine.py v2.0:** Forma reciente + H2H integrados al modelo matemático (Paso C.5)
 - DC markets activos; arquitectura pick-level completamente alineada
 - Nomenclatura de mercados de totales completamente normalizada (v1.9)
+- **dashboard_live.html v2.1:** Rediseño completo de cards (renderBoardCard) + VIP agrupadas por partido (17-Mar-2026)
 
 ### Pipeline completo (en orden de ejecución):
 
@@ -110,8 +112,8 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
          → Obtiene scores de API-Football (caché en memoria por fecha)
          → Actualiza: actual_result + status_win_loss
 
-6. Abrir: landing page/dashboard.html  (conecta a Supabase vía JS)
-   [NOTA v2.0: este dashboard HTML es el prototipo. Será reemplazado por Next.js en Fase 1]
+6. Abrir: landing page/dashboard_live.html  (conecta a Supabase vía JS)
+   [NOTA v2.1: este dashboard HTML es el prototipo. Será reemplazado por Next.js en Fase 1]
 ```
 
 ---
@@ -134,10 +136,11 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 - **CRÍTICO:** Todos los módulos (`data_fetcher`, `model_engine`, `supabase_sync`, `result_updater`) importan desde aquí. Si hay un nuevo equipo que no se cruza, agrégalo aquí.
 - **Aliases añadidos en v1.3 (EL Round of 16):** Bologna, Real Betis, Stuttgart, Celta Vigo, Panathinaikos, Ferencvaros, Braga, Genk, Freiburg, Nottingham Forest, Midtjylland
 
-### `model_engine.py` — Motor Predictivo (Pasos A→H) — v1.9
+### `model_engine.py` — Motor Predictivo (Pasos A→H) — v2.0
 - **A:** Elo + ventaja local (+60)
 - **B:** xG rolling con decay 0.85 (N=8 partidos)
 - **C:** Lambdas Poisson normalizados con corrección Elo
+- **C.5:** Ajuste de lambdas por forma reciente + H2H (v2.0)
 - **D:** Matriz Poisson 7×7
 - **E:** Probabilidades 1X2, Over/Under (0.5→6.5), Asian Handicap (-3.5→+3.5)
 - **F:** Blend modelo(45%) + Pinnacle(55%) para 1X2 y Over 2.5
@@ -146,6 +149,31 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 - **H:** Regla de Oro: EV ≥ 3%, Consenso ≥ 2/3, Divergencia ≤ 8pp → VIP si EV ≥ 5%
 - **Value Matrix:** Exporta el 100% de mercados (positivos y negativos)
 - **Output:** `model_output.json` + archivos en `Pronosticos/`
+
+#### Paso C.5 — Forma reciente + H2H (v2.0)
+
+**Problema resuelto:** `data_fetcher.py` obtenía forma y H2H pero `model_engine.py` los ignoraba — solo Gemini los usaba en narrativa. Ahora el modelo matemático los integra como multiplicadores sobre lambdas.
+
+**`_form_to_multiplier(forma)`:**
+- Input: `["W","L","D","W","W"]` (más reciente primero)
+- Pesos: W=3, D=1, L=0 con decay `FORM_DECAY=0.80` por partido
+- Rango multiplicador: ~0.925 a ~1.075 (`FORM_WEIGHT=0.15`)
+- `forma=None` → retorna 1.0 (sin cambio)
+
+**`_h2h_adjustments(h2h)`:**
+- Input: `{"victorias_local": N, "empates": N, "victorias_visitante": N}`
+- Empates cuentan como 0.5 victoria para cada lado
+- Mínimo `H2H_MIN_GAMES=2` partidos para aplicar
+- Rango multiplicador: ~0.95 a ~1.05 (`H2H_WEIGHT=0.10`)
+- `h2h=None` o muestra insuficiente → retorna (1.0, 1.0)
+
+**Integración:** Se aplican **después** de `paso_c_lambdas()`, **antes** de `paso_d_matrix()`:
+```python
+lam_local  *= form_adj_l * h2h_adj_l
+lam_visit  *= form_adj_v * h2h_adj_v
+```
+
+**Diagnóstico:** `diagnostico_global` exporta `form_adj_local`, `form_adj_visitante`, `h2h_adj_local`, `h2h_adj_visitante` para transparencia.
 
 #### Nomenclatura de mercados de totales — NORMALIZADA v1.9 ⚠️
 La clave `over25` (legacy) fue **eliminada completamente**. Formato canónico en todo el pipeline:
@@ -194,7 +222,7 @@ La clave `over25` (legacy) fue **eliminada completamente**. Formato canónico en
 - **Dashboard:** humanizados como "Más de 1.5 Goles" / "Menos de 1.5 Goles"
 - **`result_updater.py`:** soportado vía `_parse_over_code()` sin cambios adicionales
 
-### `supabase_sync.py` — Backend + IA — v1.9
+### `supabase_sync.py` — Backend + IA — v2.0
 - Lee `database/daily_report_DD_MM_YY.json`
 - Filtra "partidos fantasma" (sin `hora_utc` ni `all_markets`)
 - Construye **Match ID único:** `YYYYMMDD_Local_Visitante` (evita duplicados en `daily_board`)
@@ -202,6 +230,15 @@ La clave `over25` (legacy) fue **eliminada completamente**. Formato canónico en
 - Calcula `status`: `active` (partido futuro) o `finished` (partido pasado)
 - Llama a **Gemini 2.5 Flash** → genera `angulo_matematico`, `angulo_tendencia`, `angulo_contexto`
 - **`time.sleep(12)` entre cada llamada a Gemini (v1.9):** evita el error HTTP 429 del free tier (límite: 5 req/min). Con 9 partidos el sync tarda ~2 min extra pero garantiza análisis completo.
+- **MOMENTUM_DATA injection (v2.0):** Inyecta forma, h2h y diagnostico_global dentro del JSONB existente `mercados_completos` como un registro especial con `mercado: "MOMENTUM_DATA"`. Esto evita migraciones de esquema en Supabase:
+  ```python
+  mercados_completos.append({
+      "mercado": "MOMENTUM_DATA",
+      "forma": forma_data,
+      "h2h": h2h_data,
+      "diagnostico_global": diag_global,
+  })
+  ```
 - **`archive_finished_matches(url, key)` — v1.8 CORREGIDO:**
   - Lee `vip_signals?status=finished` (no `daily_board`)
   - Usa el `id` de `vip_signals` directamente (ya es pick-level)
@@ -236,33 +273,79 @@ La clave `over25` (legacy) fue **eliminada completamente**. Formato canónico en
 - **PATCH quirúrgico:** Solo actualiza `actual_result` y `status_win_loss`.
 - **Dependencias:** `SUPABASE_URL`, `SUPABASE_KEY`, `API_FOOTBALL_KEY` (del `.env`)
 
-### `landing page/dashboard.html` — Frontend Prototipo — v1.9
-- **NOTA v2.0:** Este archivo es el prototipo operativo. Seguirá funcionando durante Fase 1 mientras se construye Next.js. No eliminar.
+### `landing page/dashboard_live.html` — Frontend Prototipo — v2.1
+- **NOTA v2.1:** Este archivo es el prototipo operativo. Seguirá funcionando durante Fase 1 mientras se construye Next.js. No eliminar.
 - Stack: HTML5 + Tailwind CSS (CDN) + Vanilla JS + Supabase JS Client
 - Dos tabs: **Jornada General** (todas las tarjetas) y **Pronósticos VIP** (picks con EV ≥ 5%)
 - Cada tab tiene sub-secciones: **Activos** vs **Historial**
-- Semaforización: 🔴 EV < 1% · 🟡 1–4.99% · 🟢 EV ≥ 5%
-- Modal de detalle: Triple Ángulo + Value Matrix completa por partido
-- **Humanización de mercados (v1.9):**
-  - `over_1.5` → "Más de 1.5 Goles" · `under_1.5` → "Menos de 1.5 Goles"
-  - `over_2.5` → "Más de 2.5 Goles" · `under_2.5` → "Menos de 2.5 Goles"
-  - `over_3.5` → "Más de 3.5 Goles" · `under_3.5` → "Menos de 3.5 Goles"
-  - `dc_x2` → "Doble Oportunidad: Empate o Milan", etc.
-- **Robustez de secciones vacías (v1.9):**
-  - Sección Totals vacía → muestra "Línea no disponible" con estilo
-  - Sección Spreads vacía → se oculta completamente
-- **Filas sin cuota API (v1.9):** muestran "sin cuota API" en cursiva en la columna EV; `p_modelo_ext` se usa directamente para mostrar la probabilidad del modelo en la columna Prob Modelo
-- **`buildTable()`:** usa `p_modelo_ext` del JSON para mostrar probabilidad directa en lugar de reverse-engineering cuando está disponible
+- Semaforización por `getEvColorClass(ev)`: rojo EV < 1% · gold 1–4.99% · verde EV ≥ 5%
+- Modal de detalle: Triple Ángulo + Momentum + Value Matrix completa por partido
 
-### `test_runner.py` — Orquestador de Validación
+#### `renderBoardCard(item)` — rediseño v2.1
+Tarjeta compacta de la Jornada General. Jerarquía visual en 5 filas:
+1. **Fila liga + pills:** nombre de liga (truncado) a la izquierda; a la derecha pill `xG ±N.N` (verde/rojo/muted según signo) y pill `IA` (gold, solo si el partido tiene análisis Gemini inyectado como `IA_ANALYSIS` en `mercados_completos`)
+2. **Fila equipos:** local y visitante en `font-display` xl uppercase, separados por "vs" en muted
+3. **Barra 1X2:** barra thin (`h-1.5`) dividida en 3 segmentos verde/muted/rojo con porcentajes Poisson del modelo debajo en `font-mono`
+4. **Fila "Mejor EV":** busca el mercado con mayor `ev_pct` en `mercados_completos` (excluye `MOMENTUM_DATA` e `IA_ANALYSIS`); muestra etiqueta abreviada del mercado + badge EV con borde coloreado (verde si ≥ 5%, gold si menor)
+5. **Fila Forma:** dots 2×2 px por resultado (verde=W, gold=D, rojo=L) para local y visitante, con abreviatura de 3 letras del nombre del equipo; se oculta si no hay `MOMENTUM_DATA`
+- **CTA footer:** "Triple ángulo + matrices" si tiene IA, "Ver matrices de valor" si no
+- Al hacer clic → abre `openMatchModal(matchKey)`
+
+#### `renderVipCard(picks)` — agrupación por partido v2.1
+Recibe un **array de picks** del mismo partido (no un item individual). Renderiza una card por partido.
+- **Header:** badge "VIP Signal" (gold sobre negro) + nombre del partido en `font-display` 3xl
+- **Lista de picks:** top 3 ordenados por `ev_pct` descendente. Cada fila:
+  - Mercado humanizado (`getHumanizedMarket`) | cuota | badge EV con borde (verde ≥ 5%, gold <5%)
+- **Accordion "Ver análisis IA ▾":** colapsado por defecto; usa el primer pick con narrativa no-pending como fuente de los tres ángulos. Si **todos** los picks del partido tienen texto pending (`'Análisis IA Pendiente'` o `'[PENDING_IA_GENERATION]'`) → no se muestra el accordion, solo el indicador pulsante "Análisis en proceso"
+- Colores del diseño: borde `podium-gold/30`, fondo `from-[#0f1428] via-[#050716] to-black`, glow superior gold/10
+
+#### `groupVipByMatch(items)` — helper de agrupación v2.1
+Agrupa el array plano de `vip_signals` (un registro por pick) en sub-arrays por partido (`home_team + away_team`). Preserva el orden de llegada. Llamada en `fetchData()` antes de `.map(renderVipCard)`:
+```js
+groupVipByMatch(vipActiveData).map(renderVipCard).join('')
+groupVipByMatch(vipFinishedData).map(renderVipCard).join('')
+```
+**Antes (v2.0):** `vipData.map(renderVipCard)` — una card por pick → mismo partido repetido N veces
+**Ahora (v2.1):** `groupVipByMatch(vipData).map(renderVipCard)` — una card por partido con todos sus picks
+
+#### Funciones helper de UI compartidas
+- **`getEvColorClass(ev)`:** `text-podium-red` (<1%) · `text-podium-gold` (1–4.99%) · `text-podium-green font-bold` (≥5%)
+- **`renderFormDots(formaArr)`:** círculos `h-2 w-2 rounded-full` verde/gold/rojo; `title` con texto del resultado
+- **`renderFormRow(label, formaArr)`:** fila con label + dots + contador `NW ND NL`
+- **`formatAdj(val)`:** formatea multiplicadores del modelo (ej: `1.05` → `+5.0%` en verde)
+- **`getHumanizedMarket(mercado, home, away)`:** mapea códigos internos a texto legible; los DC incluyen nombre de equipo dinámico
+
+#### Sección Momentum en tarjetas (v2.0, vigente)
+- Extrae `MOMENTUM_DATA` de `mercados_completos` JSONB via `extractMomentum()`
+- Muestra dots de forma compacta en la Fila 5 de `renderBoardCard`
+
+#### Sección Momentum en modal de detalle (v2.0, vigente)
+- Bloque "Forma Reciente": dots + porcentaje de ajuste al modelo (`form_adj_local/visitante`)
+- Bloque "Historial Directo (H2H)": contadores W-D-L + impacto porcentual (`h2h_adj_*`)
+- Ubicado entre el Triple Ángulo y las Value Matrices
+
+#### Humanización de mercados `getHumanizedMarket()` (v1.9, vigente)
+- `over_1.5` → "Más de 1.5 Goles" · `under_1.5` → "Menos de 1.5 Goles"
+- `over_2.5` → "Más de 2.5 Goles" · `under_2.5` → "Menos de 2.5 Goles"
+- `over_3.5` → "Más de 3.5 Goles" · `under_3.5` → "Menos de 3.5 Goles"
+- `dc_x2` → "Doble Oportunidad: Empate o {away}", etc.
+
+#### Robustez y edge cases (v1.9, vigente)
+- Sección Totals vacía → muestra "Línea no disponible"
+- Sección Spreads vacía → se oculta completamente
+- Filas sin cuota API → "sin cuota API" en cursiva; usa `p_modelo_ext` para Prob Modelo
+- **`buildTable()`:** usa `p_modelo_ext` del JSON para probabilidad directa (sin reverse-engineering)
+
+### `test_runner.py` — Orquestador de Validación — v2.0
 - Niveles 1–5: smoke test, caché, EV trigger, tracker, generación de reporte diario
 - Busca partidos de **Champions League** (`CL`) y **Europa League** (`EL`) vía Football-Data API
+- **Passthrough de forma/h2h (v2.0):** Pasa `forma`, `h2h` y `diagnostico_global` del output del modelo al `daily_report`, para que `supabase_sync.py` pueda inyectarlos en `mercados_completos`
 - **`load_manual_matches()`** → Lee `partidos_manuales.json` como fuente adicional/fallback
 - **Deduplicación automática:** matches de API tienen prioridad; los manuales se agregan solo si no están ya en la respuesta de la API
 - **`partidos_manuales.json`** → Archivo editable en raíz del proyecto. Formato: `[{"local": "X", "visitante": "Y", "liga": "Z"}]`
   - Úsalo para ligas que Football-Data no escanea automáticamente (PL, Serie A, LaLiga, BL, etc.)
   - **Vaciar antes de cada jornada nueva** para evitar procesar partidos de jornadas pasadas
-  - **Jornada 15/03/2026:** contiene PL (4) + Serie A (5) partidos — vaciar antes de la próxima jornada
+  - **Jornada 16/03/2026:** vaciar antes de la próxima jornada
 
 ### `migrations/create_historical_results.sql` — DDL Supabase
 - Script de creación de la tabla `historical_results` con todas sus columnas.
@@ -299,7 +382,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<stripe_publishable>
 
 ---
 
-## Esquema de Supabase (v1.9)
+## Esquema de Supabase (v2.0)
 
 | Tabla | Propósito | Acceso dashboard JS |
 |-------|-----------|-------------------|
@@ -322,6 +405,9 @@ CREATE TABLE user_profiles (
 -- RLS: usuarios solo leen su propio perfil
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ```
+
+### `daily_board` — patrón MOMENTUM_DATA (v2.0)
+La columna `mercados_completos` (JSONB) ahora incluye un registro especial con `mercado: "MOMENTUM_DATA"` que contiene `forma`, `h2h` y `diagnostico_global`. El dashboard JS lo extrae con `extractMomentum()` para renderizar la sección de Momentum en tarjetas y modal. Este patrón evita migraciones de esquema — los datos viajan dentro del JSONB existente.
 
 ### `vip_signals` — columna `mercado` requerida (v1.8) ⚠️
 La columna `mercado` debe existir en `vip_signals`. Migración pendiente de ejecutar en producción:
@@ -392,8 +478,11 @@ WHERE status_win_loss IN ('win', 'loss');
 | DC markets no se emiten si Pinnacle no está disponible para el partido | Sin cuota sintética de referencia, el EV no se puede calcular | Implementar fallback con margen estimado (ej: 4%) cuando Pinnacle no retorna cuotas |
 | `over_1.5`/`under_1.5` usan probabilidad modelo puro (sin blend Pinnacle) | EV ligeramente menos preciso que mercados 1X2 | Extender `paso_f_blend()` para blendear O/U 1.5 cuando cuota disponible |
 | Picks del 12-Mar-2026 en `historical_results` usan código legacy `over25` | No afecta calificación (regex lo maneja); pero rompe consistencia del historial | Ejecutar `UPDATE historical_results SET mercado='over_2.5' WHERE mercado='over25'` en Supabase |
-| `partidos_manuales.json` actualmente contiene los 9 partidos del 15/03/2026 | **Vaciar antes de la próxima jornada** | Reemplazar con los partidos de la nueva fecha |
+| `partidos_manuales.json` debe actualizarse antes de cada jornada | **Vaciar antes de la próxima jornada** | Reemplazar con los partidos de la nueva fecha |
 | Sin corners/tarjetas/stats avanzadas en el modelo | Mercados de corners y tarjetas no disponibles | Integrar API-Football cuando haya tracción de usuarios pagos |
+| Gemini free tier rate limit (~50 req/día, 5 req/min) | Con jornadas de 9+ partidos, algunas narrativas quedan vacías si la cuota diaria se agota | Re-ejecutar `supabase_sync.py` cuando la cuota se renueve; considerar API key de pago en Fase 2 |
+| MOMENTUM_DATA embebido en `mercados_completos` JSONB | Patrón de embeber datos estructurados en campo JSONB existente — funcional pero no ideal a largo plazo | Migrar a columnas dedicadas (`forma`, `h2h`, `diagnostico_global`) en `daily_board` cuando se haga el port a Next.js |
+| H2H requiere mínimo 2 partidos para aplicar ajuste | Partidos de fase nueva (ej: UCL QF) con 0-1 H2H no reciben ajuste | Comportamiento correcto — muestra insuficiente no debe sesgar el modelo |
 
 ---
 

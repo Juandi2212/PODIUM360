@@ -95,7 +95,7 @@
       "visitante": 5.8
     },
     "mejor_cuota": {
-      "local": 1.48,
+      "local": 1.49,
       "empate": 5.9,
       "visitante": 6.4,
       "over_2.5": 1.36,
@@ -103,14 +103,14 @@
     },
     "mejores_cuotas_extra": {
       "totals": {
-        "over_3.5": 2.14,
+        "over_3.5": 2.13,
         "under_3.5": 1.84,
         "over_2.5": 1.36,
         "under_2.5": 2.8,
         "over_3.25": 1.92,
         "under_3.25": 2.02,
         "over_0.5": 1.03,
-        "under_0.5": 29.0
+        "under_0.5": 30.0
       },
       "spreads": {
         "spread_local_-1.5": 2.19,
@@ -118,7 +118,7 @@
         "spread_local_-1.25": 1.91,
         "spread_visitante_1.25": 2.01,
         "spread_local_2.5": 1.01,
-        "spread_visitante_-2.5": 38.0
+        "spread_visitante_-2.5": 50.0
       }
     },
     "corners": {

@@ -1,0 +1,52 @@
+============================================================
+PODIUM 360 — Protocolo de Sesión
+Fecha: 16 de Marzo de 2026
+============================================================
+
+ESTADO ACTUAL DEL PROYECTO
+─────────────────────────────────────────────────────────────
+Pipeline Python v2.0 completamente operativo (model_engine + forma/H2H + Supabase sync).
+Partidos de mañana ya generados y en Supabase. El foco actual es el frontend:
+landing page rediseñada y dashboard.html intacto como prototipo operativo.
+
+ARCHIVOS MODIFICADOS EN ESTA SESIÓN
+─────────────────────────────────────────────────────────────
+• landing page/index.html → Reescritura completa. Eliminado contenido B2B (tarjetas 1080px,
+  operadores/afiliados, formulario Formspree). Nueva estructura: Hero con preview card,
+  Metodología (3 pasos), Historial ROI, Planes (Free/$8 PRO). Copy orientado al apostador
+  amateur. Sin menciones públicas a Poisson, Elo, xG, Gemini.
+
+DECISIONES TOMADAS
+─────────────────────────────────────────────────────────────
+• Posicionamiento: "auditoría de fútbol" (no generador de picks ni señales ciegas)
+• Target: apostador amateur que quiere dejar las corazonadas (no operadores B2B)
+• CTA primario: "Ver Análisis de Hoy" → dashboard.html (fricción mínima)
+• CTA secundario: "Explorar Historial de ROI" → sección #historial-roi
+• Pricing visible en landing: Free ($0) vs PRO ($8/mes precio Latam)
+• Botón PRO deshabilitado (disabled) con texto "Próximamente" — Stripe no integrado aún
+• Metodología pública: "múltiples modelos de probabilidad avanzada" (no Poisson/Elo/xG)
+• IA pública: "Análisis en lenguaje simple generado por IA" (no Gemini)
+• dashboard.html: NO TOCAR — prototipo operativo congelado hasta definir diseño Next.js
+• Automatización pipeline: VPS recomendado sobre GitHub Actions (caché de 44MB crítico)
+• Protocolo de sesión: skill /cierre-sesion creado + PROTOCOLO_SESION.txt como handoff
+
+PENDIENTES (ordenados por prioridad)
+─────────────────────────────────────────────────────────────
+🔴 Vaciar partidos_manuales.json antes de la próxima jornada
+🔴 Ejecutar migración SQL en Supabase: ALTER TABLE vip_signals ADD COLUMN IF NOT EXISTS mercado TEXT
+🟡 Re-ejecutar supabase_sync.py para completar narrativas Gemini pendientes de la jornada 16/03
+🟡 Definir diseño y estructura de dashboard.html (antes de tocarlo)
+🟡 Decidir qué secciones del dashboard.html necesitan rediseño (alineadas con el nuevo index.html)
+🟢 Fase 1 MVP: Next.js + Supabase Auth + Stripe
+🟢 Configurar VPS para automatización del pipeline diario
+
+PRÓXIMO PASO INMEDIATO
+─────────────────────────────────────────────────────────────
+Abrir dashboard.html en el browser, capturar screenshot, y definir qué secciones
+necesitan ajuste de diseño/copy para alinearse con el nuevo posicionamiento del index.html
+(apostador amateur, no operador B2B).
+
+============================================================
+Para retomar: abre un nuevo chat y escribe →
+"Revisa PROTOCOLO_SESION.txt y retomamos"
+============================================================

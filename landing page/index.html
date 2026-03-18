@@ -4,14 +4,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Podium — SaaS de análisis de apuestas con IA y +EV</title>
+  <title>Podium 360 — Auditoría de Fútbol con Valor Esperado (EV)</title>
 
-  <!-- Google Fonts similares a Bebas Neue / Barlow Condensed -->
   <link
     href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&display=swap"
     rel="stylesheet" />
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -41,570 +39,490 @@
       },
     };
   </script>
-
   <style>
-    body {
-      font-family: "Barlow Condensed", system-ui, -apple-system,
-        BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+    body { font-family: "Barlow Condensed", system-ui, sans-serif; }
+    @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .live-dot { animation: pulse-green 2.2s infinite; }
   </style>
 </head>
 
 <body class="min-h-screen bg-podium-bg text-podium-text">
-  <!-- Background gradient + grid overlay -->
+
+  <!-- Background gradient + grid -->
   <div class="pointer-events-none fixed inset-0 opacity-70 mix-blend-screen" aria-hidden="true">
-    <div
-      class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(37,212,102,0.22),transparent_55%),radial-gradient(circle_at_bottom,_rgba(245,188,47,0.18),transparent_55%)]">
-    </div>
-    <div
-      class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:80px_80px]">
-    </div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(37,212,102,0.22),transparent_55%),radial-gradient(circle_at_bottom,_rgba(245,188,47,0.18),transparent_55%)]"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:80px_80px]"></div>
   </div>
 
   <div class="relative">
-    <!-- NAVBAR -->
+
+    <!-- ===== NAVBAR ===== -->
     <header class="mx-auto flex max-w-6xl items-center justify-between px-4 pt-6 sm:px-6 lg:px-8">
       <div class="flex items-center gap-3">
-        <div
-          class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/40 bg-black/40 shadow-[0_0_25px_rgba(37,212,102,0.55)]">
-          <span class="font-display text-xl tracking-[0.18em] text-podium-green">
-            P
-          </span>
+        <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/40 bg-black/40 shadow-[0_0_25px_rgba(37,212,102,0.55)]">
+          <span class="font-display text-xl tracking-[0.18em] text-podium-green">P</span>
         </div>
         <div class="leading-tight">
-          <div class="font-display text-xl leading-none tracking-[0.20em] text-podium-text">
-            PODIUM
-          </div>
-          <p class="text-xs uppercase tracking-[0.26em] text-podium-muted">
-            Sports Betting Intelligence
-          </p>
+          <div class="font-display text-xl leading-none tracking-[0.20em] text-podium-text">PODIUM 360</div>
+          <p class="text-xs uppercase tracking-[0.26em] text-podium-muted">Sports EV Intelligence</p>
         </div>
       </div>
 
-      <div class="hidden items-center gap-6 text-sm sm:flex">
-        <a href="dashboard.html" class="text-xs font-semibold uppercase tracking-[0.22em] text-podium-gold hover:text-white transition">
-          Análisis en Vivo
-        </a>
-        <a href="#beneficios" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text">
-          Beneficios
-        </a>
-        <a href="#preview" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text">
-          Tarjetas VIP
-        </a>
-        <a href="#cta" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text">
-          Operadores &amp; Afiliados
-        </a>
-        <a href="#contacto"
+      <nav class="hidden items-center gap-6 sm:flex">
+        <a href="#como-funciona" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text transition">Metodología</a>
+        <a href="#historial-roi" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text transition">Historial ROI</a>
+        <a href="#planes" class="text-xs uppercase tracking-[0.22em] text-podium-muted hover:text-podium-text transition">Planes</a>
+        <a href="dashboard.html"
           class="rounded-full border border-emerald-400/70 bg-black/40 px-5 py-2 text-xs uppercase tracking-[0.26em] text-podium-green shadow-[0_0_18px_rgba(37,212,102,0.65)] transition hover:bg-emerald-400 hover:text-black">
-          Solicitar demo
+          Ver Análisis de Hoy
         </a>
-      </div>
+      </nav>
     </header>
 
-    <!-- HERO -->
-    <main class="mx-auto max-w-6xl px-4 pb-24 pt-12 sm:px-6 lg:px-8">
-      <section class="grid gap-12 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-center" id="hero">
-        <!-- Hero copy -->
+    <main class="mx-auto max-w-6xl px-4 pb-24 pt-12 sm:px-6 lg:px-8 space-y-28">
+
+      <!-- ===== HERO ===== -->
+      <section class="grid gap-12 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-center">
+
         <div class="space-y-8">
-          <p
-            class="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-            <span class="h-1.5 w-1.5 rounded-full bg-podium-green"></span>
-            SaaS de inteligencia para apuestas deportivas
+          <p class="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.26em] text-podium-muted">
+            <span class="h-1.5 w-1.5 rounded-full bg-podium-green live-dot"></span>
+            Análisis activo hoy · Fútbol Europeo
           </p>
 
-          <div class="space-y-3">
-            <h1
-              class="font-display text-4xl uppercase leading-tight tracking-[0.14em] text-white sm:text-5xl lg:text-6xl">
-              Análisis predictivo
-              <span class="block text-podium-green">
-                con datos reales y +EV
-              </span>
+          <div class="space-y-4">
+            <h1 class="font-display text-5xl uppercase leading-tight tracking-[0.08em] text-white sm:text-6xl lg:text-[4rem]">
+              Tu auditoría de
+              <span class="block text-podium-green">fútbol profesional</span>
             </h1>
-            <p class="max-w-xl text-lg font-body text-podium-muted sm:text-xl">
-              Podium convierte estadísticas, cuotas y xG en
-              <span class="font-semibold text-podium-text">tarjetas VIP de 1080px</span>
-              listas para Telegram. Menos intuición, más matemática: un motor
-              de IA que calcula el valor esperado y expone solo los mercados
-              con ventaja real.
+            <p class="max-w-xl text-base text-podium-muted sm:text-lg leading-relaxed">
+              Invierte con la matemática del <span class="font-semibold text-podium-gold">Valor Esperado (EV)</span>.
+              Podium 360 audita las cuotas de las casas de apuestas con múltiples modelos de probabilidad avanzada
+              para detectar errores de precio. Sin corazonadas. Sin jerga innecesaria.
             </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-4">
-            <a href="#cta"
+            <a href="dashboard.html"
               class="group inline-flex items-center gap-3 rounded-full bg-podium-green px-7 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-black shadow-podium-xl transition hover:bg-emerald-300">
-              Empezar como operador
-              <span class="mt-[1px] text-base transition group-hover:translate-x-0.5" aria-hidden="true">→</span>
+              Ver Análisis de Hoy
+              <span class="mt-[1px] text-base transition group-hover:translate-x-0.5">→</span>
             </a>
-            <a href="#preview"
-              class="inline-flex items-center gap-2 text-xs uppercase tracking-[0.26em] text-podium-muted hover:text-podium-text">
-              Ver ejemplo de tarjeta VIP
+            <a href="#historial-roi"
+              class="inline-flex items-center gap-2 text-xs uppercase tracking-[0.26em] text-podium-muted hover:text-podium-text transition">
+              <span class="h-0.5 w-5 rounded-full bg-podium-gold/60"></span>
+              Explorar Historial de ROI
             </a>
           </div>
 
-          <dl
-            class="grid max-w-xl gap-6 rounded-2xl border border-podium-border bg-black/40 p-5 text-sm text-podium-muted sm:grid-cols-3">
-            <div>
-              <dt class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-                Productividad
-              </dt>
-              <dd class="mt-1 font-display text-2xl tracking-[0.18em]">
-                Nivel agencia
-              </dd>
+          <!-- Micro-stats -->
+          <dl class="grid max-w-xl gap-0 rounded-2xl border border-podium-border bg-black/40 p-5 sm:grid-cols-3">
+            <div class="border-b border-podium-border/50 pb-4 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-4">
+              <dt class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Motor</dt>
+              <dd class="mt-1 font-display text-xl tracking-[0.12em] text-podium-text">Análisis 360</dd>
             </div>
-            <div>
-              <dt class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-                Decisiones basadas en
-              </dt>
-              <dd class="mt-1 font-display text-2xl tracking-[0.18em]">
-                Datos
-              </dd>
+            <div class="border-b border-podium-border/50 py-4 sm:border-b-0 sm:border-r sm:py-0 sm:px-4">
+              <dt class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Señal VIP</dt>
+              <dd class="mt-1 font-display text-xl tracking-[0.12em] text-podium-green">EV ≥ 5%</dd>
             </div>
-            <div>
-              <dt class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-                Formato
-              </dt>
-              <dd class="mt-1 font-display text-2xl tracking-[0.18em]">
-                1080px
-              </dd>
+            <div class="pt-4 sm:pt-0 sm:pl-4">
+              <dt class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Narrativa IA</dt>
+              <dd class="mt-1 font-display text-xl tracking-[0.12em] text-podium-gold">Análisis por IA</dd>
             </div>
           </dl>
         </div>
 
-        <!-- Hero side card / preview mini -->
-        <div
-          class="relative mx-auto w-full max-w-md rounded-3xl border border-podium-border/80 bg-black/60 p-[1px] shadow-[0_0_50px_rgba(0,0,0,0.85)] backdrop-blur">
-          <div
-            class="absolute -inset-0.5 rounded-3xl bg-[conic-gradient(at_top,_rgba(37,212,102,0.65),rgba(5,7,22,0.2),rgba(245,188,47,0.7),rgba(5,7,22,0.2),rgba(37,212,102,0.65))] opacity-40 blur-xl"
-            aria-hidden="true"></div>
-          <div class="relative rounded-[22px] bg-gradient-to-b from-[#111426] to-[#050716] p-5">
-            <!-- pseudo tarjeta -->
-            <div class="mb-4 flex items-center justify-between text-xs text-podium-muted">
-              <span
-                class="inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] uppercase tracking-[0.22em]">
-                <span class="h-1.5 w-1.5 rounded-full bg-podium-green"></span>
-                Podium VIP · Ejemplo
+        <!-- Hero preview card -->
+        <div class="relative mx-auto w-full max-w-md">
+          <div class="absolute -inset-1 rounded-3xl bg-[conic-gradient(at_top,_rgba(37,212,102,0.45),rgba(5,7,22,0.2),rgba(245,188,47,0.45),rgba(5,7,22,0.2),rgba(37,212,102,0.45))] opacity-25 blur-xl" aria-hidden="true"></div>
+          <div class="relative rounded-2xl border border-podium-border/80 bg-gradient-to-b from-[#111426] to-[#050716] p-5 shadow-podium-xl">
+
+            <!-- Card header -->
+            <div class="mb-4 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1.5 rounded-full border border-podium-border bg-black/60 px-2.5 py-1 text-[11px] uppercase tracking-[0.22em] text-podium-muted">
+                <span class="h-1.5 w-1.5 rounded-full bg-podium-green live-dot"></span>
+                Champions League
               </span>
-              <span class="text-[11px] uppercase tracking-[0.24em]">Premier League</span>
+              <span class="rounded-full border border-podium-gold/50 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-podium-gold">
+                VIP · +EV
+              </span>
             </div>
 
-            <div class="rounded-2xl border border-podium-border bg-podium-card/90 p-4">
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex flex-col gap-1">
-                  <span class="text-[11px] uppercase tracking-[0.28em] text-podium-muted">Arsenal</span>
-                  <span class="font-display text-2xl uppercase tracking-[0.22em]">VS</span>
-                  <span class="text-[11px] uppercase tracking-[0.28em] text-podium-muted">Liverpool</span>
+            <div class="rounded-xl border border-podium-border bg-podium-card/60 p-4 space-y-4">
+              <!-- Match teams -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.28em] text-podium-muted">Arsenal</p>
+                  <p class="font-display text-lg tracking-[0.22em] text-podium-muted/60 my-0.5">VS</p>
+                  <p class="text-[11px] uppercase tracking-[0.28em] text-podium-muted">Real Madrid</p>
                 </div>
-                <div class="text-right text-xs text-podium-muted">
-                  <p>15/03/2026 · 20:00</p>
-                  <p class="mt-1 text-[11px] uppercase tracking-[0.22em]">
-                    Anfield · UK
-                  </p>
+                <div class="text-right">
+                  <p class="text-xs text-podium-muted">17/03/2026 · 21:00</p>
+                  <p class="mt-1 text-[11px] uppercase tracking-[0.22em] text-podium-muted/60">UCL · QF</p>
                 </div>
               </div>
 
-              <div class="mt-4 space-y-3">
-                <!-- Barra de probabilidad -->
-                <div class="space-y-1.5 text-[11px] text-podium-muted">
-                  <div class="flex justify-between">
-                    <span>Probabilidades 1X2</span>
-                    <span class="uppercase tracking-[0.24em]">Modelo Podium</span>
-                  </div>
-                  <div class="flex h-3 overflow-hidden rounded-full bg-[#090b16]">
-                    <div class="flex items-center justify-center bg-podium-green text-[10px] text-black"
-                      style="width: 44%">
-                      44% 1
-                    </div>
-                    <div class="flex items-center justify-center bg-podium-gold text-[10px] text-black"
-                      style="width: 26%">
-                      26% X
-                    </div>
-                    <div class="flex items-center justify-center bg-podium-red text-[10px]" style="width: 30%">
-                      30% 2
-                    </div>
+              <!-- Probability bar -->
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-[11px] text-podium-muted">
+                  <span>Probabilidad 1X2</span>
+                  <span class="uppercase tracking-[0.18em]">Modelo Podium</span>
+                </div>
+                <div class="flex h-4 overflow-hidden rounded-full bg-[#090b16] text-[10px] font-semibold">
+                  <div class="flex items-center justify-center bg-podium-green/90 text-black" style="width:41%">41%</div>
+                  <div class="flex items-center justify-center bg-podium-gold/80 text-black" style="width:25%">25%</div>
+                  <div class="flex items-center justify-center bg-podium-red/80 text-white" style="width:34%">34%</div>
+                </div>
+                <div class="flex justify-between text-[10px] text-podium-muted/60 px-0.5">
+                  <span>Arsenal</span><span>Empate</span><span>R.Madrid</span>
+                </div>
+              </div>
+
+              <!-- EV signal -->
+              <div class="flex items-center justify-between rounded-lg border border-emerald-400/30 bg-black/50 p-3 gap-3">
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-podium-muted">Señal VIP detectada</p>
+                  <p class="text-sm font-semibold text-podium-text mt-0.5">Over 2.5 Goles · 1.88</p>
+                </div>
+                <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-emerald-400/50 bg-black/60 font-display text-sm tracking-wide text-podium-green">
+                  +6.2%
+                </div>
+              </div>
+
+              <!-- Momentum dots -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Arsenal · Forma</p>
+                  <div class="flex gap-1.5">
+                    <span class="h-3 w-3 rounded-full bg-podium-green" title="W"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-green" title="W"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-gold" title="D"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-green" title="W"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-red" title="L"></span>
                   </div>
                 </div>
-
-                <!-- Bloque EV -->
-                <div
-                  class="rounded-xl border border-emerald-400/40 bg-gradient-to-br from-[#0a1720] to-[#050716] p-3 text-xs">
-                  <div class="flex items-center justify-between">
-                    <p class="text-[11px] uppercase tracking-[0.24em]">
-                      Mercado +EV detectado
-                    </p>
-                    <span class="rounded-full bg-black/60 px-2 py-0.5 text-[11px] text-podium-green">+5.3% EV</span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">R.Madrid · Forma</p>
+                  <div class="flex gap-1.5">
+                    <span class="h-3 w-3 rounded-full bg-podium-green" title="W"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-red" title="L"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-green" title="W"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-gold" title="D"></span>
+                    <span class="h-3 w-3 rounded-full bg-podium-green" title="W"></span>
                   </div>
-                  <div class="mt-2 flex items-center justify-between text-podium-text">
-                    <div>
-                      <p class="text-sm font-semibold">
-                        BTTS Sí · Cuota 1.95
-                      </p>
-                      <p class="text-[11px] text-podium-muted">
-                        Basado en xG, rachas goleadoras y % BTTS &gt; 60%
-                      </p>
-                    </div>
-                    <div
-                      class="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/60 bg-black/60 text-[11px] text-podium-green">
-                      +EV
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Etiquetas BTTS / Corners -->
-                <div class="flex flex-wrap gap-2 text-[11px]">
-                  <span class="rounded-full border border-podium-border bg-black/50 px-2.5 py-1 text-podium-muted">
-                    BTTS · 68% últimos 10 PJ
-                  </span>
-                  <span class="rounded-full border border-podium-border bg-black/50 px-2.5 py-1 text-podium-muted">
-                    Corners totales · media 10.2
-                  </span>
-                  <span class="rounded-full border border-podium-border bg-black/50 px-2.5 py-1 text-podium-muted">
-                    xG combinado &gt; 3.0
-                  </span>
                 </div>
               </div>
             </div>
 
-            <p class="mt-4 text-[11px] leading-snug text-podium-muted/90 italic">
-              Podium no inventa picks: selecciona solo mercados con
-              <span class="text-podium-green font-semibold">EV ≥ +3%</span>
-              según datos verificables. Si no hay valor, lo dice.
+            <p class="mt-3 text-center text-[11px] italic text-podium-muted/70">
+              Si no hay EV real, Podium no emite señal.
             </p>
           </div>
         </div>
       </section>
 
-      <!-- BENEFICIOS -->
-      <section id="beneficios" class="mt-20 space-y-8 border-t border-podium-border/70 pt-12">
-        <header class="flex flex-col gap-3 md:flex-row md:items-end">
-          <div class="flex-1 space-y-2">
-            <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-              Beneficios clave para operadores y afiliados
-            </p>
-            <h2 class="font-display text-3xl uppercase leading-tight tracking-[0.16em] text-white">
-              Productividad de nivel agencia
-              <span class="block text-podium-green">
-                para operadores independientes
-              </span>
-            </h2>
-          </div>
-          <p class="max-w-lg text-sm font-body text-podium-muted md:text-base">
-            Podium centraliza la búsqueda de datos, el cálculo de
-            probabilidades y la presentación visual para que puedas operar
-            canales de apuestas de forma profesional, medible y escalable.
+      <!-- ===== CÓMO FUNCIONA ===== -->
+      <section id="como-funciona" class="border-t border-podium-border/70 pt-16 space-y-10">
+        <header class="max-w-2xl space-y-3">
+          <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Metodología</p>
+          <h2 class="font-display text-4xl uppercase leading-tight tracking-[0.10em] text-white">
+            De los datos crudos
+            <span class="block text-podium-green">a la decisión correcta</span>
+          </h2>
+          <p class="text-sm text-podium-muted leading-relaxed">
+            Podium 360 es el traductor entre los modelos estadísticos y tú.
+            No necesitas ser experto en probabilidad para usarlo — solo entender si hay valor o no.
           </p>
         </header>
 
         <div class="grid gap-6 md:grid-cols-3">
-          <!-- Beneficio 1 -->
-          <article class="relative overflow-hidden rounded-2xl border border-podium-border bg-black/60 p-5">
-            <div
-              class="pointer-events-none absolute inset-x-0 -top-10 h-24 bg-gradient-to-b from-emerald-500/20 to-transparent">
-            </div>
-            <h3 class="relative font-display text-xl uppercase tracking-[0.18em] text-podium-text">
-              Motor de análisis +EV
-            </h3>
-            <p class="relative mt-3 text-sm text-podium-muted">
-              El sistema evalúa mercados como 1X2, BTTS, goles y hándicaps
-              usando probabilidad real vs probabilidad implícita de la cuota.
-              Solo se muestran las oportunidades con EV ≥ +3%.
-            </p>
-            <ul class="relative mt-4 space-y-1.5 text-xs text-podium-muted">
-              <li>• Flujo completo: datos → modelo → tarjeta.</li>
-              <li>
-                • Transparencia: se explica por qué un mercado tiene valor.
-              </li>
-              <li>• Sin “corazonadas”: todo se apoya en estadísticas.</li>
-            </ul>
-          </article>
 
-          <!-- Beneficio 2 -->
-          <article class="relative overflow-hidden rounded-2xl border border-podium-border bg-black/60 p-5">
-            <div
-              class="pointer-events-none absolute inset-x-0 -top-10 h-24 bg-gradient-to-b from-yellow-400/16 to-transparent">
+          <!-- Paso 1 -->
+          <div class="rounded-2xl border border-podium-border bg-black/60 p-6 space-y-4">
+            <div class="flex items-center gap-3">
+              <span class="font-display text-5xl leading-none tracking-wider text-podium-green/20">01</span>
+              <div class="h-px flex-1 bg-podium-border"></div>
             </div>
-            <h3 class="relative font-display text-xl uppercase tracking-[0.18em] text-podium-text">
-              Operación independiente
-            </h3>
-            <p class="relative mt-3 text-sm text-podium-muted">
-              Podium te da la cadencia y calidad de contenido de una agencia,
-              pero desde tu propio stack. Genera tarjetas FREE y VIP en
-              minutos con un estándar visual consistente en todos tus canales.
+            <h3 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text">Recopilamos datos reales</h3>
+            <p class="text-sm text-podium-muted leading-relaxed">
+              Rendimiento histórico de equipos, forma reciente, historial directo y cuotas en tiempo real
+              de múltiples casas de apuestas. Todo automatizado, sin intervención editorial.
             </p>
-            <ul class="relative mt-4 space-y-1.5 text-xs text-podium-muted">
-              <li>• Contenido visual de nivel agencia sin contratar equipo interno.</li>
-              <li>• Más retención y engagement en tus canales.</li>
-              <li>• Proceso repetible, documentado y escalable.</li>
-            </ul>
-          </article>
+            <div class="flex flex-wrap gap-2">
+              <span class="rounded-full border border-podium-border bg-black/50 px-2.5 py-1 text-[11px] text-podium-muted">Rendimiento histórico</span>
+              <span class="rounded-full border border-podium-border bg-black/50 px-2.5 py-1 text-[11px] text-podium-muted">Forma reciente</span>
+              <span class="rounded-full border border-podium-border bg-black/50 px-2.5 py-1 text-[11px] text-podium-muted">Cuotas en tiempo real</span>
+            </div>
+          </div>
 
-          <!-- Beneficio 3 -->
-          <article class="relative overflow-hidden rounded-2xl border border-podium-border bg-black/60 p-5">
-            <div
-              class="pointer-events-none absolute inset-x-0 -top-10 h-24 bg-gradient-to-b from-sky-400/18 to-transparent">
+          <!-- Paso 2 -->
+          <div class="rounded-2xl border border-podium-gold/25 bg-black/60 p-6 space-y-4 shadow-[0_0_30px_rgba(245,188,47,0.07)]">
+            <div class="flex items-center gap-3">
+              <span class="font-display text-5xl leading-none tracking-wider text-podium-gold/20">02</span>
+              <div class="h-px flex-1 bg-podium-border"></div>
             </div>
-            <h3 class="relative font-display text-xl uppercase tracking-[0.18em] text-podium-text">
-              Tracking y credibilidad
-            </h3>
-            <p class="relative mt-3 text-sm text-podium-muted">
-              Cada partido queda registrado en una base de datos con
-              probabilidad estimada, mercado sugerido y resultado real. Así
-              construyes un historial de aciertos que respalda tu marca.
+            <h3 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text">El modelo calcula el EV</h3>
+            <p class="text-sm text-podium-muted leading-relaxed">
+              El motor estima la probabilidad real de cada resultado y la compara con la que la casa de apuestas
+              "ofrece" implícitamente en su cuota. La diferencia es el Valor Esperado.
             </p>
-            <ul class="relative mt-4 space-y-1.5 text-xs text-podium-muted">
-              <li>• Tasa de acierto medible por liga y mercado.</li>
-              <li>• Fácil de transformar en reportes para tus clientes.</li>
-              <li>• Base para un futuro método híbrido datos + criterio.</li>
-            </ul>
-          </article>
+            <div class="rounded-lg border border-podium-border bg-black/60 p-3 font-mono text-sm">
+              <span class="text-podium-muted">EV = </span>
+              <span class="text-podium-green">p_modelo</span>
+              <span class="text-podium-muted"> × cuota − 1</span>
+            </div>
+          </div>
+
+          <!-- Paso 3 -->
+          <div class="rounded-2xl border border-podium-border bg-black/60 p-6 space-y-4">
+            <div class="flex items-center gap-3">
+              <span class="font-display text-5xl leading-none tracking-wider text-podium-green/20">03</span>
+              <div class="h-px flex-1 bg-podium-border"></div>
+            </div>
+            <h3 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text">Ves solo lo que vale</h3>
+            <p class="text-sm text-podium-muted leading-relaxed">
+              Solo los mercados con EV real aparecen en tu dashboard. Las señales VIP requieren EV ≥ 5%
+              y consenso de 3 indicadores distintos. Sin valor real, no hay señal.
+            </p>
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-2.5 text-xs">
+                <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-podium-green"></span>
+                <span class="text-podium-muted">EV ≥ 5% → Señal <span class="text-podium-text font-semibold">VIP</span></span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs">
+                <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-podium-gold"></span>
+                <span class="text-podium-muted">EV 1–4.9% → <span class="text-podium-text">Análisis completo</span></span>
+              </div>
+              <div class="flex items-center gap-2.5 text-xs">
+                <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-podium-red"></span>
+                <span class="text-podium-muted">EV &lt; 1% → Sin recomendación</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- PREVIEW TARJETAS 1080px -->
-      <section id="preview" class="mt-20 space-y-8 border-t border-podium-border/70 pt-12">
-        <header class="space-y-2">
-          <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-            Vista previa de diseño
-          </p>
-          <h2 class="font-display text-3xl uppercase leading-tight tracking-[0.16em] text-white">
-            Tarjetas VIP de 1080px
-            <span class="block text-podium-gold">
-              pensadas para Telegram y afiliados
-            </span>
+      <!-- ===== HISTORIAL ROI ===== -->
+      <section id="historial-roi" class="border-t border-podium-border/70 pt-16 space-y-10">
+        <header class="space-y-3">
+          <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Transparencia total</p>
+          <h2 class="font-display text-4xl uppercase leading-tight tracking-[0.10em] text-white">
+            Historial de ROI
+            <span class="block text-podium-gold">verificable y público</span>
           </h2>
-          <p class="max-w-2xl text-sm text-podium-muted md:text-base">
-            Podium genera tarjetas HTML estáticas de 1080px de ancho,
-            optimizadas para convertirse en PNG con un solo screenshot. Dark
-            mode, verde neón y detalles dorados dan una estética premium que
-            destaca en cualquier canal.
+          <p class="max-w-xl text-sm text-podium-muted leading-relaxed">
+            Cada pick VIP queda archivado con su cuota, EV estimado y resultado real.
+            Nada se borra. Nada se edita a posteriori. El track record habla por sí solo.
           </p>
         </header>
 
-        <div class="overflow-hidden rounded-3xl border border-podium-border bg-black/60 p-4">
-          <div
-            class="relative mx-auto max-w-5xl rounded-2xl border border-podium-border/80 bg-gradient-to-br from-[#0f1428] via-[#050716] to-[#0f1428] p-4 shadow-podium-xl">
-            <div class="pointer-events-none absolute inset-0 rounded-2xl border border-emerald-400/10"></div>
+        <div class="grid gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
 
-            <!-- Frame que sugiere 1080px -->
-            <div
-              class="relative mx-auto aspect-[1080/600] max-w-full rounded-xl border border-dashed border-podium-border/80 bg-[#050716]/80">
-              <div
-                class="pointer-events-none absolute inset-4 rounded-xl bg-[radial-gradient(circle_at_top,_rgba(37,212,102,0.2),transparent_55%),radial-gradient(circle_at_bottom,_rgba(245,188,47,0.18),transparent_55%)] opacity-90">
+          <!-- Tabla jornadas -->
+          <div class="rounded-2xl border border-podium-border bg-black/60 overflow-hidden">
+            <div class="flex items-center justify-between border-b border-podium-border px-5 py-4">
+              <p class="text-xs uppercase tracking-[0.22em] text-podium-muted">Jornadas archivadas</p>
+              <a href="dashboard.html" class="text-[11px] uppercase tracking-[0.22em] text-podium-green hover:text-emerald-300 transition">
+                Ver completo →
+              </a>
+            </div>
+            <!-- Header row -->
+            <div class="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-2.5 text-[11px] uppercase tracking-[0.20em] text-podium-muted/60 border-b border-podium-border/40">
+              <span>Jornada</span><span>Picks</span><span>W / L</span><span>ROI</span>
+            </div>
+            <!-- Data row -->
+            <div class="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-5 py-4">
+              <div>
+                <p class="text-sm text-podium-text">UEL R16 · 1ª Ida</p>
+                <p class="text-[11px] text-podium-muted">12 Mar 2026</p>
               </div>
-              <div class="relative flex h-full flex-col justify-between p-6 text-xs text-podium-muted">
-                <div class="flex items-center justify-between gap-4">
-                  <div>
-                    <p class="text-[11px] uppercase tracking-[0.28em] text-podium-muted">
-                      Header · Liga · Jornada
-                    </p>
-                    <p class="mt-1 text-sm text-podium-text">
-                      Premier League · Fecha 28 · 15/03/2026
-                    </p>
+              <span class="text-sm text-podium-muted">12</span>
+              <span class="text-sm text-podium-muted">3 / 9</span>
+              <span class="text-sm font-semibold text-podium-green">+33.75%</span>
+            </div>
+            <!-- Pending row -->
+            <div class="border-t border-podium-border/30 px-5 py-3 text-center text-[11px] italic text-podium-muted/40">
+              Próximas jornadas · en proceso de calificación
+            </div>
+          </div>
+
+          <!-- Stats + credibilidad -->
+          <div class="space-y-4">
+            <div class="rounded-2xl border border-emerald-400/20 bg-black/60 p-5 space-y-4 shadow-[0_0_30px_rgba(37,212,102,0.06)]">
+              <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Resumen acumulado</p>
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-xs mb-1.5">
+                    <span class="text-podium-muted">Win Rate</span>
+                    <span class="text-podium-text">25%</span>
                   </div>
-                  <div
-                    class="rounded-full border border-podium-border bg-black/60 px-3 py-1 text-[11px] uppercase tracking-[0.26em]">
-                    1080px · VIP-PNG
+                  <div class="h-2 overflow-hidden rounded-full bg-[#090b16]">
+                    <div class="h-full rounded-full bg-podium-green" style="width:25%"></div>
                   </div>
                 </div>
-
-                <div class="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-                  <div class="space-y-3 rounded-xl border border-podium-border bg-black/50 p-4">
-                    <p class="text-[11px] uppercase tracking-[0.24em] text-podium-muted">
-                      Barra de probabilidades 1X2
-                    </p>
-                    <div class="h-3 w-full overflow-hidden rounded-full bg-[#090b16]">
-                      <div class="h-full bg-gradient-to-r from-podium-green via-podium-gold to-podium-red"
-                        style="width: 100%"></div>
-                    </div>
-                    <p class="text-[11px] text-podium-muted">
-                      La tarjeta muestra de forma clara cuánto asigna el
-                      modelo a 1 / X / 2 y cuáles son los diferenciales clave.
-                    </p>
+                <div>
+                  <div class="flex justify-between text-xs mb-1.5">
+                    <span class="text-podium-muted">ROI acumulado</span>
+                    <span class="font-semibold text-podium-green">+33.75%</span>
                   </div>
-                  <div class="grid gap-3 sm:grid-cols-2">
-                    <div class="space-y-2 rounded-xl border border-podium-border bg-black/50 p-3">
-                      <p class="text-[11px] uppercase tracking-[0.24em] text-podium-muted">
-                        Bloque BTTS
-                      </p>
-                      <p class="text-[11px] text-podium-text">
-                        % de BTTS en últimos partidos, xG a favor/en contra y
-                        lectura clara del mercado “Ambos anotan”.
-                      </p>
-                    </div>
-                    <div class="space-y-2 rounded-xl border border-podium-border bg-black/50 p-3">
-                      <p class="text-[11px] uppercase tracking-[0.24em] text-podium-muted">
-                        Bloque Corners
-                      </p>
-                      <p class="text-[11px] text-podium-text">
-                        Promedio de córners, distribución local/visitante y
-                        escenarios de partido para mercados de saques de
-                        esquina.
-                      </p>
-                    </div>
+                  <div class="h-2 overflow-hidden rounded-full bg-[#090b16]">
+                    <div class="h-full rounded-full bg-podium-green/60" style="width:55%"></div>
                   </div>
-                </div>
-
-                <div class="flex items-center justify-between gap-4">
-                  <p class="text-[11px] text-podium-muted">
-                    Cada tarjeta se entrega como HTML listo para screenshot o
-                    integración en tu propio flujo.
-                  </p>
-                  <p class="text-[11px] uppercase tracking-[0.26em] text-podium-gold">
-                    Diseño coherente con tu marca
-                  </p>
                 </div>
               </div>
+              <p class="text-[11px] italic text-podium-muted/50">Basado en 12 picks · 1 jornada archivada</p>
+            </div>
+
+            <div class="rounded-2xl border border-podium-border bg-black/60 p-5">
+              <p class="text-xs uppercase tracking-[0.22em] text-podium-muted mb-3">¿Por qué publicar los resultados?</p>
+              <p class="text-sm text-podium-muted leading-relaxed">
+                Cualquiera puede afirmar que tiene buenos picks. Nosotros mostramos cada resultado — ganado y perdido — porque la transparencia es el diferencial real.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- CTA OPERADORES / AFILIADOS -->
-      <section id="cta" class="mt-20 space-y-8 border-t border-podium-border/70 pt-12">
-        <div
-          class="grid gap-8 rounded-3xl border border-podium-border bg-gradient-to-br from-[#0f1428] via-[#050716] to-black p-8 shadow-podium-xl md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <div class="space-y-4">
-            <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-              Para operadores de canales y afiliados
-            </p>
-            <h2 class="font-display text-3xl uppercase leading-tight tracking-[0.16em] text-white">
-              Lleva tus canales de apuestas
-              <span class="block text-podium-green">
-                de mensajes vacíos a informes profesionales
-              </span>
-            </h2>
-            <p class="text-sm text-podium-muted md:text-base">
-              Podium es un SaaS independiente propiedad de Juan Diego. Tú
-              decides con qué casas de apuestas, mercados y países trabajar;
-              el sistema se encarga de darle forma a los datos y entregarte
-              contenido listo para publicar que aumenta la retención y el
-              valor de cada usuario.
-            </p>
-            <ul class="space-y-2 text-sm text-podium-muted">
-              <li>• Contenido de nivel agencia para todos tus canales.</li>
-              <li>• Más retención, recurrencia y tiempo de vida de tus usuarios.</li>
-              <li>
-                • Operación eficiente con un método basado en datos y en evolución hacia un enfoque híbrido.
+      <!-- ===== PLANES ===== -->
+      <section id="planes" class="border-t border-podium-border/70 pt-16 space-y-10">
+        <header class="space-y-3 max-w-xl">
+          <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Modelo Freemium</p>
+          <h2 class="font-display text-4xl uppercase leading-tight tracking-[0.10em] text-white">
+            Empieza gratis.
+            <span class="block text-podium-green">Escala cuando estés listo.</span>
+          </h2>
+          <p class="text-sm text-podium-muted">
+            Accede al análisis de valor esperado sin barreras. El Plan PRO desbloquea las herramientas avanzadas cuando quieras ir más lejos.
+          </p>
+        </header>
+
+        <div class="grid gap-6 md:grid-cols-2 md:max-w-3xl">
+
+          <!-- Plan Gratuito -->
+          <div class="rounded-2xl border border-podium-border bg-black/60 p-7 space-y-6 flex flex-col">
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Plan</p>
+              <p class="font-display text-3xl tracking-[0.14em] text-podium-text mt-1">GRATUITO</p>
+              <div class="mt-2 flex items-end gap-1">
+                <span class="font-display text-5xl tracking-[0.08em] text-podium-text">$0</span>
+                <span class="mb-1 text-lg text-podium-muted">/mes</span>
+              </div>
+            </div>
+
+            <ul class="space-y-3 text-sm flex-1">
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-muted">2–3 partidos por día <span class="text-podium-text">(menor EV del día)</span></span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-muted">Mercado 1X2 únicamente</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-muted">Probabilidades del modelo visibles</span>
+              </li>
+              <li class="flex items-start gap-3 opacity-35">
+                <span class="mt-0.5">✗</span>
+                <span class="text-podium-muted">Sin narrativa IA (Triple Ángulo)</span>
+              </li>
+              <li class="flex items-start gap-3 opacity-35">
+                <span class="mt-0.5">✗</span>
+                <span class="text-podium-muted">Sin señales VIP (EV ≥ 5%)</span>
+              </li>
+              <li class="flex items-start gap-3 opacity-35">
+                <span class="mt-0.5">✗</span>
+                <span class="text-podium-muted">Sin BTTS · Over/Under · Doble Oportunidad</span>
+              </li>
+              <li class="flex items-start gap-3 opacity-35">
+                <span class="mt-0.5">✗</span>
+                <span class="text-podium-muted">Sin historial de ROI completo</span>
               </li>
             </ul>
+
+            <a href="dashboard.html"
+              class="block w-full rounded-full border border-podium-border bg-black/60 py-3 text-center text-xs uppercase tracking-[0.26em] text-podium-muted transition hover:border-podium-green hover:text-podium-green">
+              Empezar Gratis
+            </a>
           </div>
 
-          <div id="contacto" class="space-y-4 rounded-2xl border border-emerald-400/40 bg-black/60 p-6">
-            <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">
-              Da el siguiente paso
-            </p>
-            <p class="text-sm text-podium-text md:text-base">
-              Cuéntanos cuántos canales manejas, en qué ligas quieres
-              enfocarte y qué volumen de tarjetas necesitas por semana. Te
-              responderemos con la selección de un plan de suscripción o una
-              consultoría de integración alineada con tu operación.
-            </p>
+          <!-- Plan PRO -->
+          <div class="relative rounded-2xl border border-emerald-400/50 bg-gradient-to-b from-[#0d1a12] to-black/80 p-7 space-y-6 flex flex-col shadow-[0_0_45px_rgba(37,212,102,0.12)]">
+            <div class="absolute right-5 top-5">
+              <span class="rounded-full bg-podium-green px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-black">
+                Recomendado
+              </span>
+            </div>
 
-            <!-- INSTRUCCIONES FORMSPREE:
-                   1. Crea una cuenta gratuita en https://formspree.io
-                   2. Crea un nuevo proyecto/formulario.
-                   3. Copia el ID de tu formulario (lo encontrarás al final de la URL que te proporcionan, por ejemplo: xyzabcde).
-                   4. Reemplaza 'tu_id_aqui' en la línea de abajo (atributo action) y en el código JavaScript (en la función fetch) por tu ID real.
-                   Cuando lo hagas, los mensajes de este formulario llegarán directamente al email con el que te registraste.
-              -->
-            <form id="contact-form" class="space-y-3 text-sm" action="https://formspree.io/f/meereeqw" method="POST">
-              <div class="space-y-1">
-                <label for="nombre" class="text-[11px] uppercase tracking-[0.22em] text-podium-muted">Nombre o
-                  marca</label>
-                <input id="nombre" name="nombre" type="text"
-                  class="w-full rounded-lg border border-podium-border bg-black/60 px-3 py-2 text-sm text-podium-text outline-none ring-0 transition placeholder:text-podium-muted focus:border-podium-green focus:ring-1 focus:ring-podium-green"
-                  placeholder="Ej. Podium LATAM, canal de afiliados..." required />
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.26em] text-podium-muted">Plan</p>
+              <p class="font-display text-3xl tracking-[0.14em] text-podium-green mt-1">PRO</p>
+              <div class="mt-2 flex items-end gap-1">
+                <span class="font-display text-5xl tracking-[0.08em] text-podium-text">$8</span>
+                <span class="mb-1 text-lg text-podium-muted">/mes</span>
               </div>
-              <div class="space-y-1">
-                <label for="canales" class="text-[11px] uppercase tracking-[0.22em] text-podium-muted">Canales y
-                  ligas</label>
-                <input id="canales" name="canales" type="text"
-                  class="w-full rounded-lg border border-podium-border bg-black/60 px-3 py-2 text-sm text-podium-text outline-none ring-0 transition placeholder:text-podium-muted focus:border-podium-green focus:ring-1 focus:ring-podium-green"
-                  placeholder="Ej. 3 canales Telegram · Premier League, La Liga..." required />
-              </div>
-              <div class="space-y-1">
-                <label for="contacto-input" class="text-[11px] uppercase tracking-[0.22em] text-podium-muted">Contacto
-                  preferido</label>
-                <input id="contacto-input" name="contacto" type="text"
-                  class="w-full rounded-lg border border-podium-border bg-black/60 px-3 py-2 text-sm text-podium-text outline-none ring-0 transition placeholder:text-podium-muted focus:border-podium-green focus:ring-1 focus:ring-podium-green"
-                  placeholder="@usuario Telegram, WhatsApp o email" required />
-              </div>
-              <button id="submit-btn" type="submit"
-                class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-podium-green px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.26em] text-black shadow-podium-xl transition hover:bg-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span id="btn-text">Enviar información y solicitar contacto</span>
+              <p class="text-[11px] text-podium-muted/60 mt-1">~$0.27 USD / día · precio Latam</p>
+            </div>
+
+            <ul class="space-y-3 text-sm flex-1">
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-text">Todos los partidos del día · todas las ligas</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-text">1X2 · BTTS · Over/Under · Doble Oportunidad · Asian Handicap</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-text">Análisis en lenguaje simple <span class="text-podium-muted">generado por IA</span></span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-text font-semibold">Señales VIP · EV ≥ 5%</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-text">Momentum: forma reciente + H2H en el modelo</span>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="mt-0.5 text-podium-green">✓</span>
+                <span class="text-podium-text">Historial completo de ROI verificable</span>
+              </li>
+            </ul>
+
+            <div class="space-y-3">
+              <button
+                class="w-full rounded-full bg-podium-green py-3 text-xs font-semibold uppercase tracking-[0.26em] text-black shadow-podium-xl transition hover:bg-emerald-300 opacity-60 cursor-not-allowed"
+                disabled title="Próximamente">
+                Plan PRO · Próximamente
               </button>
-            </form>
-            <div id="form-success" class="hidden mt-3 text-sm font-semibold text-podium-green">¡Mensaje enviado con
-              éxito!</div>
-            <div id="form-error" class="hidden mt-3 text-sm font-semibold text-podium-red">Hubo un error al enviar el
-              mensaje. Intenta nuevamente.</div>
-
-            <script>
-              document.getElementById('contact-form').addEventListener('submit', async function (e) {
-                e.preventDefault();
-
-                const btn = document.getElementById('submit-btn');
-                const btnText = document.getElementById('btn-text');
-                const successMsg = document.getElementById('form-success');
-                const errorMsg = document.getElementById('form-error');
-
-                successMsg.classList.add('hidden');
-                errorMsg.classList.add('hidden');
-
-                btn.disabled = true;
-                const originalText = btnText.innerText;
-                btnText.innerText = 'Enviando...';
-
-                try {
-                  const formData = new FormData(this);
-                  const data = Object.fromEntries(formData);
-
-                  const response = await fetch('https://formspree.io/f/meereeqw', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(data),
-                  });
-
-                  if (response.ok) {
-                    successMsg.classList.remove('hidden');
-                    this.reset();
-                  } else {
-                    throw new Error('Error en el servidor');
-                  }
-                } catch (error) {
-                  errorMsg.classList.remove('hidden');
-                } finally {
-                  btn.disabled = false;
-                  btnText.innerText = originalText;
-                }
-              });
-            </script>
-
-            <p class="text-[11px] text-podium-muted">
-              También puedes escribir directamente a
-              <span class="text-podium-gold font-semibold">tu canal o medio preferido</span>. Podium se adapta a tus
-              acuerdos actuales sin reclamar
-              propiedad sobre tus audiencias.
-            </p>
+              <p class="text-center text-[11px] text-podium-muted/50 italic">
+                Disponible al lanzamiento. Accede ahora sin restricciones durante el beta.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- FOOTER -->
-      <footer class="mt-16 border-t border-podium-border/70 pt-6 pb-8">
-        <div
-          class="flex flex-col items-start justify-between gap-4 text-[11px] text-podium-muted sm:flex-row sm:items-center">
-          <p>
-            Podium · SaaS independiente propiedad de Juan Diego · Análisis de
-            apuestas con datos reales y cálculo de EV.
-          </p>
-          <p class="uppercase tracking-[0.24em]">
-            Dark Mode · Verde neón · 1080px
-          </p>
+      <!-- ===== FOOTER ===== -->
+      <footer class="border-t border-podium-border/70 pb-4 pt-8">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/30 bg-black/40">
+              <span class="font-display text-sm text-podium-green">P</span>
+            </div>
+            <span class="text-[11px] uppercase tracking-[0.22em] text-podium-muted">Podium 360 · Sports EV Intelligence</span>
+          </div>
+          <nav class="flex gap-6 text-[11px] uppercase tracking-[0.22em] text-podium-muted">
+            <a href="#como-funciona" class="hover:text-podium-text transition">Metodología</a>
+            <a href="#historial-roi" class="hover:text-podium-text transition">ROI</a>
+            <a href="#planes" class="hover:text-podium-text transition">Planes</a>
+            <a href="dashboard.html" class="text-podium-green hover:text-emerald-300 transition">Ver Análisis →</a>
+          </nav>
         </div>
       </footer>
+
     </main>
   </div>
 </body>

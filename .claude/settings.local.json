@@ -58,7 +58,9 @@
       "Bash(python3 insert_historical_12_03_26.py)",
       "Bash(python supabase_sync.py)",
       "Bash(start \"\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\landing page\\\\dashboard.html\")",
-      "Bash(python model_engine.py)"
+      "Bash(python model_engine.py)",
+      "Bash(python test_runner.py)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }
