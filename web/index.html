@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Valior — Auditoría de Valor Esperado (EV) en Fútbol Europeo</title>
+  <meta name="description" content="Valior audita las cuotas de las casas de apuestas con modelos matemáticos (Poisson + Elo + xG) para detectar errores de precio. ROI verificable. Sin corazonadas." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+            body: ['"Inter"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            v: {
+              bg: '#060611',
+              card: '#0c0c1d',
+              surface: '#111127',
+              border: '#1a1a3e',
+              accent: '#6c5ce7',
+              'accent-light': '#a29bfe',
+              green: '#00d68f',
+              gold: '#fbbf24',
+              red: '#ff6b6b',
+              text: '#eef0f6',
+              muted: '#7c7ca0',
+              dim: '#4a4a6a',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .font-display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+    .live-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .float { animation: float 5s ease-in-out infinite; }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .shimmer-text {
+      background: linear-gradient(90deg, #6c5ce7 0%, #a29bfe 25%, #00d68f 50%, #a29bfe 75%, #6c5ce7 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    .glass { background: rgba(12, 12, 29, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .glass-border { border: 1px solid rgba(108, 92, 231, 0.15); }
+
+    .gradient-border {
+      position: relative;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(108,92,231,0.4), transparent 50%, rgba(0,214,143,0.4));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    .stat-glow { box-shadow: 0 0 40px rgba(108, 92, 231, 0.08); }
+    .green-glow { box-shadow: 0 0 50px rgba(0, 214, 143, 0.12); }
+
+    /* Smooth scroll */
+    html { scroll-behavior: smooth; }
+
+    /* Mobile menu */
+    .mobile-menu { transform: translateX(100%); transition: transform 0.3s ease; }
+    .mobile-menu.open { transform: translateX(0); }
+  </style>
+</head>
+
+<body class="min-h-screen bg-v-bg text-v-text antialiased">
+
+  <!-- ===== BACKGROUND ===== -->
+  <div class="pointer-events-none fixed inset-0" aria-hidden="true">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(108,92,231,0.12),transparent_60%)]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(0,214,143,0.08),transparent_60%)]"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+  </div>
+
+  <div class="relative">
+
+    <!-- ===== NAVBAR ===== -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-v-border/30">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-6 lg:px-8">
+        <a href="#" class="flex items-center gap-2.5">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-v-accent/15 border border-v-accent/25">
+            <span class="font-display text-base font-bold text-v-accent-light">V</span>
+          </div>
+          <span class="font-display text-lg font-semibold tracking-tight text-v-text">Valior</span>
+        </a>
+
+        <nav class="hidden items-center gap-8 md:flex">
+          <a href="#metodologia" class="text-[13px] text-v-muted hover:text-v-text transition-colors">Metodología</a>
+          <a href="#roi" class="text-[13px] text-v-muted hover:text-v-text transition-colors">Historial ROI</a>
+          <a href="#planes" class="text-[13px] text-v-muted hover:text-v-text transition-colors">Planes</a>
+          <a href="auth.html"
+            class="rounded-lg bg-v-accent px-4 py-2 text-[13px] font-medium text-white transition-all hover:bg-v-accent-light hover:text-v-bg shadow-[0_0_20px_rgba(108,92,231,0.3)] hover:shadow-[0_0_25px_rgba(108,92,231,0.5)]">
+            Ingresar
+          </a>
+        </nav>
+
+        <!-- Mobile hamburger -->
+        <button onclick="toggleMobileMenu()" class="md:hidden flex flex-col gap-1.5 p-2" aria-label="Menú">
+          <span id="ham-1" class="block h-0.5 w-5 bg-v-muted transition-all"></span>
+          <span id="ham-2" class="block h-0.5 w-5 bg-v-muted transition-all"></span>
+          <span id="ham-3" class="block h-0.5 w-5 bg-v-muted transition-all"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile menu overlay -->
+    <div id="mobile-menu" class="mobile-menu fixed inset-0 z-[60] bg-v-bg/98 md:hidden" style="backdrop-filter:blur(20px)">
+      <div class="flex justify-end p-5">
+        <button onclick="toggleMobileMenu()" class="text-v-muted hover:text-v-text text-2xl">&times;</button>
+      </div>
+      <nav class="flex flex-col items-center gap-8 pt-16">
+        <a href="#metodologia" onclick="toggleMobileMenu()" class="text-lg text-v-muted hover:text-v-text transition-colors">Metodología</a>
+        <a href="#roi" onclick="toggleMobileMenu()" class="text-lg text-v-muted hover:text-v-text transition-colors">Historial ROI</a>
+        <a href="#planes" onclick="toggleMobileMenu()" class="text-lg text-v-muted hover:text-v-text transition-colors">Planes</a>
+        <a href="auth.html"
+          class="mt-4 rounded-lg bg-v-accent px-8 py-3 text-base font-medium text-white shadow-[0_0_30px_rgba(108,92,231,0.4)]">
+          Ingresar al Dashboard
+        </a>
+      </nav>
+    </div>
+
+    <main class="mx-auto max-w-6xl px-5 pb-20 sm:px-6 lg:px-8">
+
+      <!-- ===== HERO ===== -->
+      <section class="pt-28 pb-20 sm:pt-36 sm:pb-28">
+        <div class="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16">
+
+          <div class="space-y-8">
+            <!-- Badge -->
+            <div class="inline-flex items-center gap-2 rounded-full glass glass-border px-3.5 py-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-v-green live-dot"></span>
+              <span class="text-[12px] text-v-muted">Análisis activo · Fútbol Europeo</span>
+            </div>
+
+            <!-- Headline -->
+            <div class="space-y-5">
+              <h1 class="font-display text-[2.5rem] font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-[3.5rem]">
+                Auditoría matemática
+                <span class="shimmer-text block">de cuotas deportivas</span>
+              </h1>
+              <p class="max-w-lg text-base leading-relaxed text-v-muted sm:text-[17px]">
+                Valior detecta errores de precio en casas de apuestas usando modelos de
+                <span class="text-v-text font-medium">Valor Esperado (EV)</span>.
+                Sin corazonadas. Sin señales ciegas. Solo matemática verificable.
+              </p>
+            </div>
+
+            <!-- CTAs -->
+            <div class="flex flex-wrap items-center gap-4">
+              <a href="auth.html"
+                class="group inline-flex items-center gap-2 rounded-lg bg-v-accent px-6 py-3 text-sm font-semibold text-white shadow-[0_0_30px_rgba(108,92,231,0.35)] transition-all hover:bg-v-accent-light hover:text-v-bg hover:shadow-[0_0_40px_rgba(108,92,231,0.5)]">
+                Acceder al Dashboard
+                <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              </a>
+              <a href="#roi"
+                class="inline-flex items-center gap-2 text-sm text-v-muted hover:text-v-text transition-colors">
+                <span class="h-px w-5 bg-v-accent/50"></span>
+                Ver historial de ROI
+              </a>
+            </div>
+
+            <!-- KPI strip -->
+            <div class="grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-v-border/30">
+              <div class="bg-v-card px-4 py-4 text-center">
+                <p class="text-[11px] uppercase tracking-wider text-v-dim">Motor</p>
+                <p class="mt-1 font-display text-sm font-semibold text-v-text">Poisson + Elo + xG</p>
+              </div>
+              <div class="bg-v-card px-4 py-4 text-center">
+                <p class="text-[11px] uppercase tracking-wider text-v-dim">Señal VIP</p>
+                <p class="mt-1 font-display text-sm font-semibold text-v-green">EV ≥ 5%</p>
+              </div>
+              <div class="bg-v-card px-4 py-4 text-center">
+                <p class="text-[11px] uppercase tracking-wider text-v-dim">Narrativa</p>
+                <p class="mt-1 font-display text-sm font-semibold text-v-accent-light">IA · Triple Ángulo</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero preview card -->
+          <div class="relative mx-auto w-full max-w-md float">
+            <div class="absolute -inset-3 rounded-2xl bg-gradient-to-br from-v-accent/20 via-transparent to-v-green/15 blur-2xl opacity-60" aria-hidden="true"></div>
+            <div class="gradient-border relative rounded-2xl bg-v-card p-5 shadow-xl">
+
+              <!-- Card header -->
+              <div class="mb-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-v-green live-dot"></span>
+                  <span class="text-[12px] text-v-muted">Champions League</span>
+                </div>
+                <span class="rounded-md bg-v-accent/15 border border-v-accent/25 px-2 py-0.5 text-[11px] font-medium text-v-accent-light">
+                  VIP Signal
+                </span>
+              </div>
+
+              <div class="rounded-xl bg-v-bg/80 border border-v-border/50 p-4 space-y-4">
+                <!-- Match -->
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-display text-base font-semibold text-v-text">Arsenal</p>
+                    <p class="text-[11px] text-v-dim my-1">vs</p>
+                    <p class="font-display text-base font-semibold text-v-text">Real Madrid</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-[12px] text-v-muted">17 Mar 2026</p>
+                    <p class="text-[11px] text-v-dim mt-0.5">UCL · Cuartos</p>
+                  </div>
+                </div>
+
+                <!-- Probability bar -->
+                <div class="space-y-2">
+                  <div class="flex justify-between text-[11px] text-v-dim">
+                    <span>Probabilidad 1X2</span>
+                    <span>Modelo Valior</span>
+                  </div>
+                  <div class="flex h-2 overflow-hidden rounded-full bg-v-bg">
+                    <div class="bg-v-green/80 transition-all" style="width:41%"></div>
+                    <div class="bg-v-gold/70 transition-all" style="width:25%"></div>
+                    <div class="bg-v-red/70 transition-all" style="width:34%"></div>
+                  </div>
+                  <div class="flex justify-between text-[10px] text-v-dim">
+                    <span>41% Local</span><span>25% Empate</span><span>34% Visita</span>
+                  </div>
+                </div>
+
+                <!-- EV signal -->
+                <div class="flex items-center justify-between rounded-lg bg-v-green/5 border border-v-green/20 p-3">
+                  <div>
+                    <p class="text-[11px] text-v-dim">Señal detectada</p>
+                    <p class="text-sm font-medium text-v-text mt-0.5">Over 2.5 Goles · <span class="text-v-muted">1.88</span></p>
+                  </div>
+                  <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-v-green/10 border border-v-green/30 font-display text-sm font-bold text-v-green">
+                    +6.2%
+                  </div>
+                </div>
+
+                <!-- Form dots -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <p class="text-[10px] text-v-dim mb-1.5">Arsenal · Forma</p>
+                    <div class="flex gap-1">
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-green"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-green"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-gold"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-green"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-red"></span>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-[10px] text-v-dim mb-1.5">R. Madrid · Forma</p>
+                    <div class="flex gap-1">
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-green"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-red"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-green"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-gold"></span>
+                      <span class="h-2.5 w-2.5 rounded-full bg-v-green"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="mt-3 text-center text-[11px] text-v-dim italic">
+                Sin EV real, Valior no emite señal.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SOCIAL PROOF BAR ===== -->
+      <section class="pb-20">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-px overflow-hidden rounded-xl bg-v-border/20 stat-glow">
+          <div class="bg-v-card/80 px-5 py-6 text-center">
+            <p class="font-display text-2xl font-bold text-v-green">+71.1%</p>
+            <p class="mt-1 text-[12px] text-v-muted">ROI acumulado</p>
+          </div>
+          <div class="bg-v-card/80 px-5 py-6 text-center">
+            <p class="font-display text-2xl font-bold text-v-text">26</p>
+            <p class="mt-1 text-[12px] text-v-muted">Picks verificados</p>
+          </div>
+          <div class="bg-v-card/80 px-5 py-6 text-center">
+            <p class="font-display text-2xl font-bold text-v-text">+18.48</p>
+            <p class="mt-1 text-[12px] text-v-muted">Unidades de profit</p>
+          </div>
+          <div class="bg-v-card/80 px-5 py-6 text-center">
+            <p class="font-display text-2xl font-bold text-v-accent-light">4</p>
+            <p class="mt-1 text-[12px] text-v-muted">Jornadas archivadas</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== METODOLOGÍA ===== -->
+      <section id="metodologia" class="pb-24 space-y-12">
+        <header class="max-w-2xl space-y-4">
+          <p class="text-[12px] font-medium uppercase tracking-widest text-v-accent-light">Metodología</p>
+          <h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            De los datos crudos a la <span class="text-v-green">decisión informada</span>
+          </h2>
+          <p class="text-[15px] text-v-muted leading-relaxed">
+            Valior traduce modelos estadísticos complejos en señales claras.
+            No necesitas ser experto en probabilidad — solo entender si hay valor o no.
+          </p>
+        </header>
+
+        <div class="grid gap-5 md:grid-cols-3">
+
+          <!-- Paso 1 -->
+          <div class="group rounded-xl bg-v-card border border-v-border/40 p-6 space-y-4 transition-all hover:border-v-accent/30 hover:shadow-[0_0_30px_rgba(108,92,231,0.06)]">
+            <div class="flex items-center justify-between">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-v-accent/10 text-[13px] font-bold text-v-accent-light">01</span>
+              <span class="text-[11px] text-v-dim">Ingesta</span>
+            </div>
+            <h3 class="font-display text-lg font-semibold text-v-text">Datos reales, automatizados</h3>
+            <p class="text-[13px] text-v-muted leading-relaxed">
+              Elo ratings, xG por temporada, forma reciente, historial H2H y cuotas en tiempo real
+              de múltiples casas. Todo sin intervención editorial.
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              <span class="rounded-md bg-v-bg border border-v-border/40 px-2 py-0.5 text-[11px] text-v-dim">Elo</span>
+              <span class="rounded-md bg-v-bg border border-v-border/40 px-2 py-0.5 text-[11px] text-v-dim">xG</span>
+              <span class="rounded-md bg-v-bg border border-v-border/40 px-2 py-0.5 text-[11px] text-v-dim">Forma</span>
+              <span class="rounded-md bg-v-bg border border-v-border/40 px-2 py-0.5 text-[11px] text-v-dim">H2H</span>
+              <span class="rounded-md bg-v-bg border border-v-border/40 px-2 py-0.5 text-[11px] text-v-dim">Cuotas live</span>
+            </div>
+          </div>
+
+          <!-- Paso 2 -->
+          <div class="group rounded-xl bg-v-card border border-v-accent/20 p-6 space-y-4 shadow-[0_0_30px_rgba(108,92,231,0.06)] transition-all hover:border-v-accent/40">
+            <div class="flex items-center justify-between">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-v-accent/15 text-[13px] font-bold text-v-accent-light">02</span>
+              <span class="text-[11px] text-v-dim">Modelo</span>
+            </div>
+            <h3 class="font-display text-lg font-semibold text-v-text">El motor calcula el EV</h3>
+            <p class="text-[13px] text-v-muted leading-relaxed">
+              Estima la probabilidad real de cada resultado y la compara con la cuota implícita
+              de la casa de apuestas. La diferencia es el Valor Esperado.
+            </p>
+            <div class="rounded-lg bg-v-bg/80 border border-v-border/40 p-3 font-mono text-[13px]">
+              <span class="text-v-dim">EV = </span>
+              <span class="text-v-green">p_modelo</span>
+              <span class="text-v-dim"> × cuota − 1</span>
+            </div>
+          </div>
+
+          <!-- Paso 3 -->
+          <div class="group rounded-xl bg-v-card border border-v-border/40 p-6 space-y-4 transition-all hover:border-v-green/25 hover:shadow-[0_0_30px_rgba(0,214,143,0.06)]">
+            <div class="flex items-center justify-between">
+              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-v-green/10 text-[13px] font-bold text-v-green">03</span>
+              <span class="text-[11px] text-v-dim">Señal</span>
+            </div>
+            <h3 class="font-display text-lg font-semibold text-v-text">Solo lo que vale</h3>
+            <p class="text-[13px] text-v-muted leading-relaxed">
+              Solo mercados con EV real aparecen. Las señales VIP requieren EV ≥ 5%
+              y consenso de 3 indicadores distintos.
+            </p>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2 text-[12px]">
+                <span class="h-2 w-2 rounded-full bg-v-green"></span>
+                <span class="text-v-muted">EV ≥ 5% → <span class="text-v-text font-medium">Señal VIP</span></span>
+              </div>
+              <div class="flex items-center gap-2 text-[12px]">
+                <span class="h-2 w-2 rounded-full bg-v-gold"></span>
+                <span class="text-v-muted">EV 1–4.9% → Análisis completo</span>
+              </div>
+              <div class="flex items-center gap-2 text-[12px]">
+                <span class="h-2 w-2 rounded-full bg-v-red"></span>
+                <span class="text-v-muted">EV &lt; 1% → Sin recomendación</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== HISTORIAL ROI ===== -->
+      <section id="roi" class="pb-24 space-y-12">
+        <header class="max-w-2xl space-y-4">
+          <p class="text-[12px] font-medium uppercase tracking-widest text-v-green">Transparencia total</p>
+          <h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            Historial de ROI <span class="text-v-gold">verificable</span>
+          </h2>
+          <p class="text-[15px] text-v-muted leading-relaxed">
+            Cada pick VIP queda archivado con cuota, EV estimado y resultado real.
+            Nada se borra. Nada se edita. El track record habla por sí solo.
+          </p>
+        </header>
+
+        <div class="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+
+          <!-- Table -->
+          <div class="rounded-xl bg-v-card border border-v-border/40 overflow-hidden">
+            <div class="flex items-center justify-between border-b border-v-border/30 px-5 py-3.5">
+              <p class="text-[12px] font-medium uppercase tracking-wider text-v-dim">Jornadas archivadas</p>
+              <a href="auth.html" class="text-[12px] text-v-accent-light hover:text-v-accent transition-colors">
+                Ver completo →
+              </a>
+            </div>
+            <!-- Header -->
+            <div class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-5 py-2.5 text-[11px] uppercase tracking-wider text-v-dim border-b border-v-border/20">
+              <span>Competición</span><span>Fecha</span><span>Picks</span><span>Profit</span><span>ROI</span>
+            </div>
+            <!-- Rows -->
+            <div class="divide-y divide-v-border/15">
+              <div class="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3">
+                <span class="text-[13px] text-v-text">UEL R16 · 1ª Ida</span>
+                <span class="text-[13px] text-v-muted">12 Mar</span>
+                <span class="text-[13px] text-v-muted">12</span>
+                <span class="text-[13px] text-v-green font-medium">+3.05u</span>
+                <span class="text-[13px] text-v-green font-semibold">+25.4%</span>
+              </div>
+              <div class="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3">
+                <span class="text-[13px] text-v-text">Serie A + PL</span>
+                <span class="text-[13px] text-v-muted">15 Mar</span>
+                <span class="text-[13px] text-v-muted">6</span>
+                <span class="text-[13px] text-v-green font-medium">+7.50u</span>
+                <span class="text-[13px] text-v-green font-semibold">+125.0%</span>
+              </div>
+              <div class="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3">
+                <span class="text-[13px] text-v-text">UCL</span>
+                <span class="text-[13px] text-v-muted">16 Mar</span>
+                <span class="text-[13px] text-v-muted">1</span>
+                <span class="text-[13px] text-v-green font-medium">+0.56u</span>
+                <span class="text-[13px] text-v-green font-semibold">+56.0%</span>
+              </div>
+              <div class="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3">
+                <span class="text-[13px] text-v-text">UCL QF · Ida</span>
+                <span class="text-[13px] text-v-muted">17 Mar</span>
+                <span class="text-[13px] text-v-muted">7</span>
+                <span class="text-[13px] text-v-green font-medium">+7.37u</span>
+                <span class="text-[13px] text-v-green font-semibold">+105.3%</span>
+              </div>
+            </div>
+            <!-- Total -->
+            <div class="border-t border-v-border/30 bg-v-bg/50 grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3.5">
+              <span class="text-[13px] font-semibold text-v-text">Total</span>
+              <span class="text-[13px] text-v-muted">4 jornadas</span>
+              <span class="text-[13px] font-medium text-v-text">26</span>
+              <span class="text-[13px] font-bold text-v-green">+18.48u</span>
+              <span class="text-[13px] font-bold text-v-green">+71.1%</span>
+            </div>
+          </div>
+
+          <!-- Summary card -->
+          <div class="space-y-5">
+            <div class="rounded-xl bg-v-card border border-v-green/15 p-5 space-y-4 green-glow">
+              <p class="text-[12px] font-medium uppercase tracking-wider text-v-dim">ROI acumulado</p>
+              <div class="space-y-3">
+                <p class="font-display text-4xl font-bold text-v-green">+71.1%</p>
+                <div class="h-1.5 overflow-hidden rounded-full bg-v-bg">
+                  <div class="h-full rounded-full bg-gradient-to-r from-v-green/80 to-v-green" style="width:71%"></div>
+                </div>
+                <p class="text-[12px] text-v-dim">26 picks · 10W / 16L · +18.48 unidades</p>
+              </div>
+            </div>
+
+            <div class="rounded-xl bg-v-card border border-v-border/40 p-5">
+              <p class="font-display text-sm font-semibold text-v-text mb-2">¿Por qué publicar los resultados?</p>
+              <p class="text-[13px] text-v-muted leading-relaxed">
+                Cualquiera puede afirmar que tiene buenos picks. Nosotros mostramos cada resultado
+                — ganado y perdido — porque la transparencia es lo que nos diferencia.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PLANES ===== -->
+      <section id="planes" class="pb-24 space-y-12">
+        <header class="max-w-xl space-y-4">
+          <p class="text-[12px] font-medium uppercase tracking-widest text-v-accent-light">Planes</p>
+          <h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+            Empieza gratis. <span class="text-v-green">Escala cuando estés listo.</span>
+          </h2>
+          <p class="text-[15px] text-v-muted">
+            Accede al análisis EV sin barreras. El Plan PRO desbloquea las herramientas avanzadas.
+          </p>
+        </header>
+
+        <div class="grid gap-6 md:grid-cols-2 md:max-w-3xl">
+
+          <!-- Plan Gratuito -->
+          <div class="rounded-xl bg-v-card border border-v-border/40 p-6 space-y-6 flex flex-col">
+            <div>
+              <p class="text-[11px] uppercase tracking-wider text-v-dim">Plan</p>
+              <p class="font-display text-2xl font-bold text-v-text mt-1">Gratuito</p>
+              <div class="mt-3 flex items-end gap-1">
+                <span class="font-display text-4xl font-bold text-v-text">$0</span>
+                <span class="mb-1 text-v-muted">/mes</span>
+              </div>
+            </div>
+
+            <ul class="space-y-3 text-[13px] flex-1">
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-muted">2–3 partidos por día <span class="text-v-text">(menor EV)</span></span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-muted">Mercado 1X2 únicamente</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-muted">Probabilidades del modelo visibles</span>
+              </li>
+              <li class="flex items-start gap-2.5 opacity-30">
+                <span class="mt-0.5 text-sm">✗</span>
+                <span>Sin narrativa IA</span>
+              </li>
+              <li class="flex items-start gap-2.5 opacity-30">
+                <span class="mt-0.5 text-sm">✗</span>
+                <span>Sin señales VIP</span>
+              </li>
+              <li class="flex items-start gap-2.5 opacity-30">
+                <span class="mt-0.5 text-sm">✗</span>
+                <span>Sin BTTS · O/U · DC · AH</span>
+              </li>
+              <li class="flex items-start gap-2.5 opacity-30">
+                <span class="mt-0.5 text-sm">✗</span>
+                <span>Sin historial ROI completo</span>
+              </li>
+            </ul>
+
+            <a href="auth.html"
+              class="block w-full rounded-lg border border-v-border bg-v-bg py-2.5 text-center text-[13px] font-medium text-v-muted transition-all hover:border-v-accent/50 hover:text-v-accent-light">
+              Crear Cuenta Gratis
+            </a>
+          </div>
+
+          <!-- Plan PRO -->
+          <div class="relative rounded-xl border border-v-accent/30 bg-gradient-to-b from-v-accent/[0.04] to-v-card p-6 space-y-6 flex flex-col shadow-[0_0_50px_rgba(108,92,231,0.08)]">
+            <div class="absolute -top-3 right-5">
+              <span class="rounded-md bg-v-accent px-3 py-1 text-[11px] font-semibold text-white shadow-[0_0_20px_rgba(108,92,231,0.4)]">
+                Recomendado
+              </span>
+            </div>
+
+            <div>
+              <p class="text-[11px] uppercase tracking-wider text-v-dim">Plan</p>
+              <p class="font-display text-2xl font-bold text-v-accent-light mt-1">PRO</p>
+              <div class="mt-3 flex items-end gap-1">
+                <span class="font-display text-4xl font-bold text-v-text">$8</span>
+                <span class="mb-1 text-v-muted">/mes</span>
+              </div>
+              <p class="text-[11px] text-v-dim mt-1">~$0.27 USD/día · precio Latam</p>
+            </div>
+
+            <ul class="space-y-3 text-[13px] flex-1">
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-text">Todos los partidos · todas las ligas</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-text">1X2 · BTTS · O/U · DC · Asian Handicap</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-text">Narrativa IA <span class="text-v-muted">· Triple Ángulo</span></span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-text font-medium">Señales VIP · EV ≥ 5%</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-text">Momentum: forma + H2H en el modelo</span>
+              </li>
+              <li class="flex items-start gap-2.5">
+                <span class="mt-0.5 text-v-green text-sm">✓</span>
+                <span class="text-v-text">Historial ROI verificable completo</span>
+              </li>
+            </ul>
+
+            <div class="space-y-2.5">
+              <button
+                class="w-full rounded-lg bg-v-accent py-2.5 text-[13px] font-semibold text-white shadow-[0_0_30px_rgba(108,92,231,0.3)] transition-all hover:bg-v-accent-light hover:text-v-bg opacity-60 cursor-not-allowed"
+                disabled>
+                PRO · Próximamente
+              </button>
+              <p class="text-center text-[11px] text-v-dim italic">
+                Accede ahora sin restricciones durante el beta.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== FOOTER ===== -->
+      <footer class="border-t border-v-border/30 pb-6 pt-8">
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="flex h-6 w-6 items-center justify-center rounded-md bg-v-accent/15 border border-v-accent/20">
+              <span class="font-display text-xs font-bold text-v-accent-light">V</span>
+            </div>
+            <span class="text-[12px] text-v-dim">Valior · Sports EV Intelligence</span>
+          </div>
+          <nav class="flex gap-6 text-[12px] text-v-muted">
+            <a href="#metodologia" class="hover:text-v-text transition-colors">Metodología</a>
+            <a href="#roi" class="hover:text-v-text transition-colors">ROI</a>
+            <a href="#planes" class="hover:text-v-text transition-colors">Planes</a>
+            <a href="auth.html" class="text-v-accent-light hover:text-v-accent transition-colors">Ingresar →</a>
+          </nav>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('open');
+      document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+    }
+  </script>
+</body>
+
+</html>
