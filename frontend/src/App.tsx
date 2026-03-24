@@ -156,9 +156,9 @@ export default function App() {
                 {item}
               </a>
             ))}
-            <button className="bg-[#00ff66] text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-[#00cc52] transition-colors">
+            <a href="/auth.html" className="bg-[#00ff66] text-black px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-[#00cc52] transition-colors">
               Ingresar
-            </button>
+            </a>
           </div>
 
           <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -187,9 +187,9 @@ export default function App() {
             </p>
             
             <div className="flex flex-wrap gap-6 items-center mb-12">
-              <button className="bg-white text-black px-8 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-[#00ff66] transition-all flex items-center gap-2">
+              <a href="/auth.html" className="bg-white text-black px-8 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-[#00ff66] transition-all flex items-center gap-2">
                 Ver señales de hoy <ArrowUpRight size={18} />
-              </button>
+              </a>
               <a href="#track-record" className="font-mono text-xs uppercase tracking-widest text-[#888] hover:text-white transition-colors">
                 +71.1% ROI Verificado
               </a>
@@ -534,9 +534,9 @@ export default function App() {
               ))}
             </div>
 
-            <button className="w-full py-4 rounded-xl border border-[#333] text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+            <a href="/auth.html" className="w-full py-4 rounded-xl border border-[#333] text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all block text-center">
               Crear Cuenta
-            </button>
+            </a>
           </div>
 
           {/* PRO Plan */}
@@ -568,9 +568,9 @@ export default function App() {
               ))}
             </div>
 
-            <button className="w-full py-4 rounded-xl bg-[#00ff66] text-black text-xs font-bold uppercase tracking-widest hover:bg-[#00cc52] transition-all shadow-[0_0_20px_rgba(0,255,102,0.2)]">
+            <a href="/auth.html" className="w-full py-4 rounded-xl bg-[#00ff66] text-black text-xs font-bold uppercase tracking-widest hover:bg-[#00cc52] transition-all shadow-[0_0_20px_rgba(0,255,102,0.2)] block text-center">
               Unirse a la Beta
-            </button>
+            </a>
           </div>
         </div>
       </section>
