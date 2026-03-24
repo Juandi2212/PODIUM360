@@ -232,29 +232,64 @@ def _compute_status(hora_utc_str):
     return "active"
 
 
-def _build_dashboard_live(url: str, anon_key: str):
+def _update_dashboard_roi(url: str, key: str):
     """
-    Lee landing page/dashboard.html (plantilla) y genera landing page/dashboard_live.html
-    reemplazando los placeholders __SUPABASE_URL__ y __SUPABASE_ANON_KEY__ con los
-    valores reales del .env. El archivo generado está en .gitignore.
+    Calcula el ROI actual desde historical_results y actualiza los valores
+    en dashboard_live.html (elementos con id roi-total-picks, roi-percentage, roi-units).
     """
-    template_path = os.path.join("landing page", "dashboard.html")
-    output_path   = os.path.join("landing page", "dashboard_live.html")
-
-    if not os.path.exists(template_path):
-        print(f"[WARN] No se encontró la plantilla del dashboard: {template_path}")
+    dashboard_path = os.path.join("landing page", "dashboard_live.html")
+    if not os.path.exists(dashboard_path):
+        print(f"[WARN] No se encontró dashboard_live.html para actualizar ROI.")
         return
 
-    with open(template_path, "r", encoding="utf-8") as f:
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+    }
+    try:
+        resp = requests.get(f"{url}/rest/v1/historical_results?select=status_win_loss,cuota", headers=headers)
+        if resp.status_code != 200:
+            print(f"[WARN] No se pudo leer historical_results para ROI (HTTP {resp.status_code})")
+            return
+        data = resp.json()
+    except Exception as e:
+        print(f"[WARN] Error al consultar ROI: {e}")
+        return
+
+    wins = [d for d in data if d.get("status_win_loss") == "win"]
+    losses = [d for d in data if d.get("status_win_loss") == "loss"]
+    total = len(wins) + len(losses)
+    if total == 0:
+        print("[ROI] Sin picks calificados aún.")
+        return
+
+    profit = sum(d["cuota"] - 1 for d in wins) + sum(-1 for _ in losses)
+    roi = profit / total * 100
+
+    with open(dashboard_path, "r", encoding="utf-8") as f:
         html = f.read()
 
-    html = html.replace("'__SUPABASE_URL__'", f"'{url}'")
-    html = html.replace("'__SUPABASE_ANON_KEY__'", f"'{anon_key}'")
+    # Update ROI values using regex on the id-tagged elements
+    html = re.sub(
+        r'(<p id="roi-total-picks"[^>]*>)\d+(<\/p>)',
+        rf'\g<1>{total}\2',
+        html
+    )
+    html = re.sub(
+        r'(<p id="roi-percentage"[^>]*>)[^<]+(<\/p>)',
+        rf'\g<1>{roi:+.1f}%\2',
+        html
+    )
+    html = re.sub(
+        r'(<p id="roi-units"[^>]*>)[^<]+(<\/p>)',
+        rf'\g<1>{profit:+.2f} u.\2',
+        html
+    )
 
-    with open(output_path, "w", encoding="utf-8") as f:
+    with open(dashboard_path, "w", encoding="utf-8") as f:
         f.write(html)
 
-    print("[DASHBOARD] dashboard_live.html generado -> abrir ese archivo en el navegador.")
+    print(f"[ROI] Dashboard actualizado: {total} picks, ROI {roi:+.1f}%, {profit:+.2f}u")
 
 
 def main():
@@ -503,8 +538,7 @@ def main():
     # ══════════════════════════════════════════════════════════════════════════
     # DASHBOARD: Generar dashboard_live.html con credenciales inyectadas
     # ══════════════════════════════════════════════════════════════════════════
-    if anon_key:
-        _build_dashboard_live(url, anon_key)
+    _update_dashboard_roi(url, key)
 
     print("==================================================")
     print("  SINCRONIZACIÓN COMPLETADA")

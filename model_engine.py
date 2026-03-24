@@ -48,6 +48,9 @@ MAX_GOALS      = 7      # Poisson matrix size: 0..6 per team
 EV_MIN         = 3.0    # Regla de Oro: EV% threshold
 CONSENSUS_MIN  = 2      # Regla de Oro: minimum models aligned
 DIVERGENCIA_MAX = 8.0   # Regla de Oro: max market-vs-model divergence (pp)
+P_MIN_VIP      = 35.0   # Regla de Oro: prob mínima del modelo para VIP (%)
+                        # Evita "value traps": picks con EV alto pero probabilidad
+                        # baja que no tienen sentido futbolístico real
 
 # ── Form & H2H adjustment weights ────────────────────────────────────────────
 FORM_WEIGHT    = 0.15   # Max ±7.5% lambda shift from recent form
@@ -486,8 +489,6 @@ def _elo_favors(p_elo_local: float, outcome: str) -> bool:
         return p_elo_local > 0.5
     if outcome == "1x2_visitante":
         return p_elo_local < 0.5
-    if outcome == "1x2_empate":
-        return abs(p_elo_local - 0.5) < 0.1
     # Double Chance
     if outcome == "dc_1x":
         return p_elo_local >= 0.40   # local no es el gran perdedor
@@ -504,8 +505,6 @@ def _xg_favors(lam_local: float, lam_visit: float, outcome: str) -> bool:
         return lam_local > lam_visit
     if outcome == "1x2_visitante":
         return lam_visit > lam_local
-    if outcome == "1x2_empate":
-        return abs(lam_local - lam_visit) < 0.25
     if outcome == "over_2.5":
         return (lam_local + lam_visit) > 2.5
     if outcome == "over_1.5":
@@ -527,11 +526,9 @@ def _xg_favors(lam_local: float, lam_visit: float, outcome: str) -> bool:
 def _poisson_favors(p_modelo: dict, outcome: str) -> bool:
     """Does the Poisson matrix probability support this outcome?"""
     if outcome == "1x2_local":
-        return p_modelo["local"] > p_modelo["visitante"] and p_modelo["local"] > 35
+        return p_modelo["local"] > p_modelo["visitante"] and p_modelo["local"] > 40
     if outcome == "1x2_visitante":
-        return p_modelo["visitante"] > p_modelo["local"] and p_modelo["visitante"] > 35
-    if outcome == "1x2_empate":
-        return p_modelo["empate"] > 26
+        return p_modelo["visitante"] > p_modelo["local"] and p_modelo["visitante"] > 40
     if outcome == "over_2.5":
         return p_modelo["over_2.5"] > 52
     if outcome == "over_1.5":
@@ -550,14 +547,18 @@ def _poisson_favors(p_modelo: dict, outcome: str) -> bool:
     return False
 
 
-def _regla_de_oro(ev_pct: float, consenso: int, divergencia: float) -> tuple[bool, str]:
+def _regla_de_oro(ev_pct: float, consenso: int, divergencia: float,
+                  p_modelo_pct: float = 100.0) -> tuple[bool, str]:
     """
-    Tres criterios simultáneos (Manual Parte 6):
+    Cuatro criterios simultáneos (Manual Parte 6):
       1. EV% > +3%
       2. consenso_modelos >= 2  (al menos 2 de 3 modelos alineados)
       3. divergencia = P_fair_pinnacle − P_modelo ≤ +8pp
          (si el mercado supera al modelo en más de 8pp → el mercado sabe algo)
+      4. P_modelo ≥ P_MIN_VIP  (evita value traps: EV alto con prob baja)
     """
+    if p_modelo_pct < P_MIN_VIP:
+        return False, f"Probabilidad insuficiente ({p_modelo_pct:.1f}% < {P_MIN_VIP:.0f}%)"
     if ev_pct <= EV_MIN:
         return False, f"EV insuficiente ({ev_pct:.1f}% ≤ {EV_MIN:.0f}%)"
     if consenso < CONSENSUS_MIN:
@@ -584,7 +585,6 @@ def paso_h_regla_de_oro(
     # outcome → (p_final key, p_modelo key, mejor_cuota key)
     OUTCOME_MAP = {
         "1x2_local":    ("local",    "local",     "local"),
-        "1x2_empate":   ("empate",   "empate",    "empate"),
         "1x2_visitante":("visitante","visitante",  "visitante"),
         "over_2.5":     ("over_2.5", "over_2.5",  "over_2.5"),
         "over_1.5":     ("over_1.5", "over_1.5",  "over_1.5"),
@@ -614,7 +614,9 @@ def paso_h_regla_de_oro(
         else:
             divergencia = 0.0
 
-        is_vip, razon = _regla_de_oro(ev, consenso, divergencia)
+        # Probabilidad del modelo para este mercado (para filtro P_MIN_VIP)
+        p_modelo_pct = p_modelo.get(mk, 0) or 0
+        is_vip, razon = _regla_de_oro(ev, consenso, divergencia, p_modelo_pct)
         
         # Cuota mínima rentable (+3% EV): cuota_minima = 1.03 / (P_final / 100)
         p_val = p_final.get(fk)
