@@ -1,88 +1,76 @@
 {
   "partido": {
-    "local": "Manchester City",
-    "visitante": "Real Madrid",
-    "liga": "Champions League",
+    "local": "FC Porto",
+    "visitante": "Stuttgart",
+    "liga": "Europa League",
     "estadio": null,
-    "hora_utc": "2026-03-17T20:00:00Z"
+    "hora_utc": null
   },
   "elo": {
-    "local": 1952.1,
-    "visitante": 1931.5
+    "local": null,
+    "visitante": 1753.4
   },
   "xg": {
     "local": {
       "atk": [
-        1.84,
-        1.84,
-        1.84,
-        1.84,
-        1.84,
-        1.84,
-        1.84,
-        1.84
+        1.86,
+        1.86,
+        1.86,
+        1.86,
+        1.86,
+        1.86,
+        1.86,
+        1.86
       ],
       "def": [
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1
+        0.58,
+        0.58,
+        0.58,
+        0.58,
+        0.58,
+        0.58,
+        0.58,
+        0.58
       ]
     },
     "visitante": {
       "atk": [
-        2.21,
-        2.21,
-        2.21,
-        2.21,
-        2.21,
-        2.21,
-        2.21,
-        2.21
+        1.68,
+        1.68,
+        1.68,
+        1.68,
+        1.68,
+        1.68,
+        1.68,
+        1.68
       ],
       "def": [
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1,
-        1.1
+        1.43,
+        1.43,
+        1.43,
+        1.43,
+        1.43,
+        1.43,
+        1.43,
+        1.43
       ]
     }
   },
-  "liga_avg_goals": 3.47,
+  "liga_avg_goals": null,
   "standings": {
-    "pos_local": 8,
-    "pts_local": 16,
-    "pos_visitante": 9,
-    "pts_visitante": 15
+    "pos_local": null,
+    "pts_local": null,
+    "pos_visitante": null,
+    "pts_visitante": null
   },
   "forma": {
-    "local": [
-      "L",
-      "W",
-      "L",
-      "W",
-      "L"
-    ],
-    "visitante": [
-      "W",
-      "L",
-      "W",
-      "W",
-      "W"
-    ]
+    "local": null,
+    "visitante": null
   },
   "h2h": {
-    "victorias_local": 1,
-    "empates": 0,
-    "victorias_visitante": 1
+    "victorias_local": null,
+    "empates": null,
+    "victorias_visitante": null
   },
   "bajas": {
     "local": null,
@@ -90,35 +78,30 @@
   },
   "odds": {
     "pinnacle": {
-      "local": 1.45,
-      "empate": 5.61,
-      "visitante": 5.8
+      "local": 2.5,
+      "empate": 3.56,
+      "visitante": 2.83
     },
     "mejor_cuota": {
-      "local": 1.49,
-      "empate": 5.9,
-      "visitante": 6.4,
-      "over_2.5": 1.36,
+      "local": 2.6,
+      "empate": 3.6,
+      "visitante": 2.96,
+      "over_2.5": 1.94,
       "btts": null
     },
     "mejores_cuotas_extra": {
       "totals": {
-        "over_3.5": 2.13,
-        "under_3.5": 1.84,
-        "over_2.5": 1.36,
-        "under_2.5": 2.8,
-        "over_3.25": 1.92,
-        "under_3.25": 2.02,
-        "over_0.5": 1.03,
-        "under_0.5": 30.0
+        "over_2.5": 1.94,
+        "under_2.5": 2.0,
+        "over_1.5": 1.29,
+        "under_1.5": 4.2
       },
       "spreads": {
-        "spread_local_-1.5": 2.19,
-        "spread_visitante_1.5": 1.79,
-        "spread_local_-1.25": 1.91,
-        "spread_visitante_1.25": 2.01,
-        "spread_local_2.5": 1.01,
-        "spread_visitante_-2.5": 50.0
+        "spread_local_0.0": 1.87,
+        "spread_visitante_0.0": 2.08,
+        "spread_local_0.25": 1.64,
+        "spread_visitante_-0.25": 2.54,
+        "spread_visitante_-0.0": 2.08
       }
     },
     "corners": {

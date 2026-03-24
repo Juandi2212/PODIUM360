@@ -50,6 +50,7 @@ MAESTRO_ALIASES = {
     
     # Atletico Madrid
     "ATLETI": "Atletico Madrid",
+    "ATLÉTICO MADRID": "Atletico Madrid",
     "ATLÉTICO DE MADRID": "Atletico Madrid",
     "ATLETICO DE MADRID": "Atletico Madrid",
     "ATLETICO MADRID": "Atletico Madrid",

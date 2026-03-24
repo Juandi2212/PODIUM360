@@ -23,6 +23,7 @@ import time
 import re
 import csv
 import io
+from typing import Optional, Any
 
 import requests
 from datetime import datetime, timedelta
@@ -376,7 +377,7 @@ _errors     = []
 # ══════════════════════════════════════════════════════════════════════════════
 # Helpers
 # ══════════════════════════════════════════════════════════════════════════════
-def _get(url: str, headers: dict = None, params: dict = None, timeout: int = 15, cache_ttl_seconds: int = 0):
+def _get(url: str, headers: Optional[dict] = None, params: Optional[dict] = None, timeout: int = 15, cache_ttl_seconds: int = 0) -> tuple[Any, Optional[str]]:
     """Silent GET with Optional Caching. Returns (response_json_dict_or_text, None) or (None, error_str)."""
     global _call_count
 
@@ -444,7 +445,7 @@ def _to_understat(name: str) -> str:
 # ══════════════════════════════════════════════════════════════════════════════
 # 1. ClubElo  (free, no auth)
 # ══════════════════════════════════════════════════════════════════════════════
-def fetch_elo(team: str) -> float | None:
+def fetch_elo(team: str) -> Optional[float]:
     """GET http://api.clubelo.com/{slug} → most recent Elo rating (cache 24h)."""
     slug = _to_clubelo(team)
     data, _ = _get(f"{CLUBELO_BASE}/{slug}", cache_ttl_seconds=86400)
@@ -528,7 +529,7 @@ def _fotmob_cdn_stats(league_id: int, season_id: int) -> dict:
     return result
 
 
-def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> tuple[int, int] | None:
+def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> Optional[tuple[int, int]]:
     """
     Resolve Fotmob team IDs via league standings API — no hardcoded IDs needed.
     GET /api/leagues?id={fotmob_league_id}&season={year} → extract team IDs
@@ -578,7 +579,7 @@ def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> tuple[int
     return None
 
 
-def _fotmob_xg_for_team(team_id: int, team_name: str) -> dict | None:
+def _fotmob_xg_for_team(team_id: int, team_name: str) -> Optional[dict]:
     """
     Given a resolved Fotmob team_id:
       1. GET /api/teams?id={team_id} → primaryLeagueId + primarySeasonId
@@ -670,7 +671,7 @@ def fetch_xg_fotmob(local: str, visitante: str, liga: str) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 # 3 & 4. Football-Data.org  (fixtures / standings / form / H2H / avg goals)
 # ══════════════════════════════════════════════════════════════════════════════
-def _fdorg(endpoint: str, params: dict = None) -> dict | None:
+def _fdorg(endpoint: str, params: Optional[dict] = None) -> Optional[dict]:
     """Authenticated GET to Football-Data.org. Returns parsed JSON or None (cache 24h)."""
     if not FOOTBALL_DATA_KEY:
         _errors.append("FOOTBALL_DATA_KEY not configured")
@@ -737,7 +738,7 @@ def fetch_standings_and_ids(local: str, visitante: str, liga: str):
     return out, local_id, visitante_id, None, None
 
 
-def _parse_form_string(form_str: str) -> list | None:
+def _parse_form_string(form_str: str) -> Optional[list]:
     """Convert 'WWDLL' → ['W','W','D','L','L'] (last 5 chars)."""
     if not form_str:
         return None
@@ -745,7 +746,7 @@ def _parse_form_string(form_str: str) -> list | None:
     return cleaned[-5:] if cleaned else None
 
 
-def fetch_form_fdorg(team_id: int, liga: str) -> list | None:
+def fetch_form_fdorg(team_id: Optional[int], liga: str) -> Optional[list]:
     """
     GET /teams/{id}/matches?status=FINISHED&competitions={code}&season={year}
     Calculates last-5 form as ['W','D','L',...] from actual match results.
@@ -786,7 +787,7 @@ def fetch_form_fdorg(team_id: int, liga: str) -> list | None:
     return forma if forma else None
 
 
-def fetch_upcoming_fixture(local_id: int, visitante_id: int, liga: str) -> dict | None:
+def fetch_upcoming_fixture(local_id: Optional[int], visitante_id: Optional[int], liga: str) -> Optional[dict]:
     """
     GET /teams/{local_id}/matches?status=SCHEDULED
     Finds the next match between local and visitante.
@@ -862,7 +863,7 @@ def fetch_h2h(local_id: int, local_name: str,
     }
 
 
-def fetch_league_avg_goals(liga: str) -> float | None:
+def fetch_league_avg_goals(liga: str) -> Optional[float]:
     """
     GET /competitions/{code}/matches?status=FINISHED
     Calculates average goals per match in the current season.
@@ -898,7 +899,7 @@ def fetch_league_avg_goals(liga: str) -> float | None:
 # ══════════════════════════════════════════════════════════════════════════════
 # 5. The Odds API
 # ══════════════════════════════════════════════════════════════════════════════
-def fetch_odds(local: str, visitante: str, liga: str) -> dict | None:
+def fetch_odds(local: str, visitante: str, liga: str) -> Optional[dict]:
     """
     Fetches 1X2, Over/Under 2.5, and BTTS markets.
     Returns odds dict with pinnacle, mejor_cuota, and corners skeleton.

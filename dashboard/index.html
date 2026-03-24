@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Podium 360 | Dashboard Inteligente</title>
+  <meta name="description" content="Terminal de inteligencia deportiva con análisis algorítmico en tiempo real. Poisson, xG, EV y Triple Ángulo." />
+
+  <!-- Google Fonts -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&display=swap"
+    rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Bebas Neue"', 'system-ui', 'sans-serif'],
+            body: ['"Barlow Condensed"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            podium: {
+              bg: '#050716',
+              card: '#13162b',
+              border: '#1e2340',
+              gold: '#f5bc2f',
+              green: '#25d466',
+              red: '#f04444',
+              text: '#e8eef8',
+              muted: '#8090b0',
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: 'Barlow Condensed', system-ui, sans-serif;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e2340; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #8090b0; }
+
+    .glass {
+      background: rgba(19, 22, 43, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(30, 35, 64, 0.8);
+    }
+
+    .glass-hover:hover {
+      background: rgba(19, 22, 43, 0.85);
+      border-color: rgba(30, 35, 64, 1);
+    }
+
+    .glow-green { box-shadow: 0 0 30px rgba(37, 212, 102, 0.15); }
+    .glow-gold { box-shadow: 0 0 30px rgba(245, 188, 47, 0.12); }
+    .glow-red { box-shadow: 0 0 20px rgba(240, 68, 68, 0.1); }
+
+    .loader {
+      border: 2px solid rgba(255,255,255,0.1);
+      border-top-color: #f5bc2f;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 12px rgba(37,212,102,0.3); }
+      50% { box-shadow: 0 0 24px rgba(37,212,102,0.6); }
+    }
+    .pulse-live { animation: pulse-glow 2s ease-in-out infinite; }
+
+    .chart-container { position: relative; height: 280px; }
+  </style>
+</head>
+
+<body class="min-h-screen bg-podium-bg text-podium-text">
+  <!-- Background -->
+  <div class="pointer-events-none fixed inset-0 opacity-70 mix-blend-screen" aria-hidden="true">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(37,212,102,0.10),transparent_55%),radial-gradient(circle_at_bottom_right,_rgba(245,188,47,0.08),transparent_55%)]"></div>
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px]"></div>
+  </div>
+
+  <div class="relative flex flex-col min-h-screen">
+
+    <!-- ═══ NAVBAR ═══ -->
+    <header class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 pt-6 sm:px-6 lg:px-8 border-b border-podium-border/40 pb-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/40 bg-black/40 shadow-[0_0_25px_rgba(37,212,102,0.55)]">
+          <span class="font-display text-xl tracking-[0.18em] text-podium-green">P</span>
+        </div>
+        <div class="leading-tight">
+          <div class="font-display text-xl leading-none tracking-[0.20em] text-podium-text">PODIUM</div>
+          <p class="text-xs uppercase tracking-[0.26em] text-podium-muted">Dashboard 360</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="last-sync" class="text-[10px] uppercase tracking-[0.22em] text-podium-muted hidden sm:inline"></span>
+        <div class="flex items-center gap-2 rounded-full border border-podium-border bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.26em] text-podium-gold shadow-[0_0_18px_rgba(245,188,47,0.25)]">
+          <span class="h-1.5 w-1.5 rounded-full bg-podium-gold animate-pulse"></span>
+          Live
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══ MAIN ═══ -->
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 w-full flex-1 space-y-8">
+
+      <!-- ── LOADING STATE ── -->
+      <div id="loading-state" class="flex flex-col items-center justify-center py-24 rounded-3xl glass">
+        <div class="loader mb-4"></div>
+        <p class="text-sm uppercase tracking-[0.22em] text-podium-muted">Conectando con Supabase...</p>
+      </div>
+
+      <!-- ── ERROR STATE ── -->
+      <div id="error-state" class="hidden flex-col items-center justify-center py-24 rounded-3xl glass text-center px-6">
+        <div class="flex h-14 w-14 items-center justify-center rounded-full border border-podium-red/40 bg-podium-red/10 mb-5">
+          <svg class="w-7 h-7 text-podium-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
+        </div>
+        <h3 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-text mb-2">Error de Conexión</h3>
+        <p id="error-message" class="text-sm text-podium-muted max-w-md">No se pudo conectar con Supabase.</p>
+      </div>
+
+      <!-- ═══ DASHBOARD CONTENT (hidden until loaded) ═══ -->
+      <div id="dashboard-content" class="hidden space-y-8">
+
+        <!-- ── KPI ROW ── -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 fade-in" style="animation-delay: 0.1s">
+          <div class="glass rounded-2xl p-5 text-center glow-green">
+            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Total Picks</p>
+            <p id="kpi-total" class="font-display text-4xl text-podium-text">—</p>
+          </div>
+          <div class="glass rounded-2xl p-5 text-center">
+            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Winrate</p>
+            <p id="kpi-winrate" class="font-display text-4xl text-podium-green">—</p>
+          </div>
+          <div class="glass rounded-2xl p-5 text-center glow-gold">
+            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Yield</p>
+            <p id="kpi-yield" class="font-display text-4xl text-podium-gold">—</p>
+          </div>
+          <div class="glass rounded-2xl p-5 text-center">
+            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Profit</p>
+            <p id="kpi-profit" class="font-display text-4xl text-podium-green">—</p>
+          </div>
+        </section>
+
+        <!-- ── MAIN GRID: Chart + Matches ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+          <!-- LEFT: ROI Chart + Recent Picks (2 cols) -->
+          <div class="lg:col-span-2 space-y-6 fade-in" style="animation-delay: 0.2s">
+            <!-- ROI Chart -->
+            <div class="glass rounded-2xl p-6">
+              <h2 class="font-display text-xl uppercase tracking-[0.16em] text-podium-gold mb-4">ROI Acumulado</h2>
+              <div class="chart-container">
+                <canvas id="roi-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Recent Picks Table -->
+            <div class="glass rounded-2xl p-6">
+              <h2 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text mb-4">Picks Recientes</h2>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                  <thead>
+                    <tr class="border-b border-podium-border/50 text-[10px] text-podium-muted/70 uppercase tracking-[0.15em]">
+                      <th class="py-2 font-normal">Fecha</th>
+                      <th class="py-2 font-normal">Partido</th>
+                      <th class="py-2 font-normal text-right">Cuota</th>
+                      <th class="py-2 font-normal text-right">EV%</th>
+                      <th class="py-2 font-normal text-right">Res</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recent-picks-body">
+                    <tr><td colspan="5" class="py-6 text-center text-podium-muted text-sm">Cargando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Today's Matches (3 cols) -->
+          <div class="lg:col-span-3 space-y-6 fade-in" style="animation-delay: 0.3s">
+
+            <!-- Active Matches -->
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display text-2xl uppercase tracking-[0.16em] text-podium-text">
+                  Cartelera <span class="text-podium-gold">del Día</span>
+                </h2>
+                <span id="match-count" class="text-[10px] uppercase tracking-[0.24em] text-podium-green bg-black/60 px-2 py-1 rounded border border-podium-green/30"></span>
+              </div>
+              <div id="matches-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass rounded-2xl p-8 text-center col-span-full">
+                  <p class="text-sm text-podium-muted">Cargando partidos...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- VIP Signals -->
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="font-display text-2xl uppercase tracking-[0.16em] text-podium-gold drop-shadow-[0_0_12px_rgba(245,188,47,0.4)]">
+                  Señales VIP
+                </h2>
+                <span id="vip-count" class="text-[10px] uppercase font-bold tracking-[0.24em] text-black bg-podium-gold px-3 py-1 rounded"></span>
+              </div>
+              <div id="vip-container" class="space-y-4">
+                <div class="glass rounded-2xl p-8 text-center">
+                  <p class="text-sm text-podium-muted">Cargando señales VIP...</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /dashboard-content -->
+    </main>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="mt-8 border-t border-podium-border/70 pt-6 pb-8 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col items-start justify-between gap-4 text-[11px] text-podium-muted sm:flex-row sm:items-center">
+        <p>Podium 360 · Sistema Data-First Híbrido · IA y Optimización de EV.</p>
+        <p class="uppercase tracking-[0.24em]">Powered by Antigravity & Claude</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- SCRIPT — All data from Supabase, zero local dependencies                 -->
+  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <script>
+    // ── Supabase Config ──
+    const SUPABASE_URL = 'https://ssvnixnqczpvpiomgrje.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_F3JgCtnvCVkAUJegIQ5IQA_uMK2oMwk';
+
+    // ── Defensive HTML escape ──
+    function esc(str) {
+      if (str == null) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Market label humanizer ──
+    const MARKET_LABELS = {
+      '1x2_local': 'Victoria Local', '1x2_visitante': 'Victoria Visitante', '1x2_empate': 'Empate',
+      'over_1.5': 'Over 1.5', 'under_1.5': 'Under 1.5', 'over_2.5': 'Over 2.5', 'under_2.5': 'Under 2.5',
+      'over_3.5': 'Over 3.5', 'under_3.5': 'Under 3.5',
+      'btts': 'BTTS', 'dc_1x': 'DC 1X', 'dc_x2': 'DC X2', 'dc_12': 'DC 12',
+    };
+
+    function humanizeMarket(code, home, away) {
+      if (!code) return '--';
+      const c = code.toLowerCase();
+      if (c === '1x2_local') return `${home}`;
+      if (c === '1x2_visitante') return `${away}`;
+      return MARKET_LABELS[c] || code;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BOOT — with robust error handling and timeout
+    // ═══════════════════════════════════════════════════════════════════════════
+    let sb; // Supabase client instance
+
+    function showError(msg) {
+      console.error('[Podium]', msg);
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('error-state').classList.remove('hidden');
+      document.getElementById('error-state').classList.add('flex');
+      document.getElementById('error-message').textContent = msg;
+    }
+
+    async function boot() {
+      console.log('[Podium] Booting dashboard...');
+
+      // 1. Validate config
+      if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+        showError('Configura SUPABASE_URL en el código.');
+        return;
+      }
+      if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+        showError('Configura SUPABASE_ANON_KEY en el código.');
+        return;
+      }
+
+      // 2. Find the Supabase global — CDN v2 exports on window.supabase
+      let createClient = null;
+      if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
+        createClient = window.supabase.createClient;
+        console.log('[Podium] Found supabase.createClient on window.supabase');
+      } else if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
+        createClient = supabase.createClient;
+        console.log('[Podium] Found supabase.createClient on global supabase');
+      } else {
+        // Check what supabase looks like
+        console.log('[Podium] window.supabase =', typeof window.supabase, window.supabase);
+        console.log('[Podium] Available keys:', window.supabase ? Object.keys(window.supabase) : 'N/A');
+        showError('Supabase JS library no se cargó correctamente. Verifica la conexión a internet.');
+        return;
+      }
+
+      try {
+        sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('[Podium] Client created, fetching data...');
+
+        // 3. Fetch with timeout (15s)
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout: Supabase no respondió en 15 segundos')), 15000)
+        );
+
+        const dataFetch = Promise.all([
+          sb.from('historical_results').select('*').order('match_date', { ascending: true }),
+          sb.from('daily_board').select('*').eq('status', 'active').order('match_date', { ascending: true }),
+          sb.from('vip_signals').select('*').eq('status', 'active').order('ev_pct', { ascending: false }),
+        ]);
+
+        const [historicalRes, boardRes, vipRes] = await Promise.race([dataFetch, timeout]);
+
+        console.log('[Podium] Responses:', {
+          historical: { data: historicalRes.data?.length, error: historicalRes.error },
+          board: { data: boardRes.data?.length, error: boardRes.error },
+          vip: { data: vipRes.data?.length, error: vipRes.error },
+        });
+
+        // Check for RLS or auth errors
+        if (historicalRes.error) {
+          const msg = historicalRes.error.message || JSON.stringify(historicalRes.error);
+          throw new Error(`historical_results: ${msg}. ¿Ejecutaste la migración SQL?`);
+        }
+        if (boardRes.error) {
+          throw new Error(`daily_board: ${boardRes.error.message}`);
+        }
+        if (vipRes.error) {
+          throw new Error(`vip_signals: ${vipRes.error.message}`);
+        }
+
+        const historical = historicalRes.data || [];
+        const board = boardRes.data || [];
+        const vip = vipRes.data || [];
+
+        console.log(`[Podium] Data loaded: ${historical.length} historical, ${board.length} board, ${vip.length} VIP`);
+
+        // 4. Show content
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('dashboard-content').classList.remove('hidden');
+
+        renderKPIs(historical);
+        renderROIChart(historical);
+        renderRecentPicks(historical);
+        renderMatches(board);
+        renderVIP(vip);
+
+        document.getElementById('last-sync').textContent = `Sync: ${new Date().toLocaleTimeString('es-CO')}`;
+
+      } catch (err) {
+        showError(err.message || 'Error desconocido al conectar con Supabase.');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // KPIs — calculated client-side from historical_results
+    // ═══════════════════════════════════════════════════════════════════════════
+    function renderKPIs(data) {
+      const resolved = data.filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss');
+      const wins = resolved.filter(d => d.status_win_loss === 'win');
+      const losses = resolved.filter(d => d.status_win_loss === 'loss');
+      const total = resolved.length;
+
+      if (total === 0) {
+        document.getElementById('kpi-total').textContent = '0';
+        document.getElementById('kpi-winrate').textContent = '—';
+        document.getElementById('kpi-yield').textContent = '—';
+        document.getElementById('kpi-profit').textContent = '—';
+        return;
+      }
+
+      const winrate = (wins.length / total * 100).toFixed(1);
+      const profit = wins.reduce((sum, d) => sum + ((d.cuota || 1) - 1), 0)
+                   + losses.reduce((sum, _) => sum - 1, 0);
+      const yieldPct = (profit / total * 100).toFixed(1);
+
+      document.getElementById('kpi-total').textContent = total;
+      document.getElementById('kpi-winrate').textContent = `${winrate}%`;
+      document.getElementById('kpi-yield').textContent = `${yieldPct > 0 ? '+' : ''}${yieldPct}%`;
+      document.getElementById('kpi-profit').textContent = `${profit > 0 ? '+' : ''}${profit.toFixed(1)}u`;
+
+      // Color code profit
+      const profitEl = document.getElementById('kpi-profit');
+      profitEl.className = profitEl.className.replace(/text-podium-\w+/g, '');
+      profitEl.classList.add(profit >= 0 ? 'text-podium-green' : 'text-podium-red');
+      profitEl.classList.add('font-display', 'text-4xl');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ROI Chart — cumulative profit over time
+    // ═══════════════════════════════════════════════════════════════════════════
+    function renderROIChart(data) {
+      const resolved = data.filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss');
+      if (resolved.length === 0) return;
+
+      // Sort by date
+      resolved.sort((a, b) => (a.match_date || '').localeCompare(b.match_date || ''));
+
+      // Group by date and accumulate profit
+      let cumProfit = 0;
+      const dateMap = new Map();
+
+      for (const pick of resolved) {
+        const date = pick.match_date || 'N/A';
+        const delta = pick.status_win_loss === 'win' ? (pick.cuota || 1) - 1 : -1;
+        cumProfit += delta;
+        dateMap.set(date, cumProfit);
+      }
+
+      const labels = [...dateMap.keys()].map(d => {
+        const parts = d.split('-');
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d;
+      });
+      const values = [...dateMap.values()].map(v => parseFloat(v.toFixed(2)));
+
+      const ctx = document.getElementById('roi-chart').getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+      gradient.addColorStop(0, 'rgba(37, 212, 102, 0.25)');
+      gradient.addColorStop(1, 'rgba(37, 212, 102, 0.0)');
+
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Profit (units)',
+            data: values,
+            borderColor: '#25d466',
+            borderWidth: 2,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#25d466',
+            pointBorderColor: '#050716',
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#13162b',
+              borderColor: '#1e2340',
+              borderWidth: 1,
+              titleFont: { family: 'Barlow Condensed' },
+              bodyFont: { family: 'Barlow Condensed' },
+              callbacks: {
+                label: ctx => `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}u`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: '#8090b0', font: { family: 'Barlow Condensed', size: 10 }, maxRotation: 45 },
+              grid: { color: 'rgba(30,35,64,0.4)' },
+            },
+            y: {
+              ticks: {
+                color: '#8090b0',
+                font: { family: 'Barlow Condensed', size: 11 },
+                callback: v => `${v >= 0 ? '+' : ''}${v}u`,
+              },
+              grid: { color: 'rgba(30,35,64,0.3)' },
+            },
+          },
+        },
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Recent Picks Table
+    // ═══════════════════════════════════════════════════════════════════════════
+    function renderRecentPicks(data) {
+      const resolved = data
+        .filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss')
+        .sort((a, b) => (b.match_date || '').localeCompare(a.match_date || ''))
+        .slice(0, 15);
+
+      const tbody = document.getElementById('recent-picks-body');
+
+      if (resolved.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-podium-muted text-sm">Sin picks resueltos aún.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = resolved.map(pick => {
+        const isWin = pick.status_win_loss === 'win';
+        const badgeClass = isWin
+          ? 'bg-podium-green/15 text-podium-green border-podium-green/30'
+          : 'bg-podium-red/15 text-podium-red border-podium-red/30';
+        const badgeText = isWin ? 'W' : 'L';
+        const evVal = pick.ev_pct != null ? parseFloat(pick.ev_pct).toFixed(1) : '--';
+        const cuotaVal = pick.cuota != null ? parseFloat(pick.cuota).toFixed(2) : '--';
+        const dateStr = pick.match_date ? pick.match_date.split('-').reverse().slice(0, 2).join('/') : '--';
+        const teams = `${esc(pick.home_team || '')} v ${esc(pick.away_team || '')}`;
+
+        return `
+          <tr class="border-b border-podium-border/20 hover:bg-black/30 transition">
+            <td class="py-2 text-[11px] text-podium-muted font-mono">${dateStr}</td>
+            <td class="py-2 text-[11px] text-podium-text truncate max-w-[120px]" title="${teams}">${teams}</td>
+            <td class="py-2 text-[11px] text-podium-text text-right font-mono">${cuotaVal}</td>
+            <td class="py-2 text-[11px] text-podium-gold text-right font-mono">${evVal}%</td>
+            <td class="py-2 text-right">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${badgeClass}">${badgeText}</span>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Active Matches (daily_board)
+    // ═══════════════════════════════════════════════════════════════════════════
+    function renderMatches(data) {
+      const container = document.getElementById('matches-container');
+      const countEl = document.getElementById('match-count');
+
+      if (data.length === 0) {
+        container.innerHTML = `
+          <div class="glass rounded-2xl p-10 text-center col-span-full">
+            <div class="flex h-14 w-14 items-center justify-center rounded-full border border-podium-border bg-black/60 mb-4 mx-auto">
+              <svg class="w-7 h-7 text-podium-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <h3 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text mb-2">Sin Eventos Activos</h3>
+            <p class="text-sm text-podium-muted">El próximo escaneo algorítmico generará nuevas posiciones.</p>
+          </div>`;
+        countEl.textContent = '0 partidos';
+        return;
+      }
+
+      countEl.textContent = `${data.length} partido${data.length !== 1 ? 's' : ''}`;
+
+      container.innerHTML = data.map(item => {
+        const p1 = item.poisson_1 || 33;
+        const px = item.poisson_x || 33;
+        const p2 = item.poisson_2 || 33;
+        const xgDiff = parseFloat(item.xg_diff) || 0;
+        const xgSign = xgDiff > 0 ? '+' : '';
+        const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
+
+        // Best EV from mercados_completos
+        const markets = item.mercados_completos || [];
+        const realMarkets = markets.filter(m => m.mercado && m.mercado !== 'MOMENTUM_DATA' && m.mercado !== 'IA_ANALYSIS' && m.ev_pct != null);
+        let bestEvHtml = '';
+        if (realMarkets.length > 0) {
+          const best = realMarkets.reduce((a, b) => parseFloat(b.ev_pct) > parseFloat(a.ev_pct) ? b : a);
+          const evVal = parseFloat(best.ev_pct);
+          const evColor = evVal >= 5 ? 'text-podium-green' : 'text-podium-gold';
+          bestEvHtml = `
+            <div class="flex items-center justify-between text-[10px]">
+              <span class="text-podium-muted uppercase tracking-widest">Mejor EV</span>
+              <span class="${evColor} font-mono font-semibold">${evVal > 0 ? '+' : ''}${evVal.toFixed(1)}% · ${esc(humanizeMarket(best.mercado, item.home_team, item.away_team))}</span>
+            </div>`;
+        }
+
+        return `
+        <div class="glass glass-hover rounded-2xl p-5 transition cursor-default flex flex-col gap-3">
+          <!-- Liga + xG pill -->
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] uppercase tracking-[0.28em] text-podium-muted truncate">${esc(item.estado_mercado || 'Análisis')}</span>
+            <span class="font-mono text-[9px] px-1.5 py-0.5 rounded border border-podium-border/60 bg-black/40 ${xgColor}">xG ${xgSign}${item.xg_diff || '0'}</span>
+          </div>
+
+          <!-- Teams -->
+          <div class="leading-none">
+            <p class="font-display text-xl uppercase tracking-[0.1em] text-white leading-none">${esc(item.home_team)}</p>
+            <p class="text-[9px] font-light text-podium-muted/50 tracking-[0.24em] uppercase my-1">vs</p>
+            <p class="font-display text-xl uppercase tracking-[0.1em] text-white leading-none">${esc(item.away_team)}</p>
+          </div>
+
+          <!-- 1X2 Bar -->
+          <div class="space-y-1">
+            <div class="flex h-1.5 overflow-hidden rounded-full bg-[#050710]">
+              <div class="bg-podium-green opacity-90 transition-all" style="width: ${p1}%"></div>
+              <div class="bg-podium-muted opacity-50 transition-all" style="width: ${px}%"></div>
+              <div class="bg-podium-red opacity-90 transition-all" style="width: ${p2}%"></div>
+            </div>
+            <div class="flex justify-between text-[9px] font-mono">
+              <span class="text-podium-green">${p1}%&thinsp;1</span>
+              <span class="text-podium-muted">${px}%&thinsp;X</span>
+              <span class="text-podium-red">${p2}%&thinsp;2</span>
+            </div>
+          </div>
+
+          <!-- Best EV -->
+          ${bestEvHtml}
+        </div>`;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VIP Signals
+    // ═══════════════════════════════════════════════════════════════════════════
+    function renderVIP(data) {
+      const container = document.getElementById('vip-container');
+      const countEl = document.getElementById('vip-count');
+
+      if (data.length === 0) {
+        container.innerHTML = `
+          <div class="glass rounded-2xl p-8 text-center glow-gold">
+            <p class="text-sm text-podium-muted">No hay señales VIP activas. El modelo es selectivo — protegiendo bankroll.</p>
+          </div>`;
+        countEl.textContent = '0';
+        return;
+      }
+
+      // Group picks by match
+      const groups = {};
+      const order = [];
+      data.forEach(pick => {
+        const key = `${pick.home_team}__${pick.away_team}`;
+        if (!groups[key]) { groups[key] = []; order.push(key); }
+        groups[key].push(pick);
+      });
+
+      countEl.textContent = `${data.length} pick${data.length !== 1 ? 's' : ''}`;
+
+      container.innerHTML = order.map(key => {
+        const picks = groups[key];
+        const first = picks[0];
+
+        // Extract triple angle from first pick
+        let angMat = first.angulo_matematico || '';
+        // Remove [Mercado: ...] prefix
+        angMat = angMat.replace(/\[Mercado:\s*.*?\]\s*/i, '');
+        const angTen = first.angulo_tendencia || '';
+        const angCtx = first.angulo_contexto || '';
+
+        const picksHtml = picks.map(p => {
+          const evVal = parseFloat(p.ev_pct || 0);
+          const evColor = evVal >= 5 ? 'text-podium-green font-bold' : 'text-podium-gold';
+          const mLabel = humanizeMarket(p.mercado, first.home_team, first.away_team);
+          const cuota = p.cuota != null ? parseFloat(p.cuota).toFixed(2) : '--';
+          return `
+            <div class="flex items-center justify-between py-2 border-b border-podium-border/20 last:border-0">
+              <div>
+                <span class="text-xs text-podium-text font-semibold uppercase tracking-wider">${esc(mLabel)}</span>
+                <span class="text-[10px] text-podium-muted ml-2 font-mono">@ ${cuota}</span>
+              </div>
+              <span class="text-xs ${evColor} font-mono">+${evVal.toFixed(1)}% EV</span>
+            </div>`;
+        }).join('');
+
+        return `
+        <div class="glass rounded-2xl overflow-hidden glow-gold">
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-podium-gold/20 bg-gradient-to-r from-podium-gold/5 to-transparent">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-[9px] uppercase tracking-[0.28em] text-podium-muted mb-1">${esc(first.match_date || '')}</p>
+                <h3 class="font-display text-2xl uppercase tracking-[0.1em] text-white">
+                  ${esc(first.home_team)} <span class="text-podium-gold text-lg mx-1" style="font-family:'Barlow Condensed'">vs</span> ${esc(first.away_team)}
+                </h3>
+              </div>
+              <div class="flex items-center gap-2 rounded-full bg-podium-gold/10 border border-podium-gold/40 px-3 py-1 pulse-live">
+                <span class="h-2 w-2 rounded-full bg-podium-gold"></span>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-podium-gold">VIP</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Picks -->
+          <div class="px-6 py-4">
+            ${picksHtml}
+          </div>
+
+          <!-- Triple Angle (if available) -->
+          ${angMat || angTen || angCtx ? `
+          <div class="px-6 pb-5 pt-2 border-t border-podium-border/30">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-podium-gold mb-3 font-bold">Triple Ángulo</p>
+            <div class="grid gap-3 md:grid-cols-3">
+              <div class="text-[11px] text-podium-muted leading-relaxed">
+                <span class="text-podium-gold font-bold">1.</span> ${esc(angMat).substring(0, 200)}${angMat.length > 200 ? '...' : ''}
+              </div>
+              <div class="text-[11px] text-podium-muted leading-relaxed">
+                <span class="text-podium-gold font-bold">2.</span> ${esc(angTen).substring(0, 200)}${angTen.length > 200 ? '...' : ''}
+              </div>
+              <div class="text-[11px] text-podium-muted leading-relaxed">
+                <span class="text-podium-gold font-bold">3.</span> ${esc(angCtx).substring(0, 200)}${angCtx.length > 200 ? '...' : ''}
+              </div>
+            </div>
+          </div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', boot);
+  </script>
+</body>
+</html>

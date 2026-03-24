@@ -42,13 +42,13 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 
 ## Hoja de Ruta SaaS
 
-### Fase 1 — MVP Web (PRIORIDAD ACTUAL)
-- [ ] Next.js + Supabase Auth + Stripe
-- [ ] Landing page con pricing
-- [ ] Dashboard con muro de autenticación
-- [ ] Tab "Análisis del día" (daily_board) — restringido por plan
-- [ ] Tab "Pronósticos VIP" (vip_signals) — solo plan pago
-- [ ] Deploy en Vercel
+### Fase 1 — MVP Web (COMPLETADO ✅)
+- [x] Arquitectura Frontend Vanilla JS (sin frameworks complejos) + Supabase Auth
+- [x] Landing page pública (`web/index.html`) con llamada a la acción
+- [x] Portal de Login/Registro (`web/auth.html`) con Auth Guard
+- [x] Dashboard SaaS Privado (`web/dashboard.html`)
+- [x] Tablas de análisis `daily_board` y `vip_signals` cargando en Real-Time en el DOM
+- [x] Deploy en Vercel exitoso en `valior.vercel.app`
 
 ### Fase 2 — Credibilidad
 - [ ] Tab "Historial" público con ROI acumulado (historical_results)
@@ -65,10 +65,10 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 ## Stack Técnico
 
 ```
-Frontend         → Next.js (React) — por construir
+Frontend         → HTML5, Vanilla JS, Tailwind CSS (Carpeta `web/`) (operativo ✅)
 Backend/DB       → Supabase (operativo ✅)
-Auth             → Supabase Auth — por integrar
-Pagos            → Stripe — por integrar
+Auth             → Supabase Auth (operativo ✅)
+Pagos            → Stripe — por integrar (Próximo hito)
 Deploy           → Vercel (conectado ✅)
 Pipeline         → Python local (operativo ✅) — migrar a servidor en Fase 2
 IA narrativa     → Gemini 2.5 Flash (operativo ✅)
@@ -76,15 +76,20 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (17 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (18 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
-### Última jornada procesada:
-- **16/03/2026 — Champions League (4 partidos)**
-- 4 partidos en `daily_board`, 4 señales VIP en `vip_signals`
+### Última jornada operativa:
+- **Deploy SaaS Completado (23-Mar-2026):** Se desplegó exitosamente el Frontend en Vercel (`valior.vercel.app`). El proyecto ya no depende de scripts locales para ver la UI. La Landing Page es pública, y el Dashboard está protegido por Supabase Auth.
+- **Configuración de Seguridad en Vercel:** Se implementó `vercel.json` con cabeceras `Cache-Control`, `X-Frame-Options` (DENY), y `X-Content-Type-Options` (nosniff) para prevención de ataques.
+- **Schema maestro ejecutado:** `migrations/schema_maestro.sql` sincroniza las 3 tablas de Supabase. Políticas RLS de lectura anónima activadas temporalmente, pendientes de restricción a `authenticated`.
+- **ROI reconciliado (18-Mar-2026):** 26 picks totales, 10W/16L, +18.48 unidades, **ROI global +71.1%**
 - **model_engine.py v2.0:** Forma reciente + H2H integrados al modelo matemático (Paso C.5)
 - DC markets activos; arquitectura pick-level completamente alineada
 - Nomenclatura de mercados de totales completamente normalizada (v1.9)
 - **dashboard_live.html v2.1:** Rediseño completo de cards (renderBoardCard) + VIP agrupadas por partido (17-Mar-2026)
+- **Auto-detección de ligas domésticas (18-Mar-2026):** `test_runner.py` ahora consulta PL, SA, PD, BL1, FL1 vía Football-Data API antes de correr el pipeline. Los partidos encontrados se escriben automáticamente en `partidos_manuales.json` (sobreescribe la jornada anterior). Respeta el rate limit con delays de 7s entre llamadas. Ya no se requiere entrada manual para ligas domésticas.
+- **Scripts maestros creados (18-Mar-2026):** `master_morning.py` (test_runner → supabase_sync) y `master_night.py` (result_updater) como puntos únicos de entrada para la operación diaria.
+- **Gap de calificación nocturna eliminado (18-Mar-2026):** `result_updater.py` ahora califica picks pendientes en `vip_signals` (picks del día actual) además de `historical_results` (picks archivados). Columnas `status_win_loss` y `actual_result` agregadas a `vip_signals` via migration. Los 7 picks VIP de la jornada UCL 18/03 fueron calificados la misma noche.
 
 ### Pipeline completo (en orden de ejecución):
 
@@ -105,6 +110,8 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
          → Lee daily_report, llama a Gemini 2.5 Flash (Triple Ángulo)
          → time.sleep(12) entre cada llamada a Gemini (respeta rate limit free tier)
          → Sube datos a Supabase (daily_board + vip_signals)
+   [NOTA: partidos_manuales.json se vacía automáticamente al final de cada ejecución
+    de test_runner.py vía fetch_and_save_domestic_matches() — no requiere limpieza manual]
 
 5. python result_updater.py
          → Consulta historical_results (solo status_win_loss='pending')
@@ -112,8 +119,7 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
          → Obtiene scores de API-Football (caché en memoria por fecha)
          → Actualiza: actual_result + status_win_loss
 
-6. Abrir: landing page/dashboard_live.html  (conecta a Supabase vía JS)
-   [NOTA v2.1: este dashboard HTML es el prototipo. Será reemplazado por Next.js en Fase 1]
+6. El Frontend (alojado en Vercel) lee las tablas automáticamente y el usuario final puede consumirlo desde `valior.vercel.app`.
 ```
 
 ---
@@ -135,6 +141,7 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 - `log_naming_error()` → registra errores en `naming_errors.log`
 - **CRÍTICO:** Todos los módulos (`data_fetcher`, `model_engine`, `supabase_sync`, `result_updater`) importan desde aquí. Si hay un nuevo equipo que no se cruza, agrégalo aquí.
 - **Aliases añadidos en v1.3 (EL Round of 16):** Bologna, Real Betis, Stuttgart, Celta Vigo, Panathinaikos, Ferencvaros, Braga, Genk, Freiburg, Nottingham Forest, Midtjylland
+- **Fix v2.1 (18-Mar-2026):** Agregado `"ATLÉTICO MADRID"` (acento sin "de") — The Odds API devuelve esta variante. Sin este alias, la fuzzy match falla y el partido queda sin cuotas, H2H, forma visitante y xG. **Lección:** cuando un partido nuevo falla en cuotas, revisar `naming_errors.log` primero — probablemente es un alias faltante.
 
 ### `model_engine.py` — Motor Predictivo (Pasos A→H) — v2.0
 - **A:** Elo + ventaja local (+60)
@@ -248,9 +255,13 @@ La clave `over25` (legacy) fue **eliminada completamente**. Formato canónico en
 - **PURGE total** de `daily_board` + `vip_signals` → luego UPSERT con datos frescos
 - **Tablas Supabase:** `daily_board` (jornada activa) + `vip_signals` (picks profundos) + `historical_results` (archivo ROI permanente)
 
-### `result_updater.py` — ROI Auto-Calificador — v1.8
-- **Propósito:** Cierra el loop de ROI calificando automáticamente los picks archivados en `historical_results`.
-- **Query mínimo:** Solo lee `id, home_team, away_team, match_date, mercado` donde `status_win_loss = 'pending'`.
+### `result_updater.py` — ROI Auto-Calificador — v1.9
+- **Propósito:** Cierra el loop de ROI calificando picks pendientes en **dos tablas en orden**:
+  1. **`vip_signals`** — picks del día actual (picks VIP activos, recién subidos por `supabase_sync.py`)
+  2. **`historical_results`** — picks archivados de días anteriores
+  - Esto elimina el gap de 24h que existía antes: los picks de hoy se califican la misma noche, sin esperar a que `supabase_sync.py` los archive al día siguiente.
+- **Lógica compartida:** `_process_rows(rows, update_fn)` — función reutilizable que recibe filas de cualquier tabla y un `update_fn` específico por tabla. La calificación (API-Football + `evaluate_pick()`) es idéntica para ambas.
+- **Query mínimo:** `vip_signals` selecciona `id,home_team,away_team,mercado` (sin `match_date` — fecha se extrae del ID). `historical_results` mantiene `match_date` como campo adicional.
 - **Mercado directo:** Lee `row.get("mercado")` directamente del registro (arquitectura pick-level). No usa `get_best_pick()` ni `mercados_completos`.
 - **Caché en memoria:** Agrupa llamadas a API-Football por fecha (1 llamada por día, no por partido).
 - **Mercados soportados para evaluación:**
@@ -273,12 +284,13 @@ La clave `over25` (legacy) fue **eliminada completamente**. Formato canónico en
 - **PATCH quirúrgico:** Solo actualiza `actual_result` y `status_win_loss`.
 - **Dependencias:** `SUPABASE_URL`, `SUPABASE_KEY`, `API_FOOTBALL_KEY` (del `.env`)
 
-### `landing page/dashboard_live.html` — Frontend Prototipo — v2.1
-- **NOTA v2.1:** Este archivo es el prototipo operativo. Seguirá funcionando durante Fase 1 mientras se construye Next.js. No eliminar.
+### Carpeta `web/` — Frontend SaaS Producción (Vercel)
 - Stack: HTML5 + Tailwind CSS (CDN) + Vanilla JS + Supabase JS Client
-- Dos tabs: **Jornada General** (todas las tarjetas) y **Pronósticos VIP** (picks con EV ≥ 5%)
-- Cada tab tiene sub-secciones: **Activos** vs **Historial**
-- Semaforización por `getEvColorClass(ev)`: rojo EV < 1% · gold 1–4.99% · verde EV ≥ 5%
+- **`index.html`**: Landing page pública. Carta de ventas.
+- **`auth.html`**: Portal de Login y Creación de Cuentas (integrado con `supabase.auth.signInWithPassword` y `signUp`).
+- **`dashboard.html`**: Terminal SaaS Privada. Dos tabs: Jornada General y Pronósticos VIP.
+- **Seguridad**: `dashboard.html` usa un Auth Guard que detecta si no hay sesión (`getSession()`) y expulsa al usuario devolviéndolo a `auth.html`.
+- **Config compartida**: Credenciales extraídas a `js/config.js` (`SUPABASE_ANON_KEY` y `SUPABASE_URL`).
 - Modal de detalle: Triple Ángulo + Momentum + Value Matrix completa por partido
 
 #### `renderBoardCard(item)` — rediseño v2.1
@@ -345,11 +357,34 @@ groupVipByMatch(vipFinishedData).map(renderVipCard).join('')
 - **`partidos_manuales.json`** → Archivo editable en raíz del proyecto. Formato: `[{"local": "X", "visitante": "Y", "liga": "Z"}]`
   - Úsalo para ligas que Football-Data no escanea automáticamente (PL, Serie A, LaLiga, BL, etc.)
   - **Vaciar antes de cada jornada nueva** para evitar procesar partidos de jornadas pasadas
-  - **Jornada 16/03/2026:** vaciar antes de la próxima jornada
+  - **Jornada 18/03/2026:** contiene Braga vs Ferencvaros (UEL). Vaciar antes de la próxima jornada.
 
-### `migrations/create_historical_results.sql` — DDL Supabase
-- Script de creación de la tabla `historical_results` con todas sus columnas.
-- Incluye `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para migraciones incrementales.
+### `master_morning.py` y `master_night.py` — Scripts Maestros (18-Mar-2026)
+
+Orquestadores de ejecución diaria. Usan `subprocess.run()` con `capture_output=False` para que los logs de cada script se vean en tiempo real. Muestran timestamp `HH:MM:SS` al inicio de cada paso y resumen de tiempos al finalizar. Si cualquier paso falla (exit code ≠ 0), detienen la ejecución inmediatamente.
+
+**`master_morning.py`** — correr en la mañana antes de que empiecen los partidos:
+```
+python master_morning.py
+  Paso 1/2: test_runner.py    (auto-detecta partidos, corre pipeline, genera daily_report)
+  Paso 2/2: supabase_sync.py  (sube a Supabase, llama a Gemini)
+```
+
+**`master_night.py`** — correr después de las 22:00 cuando todos los partidos ya terminaron:
+```
+python master_night.py
+  Paso 1/1: result_updater.py  (califica picks en vip_signals y historical_results)
+```
+
+### `migrations/schema_maestro.sql` — Schema Maestro de Supabase ⚠️
+- **Define las 3 tablas completas:** `daily_board` (11 cols), `vip_signals` (12 cols), `historical_results` (20 cols)
+- Usa `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE ADD COLUMN IF NOT EXISTS` → idempotente
+- Incluye políticas RLS: anon read para `daily_board`/`vip_signals`, service_role para `historical_results`
+- **Ya ejecutado** en producción (18-Mar-2026)
+- **REGLA:** Antes de cada jornada, si el pipeline falla con errores de columna inexistente, re-ejecutar este script en Supabase SQL Editor. Es seguro correrlo múltiples veces.
+
+### `migrations/create_historical_results.sql` — DDL legacy
+- Script original de creación de `historical_results`. Superado por `schema_maestro.sql`.
 - **Ya ejecutado** en producción (12-Mar-2026).
 
 ### `insert_historical_12_03_26.py` — Script de Archivado Manual (UEL R16)
@@ -409,15 +444,12 @@ ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ### `daily_board` — patrón MOMENTUM_DATA (v2.0)
 La columna `mercados_completos` (JSONB) ahora incluye un registro especial con `mercado: "MOMENTUM_DATA"` que contiene `forma`, `h2h` y `diagnostico_global`. El dashboard JS lo extrae con `extractMomentum()` para renderizar la sección de Momentum en tarjetas y modal. Este patrón evita migraciones de esquema — los datos viajan dentro del JSONB existente.
 
-### `vip_signals` — columna `mercado` requerida (v1.8) ⚠️
-La columna `mercado` debe existir en `vip_signals`. Migración pendiente de ejecutar en producción:
-```sql
-ALTER TABLE vip_signals ADD COLUMN IF NOT EXISTS mercado TEXT;
+### `vip_signals` — columnas de resultado (v1.9) ✅
+- `mercado` TEXT — creada via `schema_maestro.sql` (18-Mar-2026)
+- `status_win_loss` TEXT DEFAULT `'pending'` — agregada via migration (18-Mar-2026)
+- `actual_result` TEXT — agregada via migration (18-Mar-2026)
 
-UPDATE vip_signals
-SET mercado = lower(substring(angulo_matematico FROM '\[Mercado:\s*(.+?)\]'))
-WHERE mercado IS NULL AND angulo_matematico LIKE '%[Mercado:%';
-```
+`supabase_sync.py` escribe `mercado` directamente en cada upsert. `result_updater.py` actualiza `status_win_loss` y `actual_result` cada noche vía `master_night.py`.
 
 ### `historical_results` — arquitectura pick-level (v1.6+)
 
@@ -459,9 +491,13 @@ WHERE status_win_loss IN ('win', 'loss');
 
 ### Historial de jornadas archivadas
 
-| Fecha | Competición | Picks | W | L | ROI |
-|-------|-------------|------:|--:|--:|----:|
-| 2026-03-12 | UEL R16 1ª ida | 12 | 3 | 9 | +33.75% |
+| Fecha | Competición | Picks | W | L | Profit | ROI |
+|-------|-------------|------:|--:|--:|-------:|----:|
+| 2026-03-12 | UEL R16 1ª ida | 12 | 3 | 9 | +3.05u | +25.4% |
+| 2026-03-15 | Serie A + PL | 6 | 2 | 4 | +7.50u | +125.0% |
+| 2026-03-16 | UCL | 1 | 1 | 0 | +0.56u | +56.0% |
+| 2026-03-17 | UCL QF ida | 7 | 4 | 3 | +7.37u | +105.3% |
+| **TOTAL** | | **26** | **10** | **16** | **+18.48u** | **+71.1%** |
 
 ---
 
@@ -469,16 +505,16 @@ WHERE status_win_loss IN ('win', 'loss');
 
 | Problema | Impacto | Solución |
 |----------|---------|----------|
-| Columna `mercado` falta en `vip_signals` en producción | `archive_finished_matches()` archiva con `mercado=null` si no se ejecuta la migración | Ejecutar `ALTER TABLE vip_signals ADD COLUMN IF NOT EXISTS mercado TEXT` en Supabase SQL Editor |
-| Football-Data API no retorna partidos EL/CL (tier insuficiente) | `result_updater.py` ya migrado a API-Football (16-Mar-2026); Football-Data solo se usa en `data_fetcher.py` para fixtures/standings | Migración completada para resultados; evaluar migrar data_fetcher también |
-| `partidos_manuales.json` requiere mantenimiento manual | Si no se vacía, el pipeline corre con datos de jornadas pasadas | Vaciar o actualizar antes de cada jornada nueva |
-| `test_runner.py` solo escanea CL y EL automáticamente | PL, Serie A, LaLiga etc. requieren entrada manual vía `partidos_manuales.json` | Extender `get_upcoming_matches()` con códigos de competición adicionales (PL=`PL`, Serie A=`SA`) |
+| ~~Columna `mercado` falta en `vip_signals`~~ | ~~RESUELTO 18-Mar-2026~~ | `schema_maestro.sql` la incluye |
+| ~~Naming: Atlético Madrid sin alias con acento~~ | ~~RESUELTO 18-Mar-2026~~ | Alias `"ATLÉTICO MADRID"` agregado a `naming.py` |
+| Football-Data API no retorna partidos EL/CL (tier insuficiente) | `result_updater.py` ya migrado a API-Football; Football-Data solo se usa en `data_fetcher.py` para fixtures/standings | Migración completada para resultados; evaluar migrar data_fetcher también |
+| Partidos UEL de bajo perfil sin cobertura en The Odds API | Ej: Braga vs Ferencvaros (18-Mar) — solo Elo disponible, sin cuotas ni xG | No se puede resolver con naming; es limitación de cobertura API. Marcar visualmente en dashboard. |
+| ~~`partidos_manuales.json` requiere mantenimiento manual~~ | ~~RESUELTO 18-Mar-2026~~ | `fetch_and_save_domestic_matches()` sobreescribe el archivo en cada ejecución de `test_runner.py` |
+| ~~`test_runner.py` solo escanea CL y EL automáticamente~~ | ~~RESUELTO 18-Mar-2026~~ | Ahora consulta PL, SA, PD, BL1, FL1 vía Football-Data API con delays de 7s |
 | `result_updater.py` no califica mercados Asian Handicap complejos | Picks AH complejos quedan `pending` indefinidamente | Implementar `void` y lógica AH avanzada (`-1`, `-2`) |
-| `mercado` embedded en `angulo_matematico` de `vip_signals` | Parsing con regex en dashboard | Workaround funcional; resolverá cuando se persista `mercado` como columna propia |
 | DC markets no se emiten si Pinnacle no está disponible para el partido | Sin cuota sintética de referencia, el EV no se puede calcular | Implementar fallback con margen estimado (ej: 4%) cuando Pinnacle no retorna cuotas |
 | `over_1.5`/`under_1.5` usan probabilidad modelo puro (sin blend Pinnacle) | EV ligeramente menos preciso que mercados 1X2 | Extender `paso_f_blend()` para blendear O/U 1.5 cuando cuota disponible |
 | Picks del 12-Mar-2026 en `historical_results` usan código legacy `over25` | No afecta calificación (regex lo maneja); pero rompe consistencia del historial | Ejecutar `UPDATE historical_results SET mercado='over_2.5' WHERE mercado='over25'` en Supabase |
-| `partidos_manuales.json` debe actualizarse antes de cada jornada | **Vaciar antes de la próxima jornada** | Reemplazar con los partidos de la nueva fecha |
 | Sin corners/tarjetas/stats avanzadas en el modelo | Mercados de corners y tarjetas no disponibles | Integrar API-Football cuando haya tracción de usuarios pagos |
 | Gemini free tier rate limit (~50 req/día, 5 req/min) | Con jornadas de 9+ partidos, algunas narrativas quedan vacías si la cuota diaria se agota | Re-ejecutar `supabase_sync.py` cuando la cuota se renueve; considerar API key de pago en Fase 2 |
 | MOMENTUM_DATA embebido en `mercados_completos` JSONB | Patrón de embeber datos estructurados en campo JSONB existente — funcional pero no ideal a largo plazo | Migrar a columnas dedicadas (`forma`, `h2h`, `diagnostico_global`) en `daily_board` cuando se haga el port a Next.js |

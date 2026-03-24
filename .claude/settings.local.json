@@ -60,7 +60,17 @@
       "Bash(start \"\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\landing page\\\\dashboard.html\")",
       "Bash(python model_engine.py)",
       "Bash(python test_runner.py)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s \"https://ssvnixnqczpvpiomgrje.supabase.co/rest/v1/vip_signals?select=id,mercado,cuota,ev_pct,status&home_team=eq.Tottenham%20Hotspur\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdm5peG5xY3pwdnBpb21ncmplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY3NTYxOSwiZXhwIjoyMDg4MjUxNjE5fQ.xBR4JOau1uOPsr9xNSiXr7atmgb65SYgLNmPf13Tg00\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzdm5peG5xY3pwdnBpb21ncmplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY3NTYxOSwiZXhwIjoyMDg4MjUxNjE5fQ.xBR4JOau1uOPsr9xNSiXr7atmgb65SYgLNmPf13Tg00\")",
+      "Bash(python -m json.tool)",
+      "Bash(python -c \"import model_engine; print\\(''OK - model_engine importado correctamente''\\)\")",
+      "Bash(python result_updater.py)",
+      "Bash(python -c \"import result_updater; print\\(''OK''\\)\")",
+      "Bash(python -c \"import supabase_sync; print\\(''OK''\\)\")",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(claude mcp:*)",
+      "Bash(echo \"exit:$?\")"
     ]
   }
 }
