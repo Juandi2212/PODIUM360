@@ -50,6 +50,9 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Tablas de análisis `daily_board` y `vip_signals` cargando en Real-Time en el DOM
 - [x] Deploy en Vercel exitoso en `valior.vercel.app`
 - [x] Landing page migrada a React/Vite/Tailwind v4 (23-Mar-2026)
+- [x] Auth page rediseñada con dark theme split-screen (24-Mar-2026)
+- [ ] **NEXT →** Rediseñar dashboard.html (generar con Google AI Studio, integrar lógica Supabase existente)
+- [ ] **NEXT →** Integración Stripe: checkout, webhooks, tabla `user_profiles`, condicional freemium/pago
 
 ### Fase 2 — Credibilidad
 - [ ] Tab "Historial" público con ROI acumulado (historical_results)
@@ -81,6 +84,14 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 ## Estado Actual (18 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
 ### Última jornada operativa:
+- **Migración Frontend Completada (24-Mar-2026):**
+  - Landing page migrada de HTML estático a React 19/Vite 6/Tailwind v4 (carpeta `frontend/`). Diseño generado con Google AI Studio.
+  - Auth page (`auth.html`) rediseñada completamente: split-screen dark theme, grid de fondo, glow verde, testimonial. Lógica Supabase Auth intacta.
+  - `vercel.json` actualizado: build apunta a `frontend/dist`, `auth.html` y `dashboard.html` servidos desde `frontend/public/`.
+  - Carpeta `web/` preservada como fallback. Ningún archivo Python modificado.
+  - Tag de backup: `backup-pre-react-landing` (commit `c51a68f`). Copia física en `Desktop\VALIOR-BACKUP-23MAR`.
+- **PENDIENTE — Dashboard (`dashboard.html`):** Necesita rediseño visual para alinear con el nuevo look (dark theme, `#00ff66`, tipografía mono). La lógica de Supabase (renderBoardCard, renderVipCard, modales, etc.) debe mantenerse intacta. Generar diseño con Google AI Studio y luego integrar.
+- **PENDIENTE — Integración Stripe:** Implementar checkout y webhooks para el plan PRO ($9.99/mes). Requiere crear `user_profiles` en Supabase, agregar variables de entorno de Stripe, y condicionar el acceso freemium/pago en el dashboard.
 - **Deploy SaaS Completado (23-Mar-2026):** Se desplegó exitosamente el Frontend en Vercel (`valior.vercel.app`). El proyecto ya no depende de scripts locales para ver la UI. La Landing Page es pública, y el Dashboard está protegido por Supabase Auth.
 - **Configuración de Seguridad en Vercel:** Se implementó `vercel.json` con cabeceras `Cache-Control`, `X-Frame-Options` (DENY), y `X-Content-Type-Options` (nosniff) para prevención de ataques.
 - **Schema maestro ejecutado:** `migrations/schema_maestro.sql` sincroniza las 3 tablas de Supabase. Políticas RLS de lectura anónima activadas temporalmente, pendientes de restricción a `authenticated`.
@@ -566,5 +577,13 @@ La landing page de VALIOR (`web/index.html`) fue reemplazada por una app React/V
 - `web/` se mantiene como fallback pero ya no es servido directamente por Vercel
 - Si se modifica auth.html o dashboard.html en web/, hay que re-copiar a frontend/public/
 
+### Auth page rediseñada (24-Mar-2026):
+- Split-screen: formulario a la izquierda, propuesta de valor a la derecha (oculta en móvil)
+- Dark theme consistente con landing: `#050505` fondo, `#00ff66` acentos, tipografía Inter + JetBrains Mono
+- Grid de fondo con mask gradient, glow verde central, testimonial en panel derecho
+- Lógica Supabase Auth completa: `signInWithPassword`, `signUp`, detección de sesión, redirect a dashboard
+- Botón "Continuar con Google" (placeholder visual — requiere configurar OAuth provider en Supabase)
+- Archivo fuente: `web/auth.html` (se copia a `frontend/public/auth.html`)
+
 ### Regla Crítica #6:
-No modificar `frontend/src/App.tsx` sin confirmación explícita del usuario. Este archivo contiene toda la landing page con diseño aprobado manualmente.
+No modificar `frontend/src/App.tsx` ni `web/auth.html` sin confirmación explícita del usuario. Estos archivos contienen diseños aprobados manualmente (generados con Google AI Studio).
