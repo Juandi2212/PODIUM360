@@ -70,7 +70,19 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "Bash(claude mcp:*)",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(xcopy /E /I /H \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\VALIOR-BACKUP-23MAR\")",
+      "Bash(robocopy \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\VALIOR-BACKUP-23MAR\" /E /COPY:DAT)",
+      "Bash(cmd.exe /c 'xcopy /E /I /H \"\"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\"\" \"\"C:\\\\Users\\\\Juan\\\\Desktop\\\\VALIOR-BACKUP-23MAR\"\"')",
+      "Bash(powershell -Command \"Copy-Item -Path ''C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL'' -Destination ''C:\\\\Users\\\\Juan\\\\Desktop\\\\VALIOR-BACKUP-23MAR'' -Recurse -Force\")",
+      "Bash(mkdir -p frontend)",
+      "Bash(powershell -Command \"Expand-Archive -Path ''valior-landing.zip'' -DestinationPath ''frontend'' -Force\")",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(cp web/auth.html frontend/public/auth.html)",
+      "Bash(cp web/dashboard.html frontend/public/dashboard.html)",
+      "Bash(cp -r web/js frontend/public/js)"
     ]
   }
 }
