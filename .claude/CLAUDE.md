@@ -49,6 +49,7 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Dashboard SaaS Privado (`web/dashboard.html`)
 - [x] Tablas de análisis `daily_board` y `vip_signals` cargando en Real-Time en el DOM
 - [x] Deploy en Vercel exitoso en `valior.vercel.app`
+- [x] Landing page migrada a React/Vite/Tailwind v4 (23-Mar-2026)
 
 ### Fase 2 — Credibilidad
 - [ ] Tab "Historial" público con ROI acumulado (historical_results)
@@ -65,7 +66,8 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 ## Stack Técnico
 
 ```
-Frontend         → HTML5, Vanilla JS, Tailwind CSS (Carpeta `web/`) (operativo ✅)
+Frontend Landing → React 19, Vite 6, Tailwind CSS v4 (Carpeta `frontend/`) (operativo ✅)
+Frontend Auth/Dash → HTML5, Vanilla JS, Tailwind CSS (Carpeta `web/` → copiado a `frontend/public/`) (operativo ✅)
 Backend/DB       → Supabase (operativo ✅)
 Auth             → Supabase Auth (operativo ✅)
 Pagos            → Stripe — por integrar (Próximo hito)
@@ -538,3 +540,31 @@ WHERE status_win_loss IN ('win', 'loss');
 3. **El dashboard HTML sigue funcionando** durante toda la Fase 1. Es el fallback operativo.
 4. **Supabase es la única fuente de verdad** entre el pipeline Python y el frontend Next.js. No duplicar lógica de negocio en el frontend.
 5. **Freemium se implementa en el frontend** (RLS de Supabase + verificación de plan en Next.js). El pipeline Python no sabe nada de planes — sigue subiendo todos los datos.
+
+---
+
+## Frontend React — Landing Page (23-Mar-2026)
+
+La landing page de VALIOR (`web/index.html`) fue reemplazada por una app React/Vite/Tailwind v4 ubicada en `frontend/`.
+
+### Stack frontend (landing):
+- React 19 + TypeScript
+- Vite 6 (bundler)
+- Tailwind CSS v4 (via @tailwindcss/vite plugin)
+- Motion (Framer Motion) para animaciones
+- Recharts para gráfico de ROI
+- Lucide React para iconos
+
+### Ubicación: `frontend/`
+
+### Instalación: `npm install --legacy-peer-deps` (obligatorio por peer deps de lucide-react)
+
+### Build: `npm run build` → genera `frontend/dist/`
+
+### Convivencia con web/:
+- `web/auth.html` y `web/dashboard.html` se copian a `frontend/public/` para que Vercel los sirva
+- `web/` se mantiene como fallback pero ya no es servido directamente por Vercel
+- Si se modifica auth.html o dashboard.html en web/, hay que re-copiar a frontend/public/
+
+### Regla Crítica #6:
+No modificar `frontend/src/App.tsx` sin confirmación explícita del usuario. Este archivo contiene toda la landing page con diseño aprobado manualmente.
