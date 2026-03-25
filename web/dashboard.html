@@ -4,13 +4,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Podium 360 | Dashboard Inteligente</title>
-  <meta name="description" content="Terminal de inteligencia deportiva con análisis algorítmico en tiempo real. Poisson, xG, EV y Triple Ángulo." />
+  <title>Valior | Terminal de Inteligencia</title>
 
-  <!-- Google Fonts -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&display=swap"
-    rel="stylesheet" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,19 +16,31 @@
       theme: {
         extend: {
           fontFamily: {
-            display: ['"Bebas Neue"', 'system-ui', 'sans-serif'],
-            body: ['"Barlow Condensed"', 'system-ui', 'sans-serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            // Mantenemos display/body mapeados a Inter por si el JS inyectado los usa
+            display: ['Inter', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
           },
           colors: {
+            valior: {
+              bg: "#050505",
+              card: "#111111",
+              border: "#222222",
+              green: "#00ff66",
+              muted: "#888888",
+            },
+            // Mapeamos los colores antiguos de "podium" a la nueva paleta "valior"
+            // para que el JS que pegues después funcione perfectamente sin tener que editar sus clases.
             podium: {
-              bg: '#050716',
-              card: '#13162b',
-              border: '#1e2340',
-              gold: '#f5bc2f',
-              green: '#25d466',
-              red: '#f04444',
-              text: '#e8eef8',
-              muted: '#8090b0',
+              bg: "#050505",
+              card: "#111111",
+              border: "#222222",
+              gold: "#00ff66", // El dorado ahora es el verde Valior
+              green: "#00ff66",
+              red: "#ff3333",
+              text: "#ffffff",
+              muted: "#888888",
             },
           },
         },
@@ -39,677 +48,1121 @@
     };
   </script>
 
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-
-  <!-- Supabase JS CDN -->
+  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Main Supabase Auth Config -->
-  <script src="js/config.js"></script>
 
   <style>
     body {
-      font-family: 'Barlow Condensed', system-ui, sans-serif;
+      font-family: 'Inter', sans-serif;
+      background-color: #050505;
+      color: #ffffff;
     }
 
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #1e2340; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #8090b0; }
+    ::-webkit-scrollbar-thumb { background: #222222; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #888888; }
 
-    .glass {
-      background: rgba(19, 22, 43, 0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(30, 35, 64, 0.8);
+    /* Grid de fondo idéntico al login */
+    .bg-grid {
+      background-size: 40px 40px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      mask-image: linear-gradient(to bottom, transparent, black, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 10%, black 50%, transparent 90%);
     }
-
-    .glass-hover:hover {
-      background: rgba(19, 22, 43, 0.85);
-      border-color: rgba(30, 35, 64, 1);
-    }
-
-    .glow-green { box-shadow: 0 0 30px rgba(37, 212, 102, 0.15); }
-    .glow-gold { box-shadow: 0 0 30px rgba(245, 188, 47, 0.12); }
-    .glow-red { box-shadow: 0 0 20px rgba(240, 68, 68, 0.1); }
 
     .loader {
-      border: 2px solid rgba(255,255,255,0.1);
-      border-top-color: #f5bc2f;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      animation: spin 1s linear infinite;
+        border: 2px solid rgba(255,255,255,0.1);
+        border-top-color: #00ff66;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
     }
     @keyframes spin { 100% { transform: rotate(360deg); } }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 12px rgba(37,212,102,0.3); }
-      50% { box-shadow: 0 0 24px rgba(37,212,102,0.6); }
-    }
-    .pulse-live { animation: pulse-glow 2s ease-in-out infinite; }
-
-    .chart-container { position: relative; height: 280px; }
   </style>
 </head>
 
-<body class="min-h-screen bg-podium-bg text-podium-text">
-  <!-- Background -->
-  <div class="pointer-events-none fixed inset-0 opacity-70 mix-blend-screen" aria-hidden="true">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(37,212,102,0.10),transparent_55%),radial-gradient(circle_at_bottom_right,_rgba(245,188,47,0.08),transparent_55%)]"></div>
-    <div class="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:80px_80px]"></div>
-  </div>
+<body class="min-h-screen flex flex-col overflow-x-hidden">
 
-  <div class="relative flex flex-col min-h-screen">
+  <!-- Background Effects -->
+  <div class="fixed inset-0 bg-grid pointer-events-none opacity-40 z-0"></div>
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#00ff66]/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-    <!-- ═══ NAVBAR ═══ -->
-    <header class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 pt-6 sm:px-6 lg:px-8 border-b border-podium-border/40 pb-4">
+  <div class="relative flex-1 flex flex-col z-10">
+    <!-- NAVBAR -->
+    <header class="mx-auto flex w-full max-w-7xl items-center justify-between px-6 pt-8 pb-6 border-b border-valior-border">
       <div class="flex items-center gap-3">
-        <div class="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-400/40 bg-black/40 shadow-[0_0_25px_rgba(37,212,102,0.55)]">
-          <span class="font-display text-xl tracking-[0.18em] text-podium-green">P</span>
-        </div>
-        <div class="leading-tight">
-          <div class="font-display text-xl leading-none tracking-[0.20em] text-podium-text">PODIUM</div>
-          <p class="text-xs uppercase tracking-[0.26em] text-podium-muted">Dashboard 360</p>
-        </div>
+        <a href="index.html" class="flex items-center gap-3 group">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-valior-card border border-valior-border group-hover:border-valior-green transition-colors shadow-[0_0_15px_rgba(0,255,102,0.05)]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00ff66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-9 5 18 2-9h7"/></svg>
+            </div>
+            <div class="leading-tight">
+                <div class="text-xl font-bold tracking-tight text-white">
+                    VALIOR
+                </div>
+                <p class="text-[10px] font-mono uppercase tracking-widest text-valior-muted">
+                    Terminal 360
+                </p>
+            </div>
+        </a>
       </div>
-      <div class="flex items-center gap-4">
-        <span id="last-sync" class="text-[10px] uppercase tracking-[0.22em] text-podium-muted hidden sm:inline"></span>
-        <button onclick="logout()" class="text-[10px] uppercase tracking-[0.22em] text-podium-muted hover:text-white transition">Salir</button>
-        <div class="flex items-center gap-2 rounded-full border border-podium-border bg-black/40 px-3 py-1 text-xs uppercase tracking-[0.26em] text-podium-gold shadow-[0_0_18px_rgba(245,188,47,0.25)]">
-          <span class="h-1.5 w-1.5 rounded-full bg-podium-gold animate-pulse"></span>
-          Live
+
+      <div class="hidden items-center gap-6 text-sm sm:flex">
+        <button onclick="logout()" class="text-[11px] font-mono uppercase tracking-widest text-valior-muted hover:text-white transition-colors">Salir</button>
+        <a href="index.html" class="text-[11px] font-mono uppercase tracking-widest text-valior-muted hover:text-white transition-colors">
+          Volver a Inicio
+        </a>
+        <div class="flex items-center gap-2 rounded-lg border border-valior-border bg-valior-card px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest text-valior-green shadow-[0_0_15px_rgba(0,255,102,0.1)]">
+            <span class="h-1.5 w-1.5 rounded-full bg-valior-green animate-pulse"></span>
+            Live Data
         </div>
       </div>
     </header>
 
-    <!-- ═══ MAIN ═══ -->
-    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 w-full flex-1 space-y-8">
+    <!-- DASHBOARD MAIN CONTENT -->
+    <main class="mx-auto max-w-7xl px-6 py-12 w-full flex-1">
 
-      <!-- ── LOADING STATE ── -->
-      <div id="loading-state" class="flex flex-col items-center justify-center py-24 rounded-3xl glass">
-        <div class="loader mb-4"></div>
-        <p class="text-sm uppercase tracking-[0.22em] text-podium-muted">Conectando con Supabase...</p>
-      </div>
+        <header class="mb-12">
+            <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3">
+                Radiografía <span class="text-valior-green">de Jornada</span>
+            </h1>
+            <p class="text-base text-valior-muted max-w-2xl">
+                Escaneo algorítmico en tiempo real conectado directamente a la base de datos.
+            </p>
+        </header>
 
-      <!-- ── ERROR STATE ── -->
-      <div id="error-state" class="hidden flex-col items-center justify-center py-24 rounded-3xl glass text-center px-6">
-        <div class="flex h-14 w-14 items-center justify-center rounded-full border border-podium-red/40 bg-podium-red/10 mb-5">
-          <svg class="w-7 h-7 text-podium-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>
-        </div>
-        <h3 class="font-display text-2xl uppercase tracking-[0.18em] text-podium-text mb-2">Error de Conexión</h3>
-        <p id="error-message" class="text-sm text-podium-muted max-w-md">No se pudo conectar con Supabase.</p>
-      </div>
-
-      <!-- ═══ DASHBOARD CONTENT (hidden until loaded) ═══ -->
-      <div id="dashboard-content" class="hidden space-y-8">
-
-        <!-- ── KPI ROW ── -->
-        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 fade-in" style="animation-delay: 0.1s">
-          <div class="glass rounded-2xl p-5 text-center glow-green">
-            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Total Picks</p>
-            <p id="kpi-total" class="font-display text-4xl text-podium-text">—</p>
-          </div>
-          <div class="glass rounded-2xl p-5 text-center">
-            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Winrate</p>
-            <p id="kpi-winrate" class="font-display text-4xl text-podium-green">—</p>
-          </div>
-          <div class="glass rounded-2xl p-5 text-center glow-gold">
-            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Yield</p>
-            <p id="kpi-yield" class="font-display text-4xl text-podium-gold">—</p>
-          </div>
-          <div class="glass rounded-2xl p-5 text-center">
-            <p class="text-[10px] uppercase tracking-[0.24em] text-podium-muted mb-2">Profit</p>
-            <p id="kpi-profit" class="font-display text-4xl text-podium-green">—</p>
-          </div>
-        </section>
-
-        <!-- ── MAIN GRID: Chart + Matches ── -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-          <!-- LEFT: ROI Chart + Recent Picks (2 cols) -->
-          <div class="lg:col-span-2 space-y-6 fade-in" style="animation-delay: 0.2s">
-            <!-- ROI Chart -->
-            <div class="glass rounded-2xl p-6">
-              <h2 class="font-display text-xl uppercase tracking-[0.16em] text-podium-gold mb-4">ROI Acumulado</h2>
-              <div class="chart-container">
-                <canvas id="roi-chart"></canvas>
-              </div>
+        <!-- KPI CARDS (Expandido a 4) -->
+        <div class="mb-10 grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="rounded-xl border border-valior-border bg-valior-card px-5 py-4">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-valior-muted mb-1">Total Picks</p>
+                <p id="roi-total-picks" class="text-2xl font-bold text-white">0</p>
             </div>
-
-            <!-- Recent Picks Table -->
-            <div class="glass rounded-2xl p-6">
-              <h2 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text mb-4">Picks Recientes</h2>
-              <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                  <thead>
-                    <tr class="border-b border-podium-border/50 text-[10px] text-podium-muted/70 uppercase tracking-[0.15em]">
-                      <th class="py-2 font-normal">Fecha</th>
-                      <th class="py-2 font-normal">Partido</th>
-                      <th class="py-2 font-normal text-right">Cuota</th>
-                      <th class="py-2 font-normal text-right">EV%</th>
-                      <th class="py-2 font-normal text-right">Res</th>
-                    </tr>
-                  </thead>
-                  <tbody id="recent-picks-body">
-                    <tr><td colspan="5" class="py-6 text-center text-podium-muted text-sm">Cargando...</td></tr>
-                  </tbody>
-                </table>
-              </div>
+            <div class="rounded-xl border border-valior-border bg-valior-card px-5 py-4">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-valior-muted mb-1">Winrate</p>
+                <p id="roi-winrate" class="text-2xl font-bold text-white">0.0%</p>
             </div>
-          </div>
-
-          <!-- RIGHT: Today's Matches (3 cols) -->
-          <div class="lg:col-span-3 space-y-6 fade-in" style="animation-delay: 0.3s">
-
-            <!-- Active Matches -->
-            <div>
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display text-2xl uppercase tracking-[0.16em] text-podium-text">
-                  Cartelera <span class="text-podium-gold">del Día</span>
-                </h2>
-                <span id="match-count" class="text-[10px] uppercase tracking-[0.24em] text-podium-green bg-black/60 px-2 py-1 rounded border border-podium-green/30"></span>
-              </div>
-              <div id="matches-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="glass rounded-2xl p-8 text-center col-span-full">
-                  <p class="text-sm text-podium-muted">Cargando partidos...</p>
-                </div>
-              </div>
+            <div class="rounded-xl border border-valior-border bg-valior-card px-5 py-4">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-valior-muted mb-1">Yield</p>
+                <p id="roi-yield" class="text-2xl font-bold text-white">0.0%</p>
             </div>
-
-            <!-- VIP Signals -->
-            <div>
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="font-display text-2xl uppercase tracking-[0.16em] text-podium-gold drop-shadow-[0_0_12px_rgba(245,188,47,0.4)]">
-                  Señales VIP
-                </h2>
-                <span id="vip-count" class="text-[10px] uppercase font-bold tracking-[0.24em] text-black bg-podium-gold px-3 py-1 rounded"></span>
-              </div>
-              <div id="vip-container" class="space-y-4">
-                <div class="glass rounded-2xl p-8 text-center">
-                  <p class="text-sm text-podium-muted">Cargando señales VIP...</p>
-                </div>
-              </div>
+            <div class="rounded-xl border border-valior-green/30 bg-valior-green/5 px-5 py-4 shadow-[0_0_15px_rgba(0,255,102,0.05)]">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-valior-muted mb-1">Profit</p>
+                <p id="roi-profit" class="text-2xl font-bold text-valior-green">+0.00 u.</p>
             </div>
-
-          </div>
         </div>
 
-      </div><!-- /dashboard-content -->
+        <!-- Tabs Navigation -->
+        <div class="mb-8 border-b border-valior-border">
+            <nav class="flex gap-8 -mb-px" aria-label="Tabs">
+                <button onclick="switchTab('general')" id="tab-btn-general" class="border-valior-green text-valior-green whitespace-nowrap py-4 px-1 border-b-2 font-sans font-semibold text-sm uppercase tracking-widest transition-colors">
+                    Jornada General
+                </button>
+                <button onclick="switchTab('vip')" id="tab-btn-vip" class="border-transparent text-valior-muted hover:text-white hover:border-valior-border whitespace-nowrap py-4 px-1 border-b-2 font-sans font-semibold text-sm uppercase tracking-widest transition-colors">
+                    Pronósticos VIP
+                </button>
+            </nav>
+        </div>
+
+        <div id="loading-state" class="flex flex-col items-center justify-center py-24 rounded-2xl border border-valior-border bg-valior-card/50 backdrop-blur">
+            <div class="loader mb-4"></div>
+            <p class="text-[11px] font-mono uppercase tracking-widest text-valior-muted">Conectando matriz de datos...</p>
+        </div>
+
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-24 rounded-2xl border border-valior-border bg-valior-card/50 backdrop-blur text-center">
+            <div class="flex h-14 w-14 items-center justify-center rounded-xl border border-valior-border bg-[#1a1a1a] mb-6">
+                <svg class="w-6 h-6 text-valior-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H4M12 4v16"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Jornada Completada</h3>
+            <p class="text-sm text-valior-muted max-w-md">No se han detectado ineficiencias matemáticas en la jornada actual. Próximo escaneo en 12 horas. Protegiendo bankroll.</p>
+        </div>
+
+        <!-- TAB 1: JORNADA GENERAL -->
+        <div id="tab-general" class="hidden space-y-12">
+            <!-- SECCIÓN A: PRÓXIMOS EVENTOS -->
+            <div>
+                <div class="flex items-center justify-between pb-4 mb-6 border-b border-valior-border">
+                    <h2 class="text-lg font-bold uppercase tracking-widest text-white">
+                        Próximos Eventos
+                    </h2>
+                    <span id="board-active-count" class="text-[10px] font-mono uppercase tracking-widest text-valior-green bg-valior-green/10 px-2.5 py-1 rounded border border-valior-green/20"></span>
+                </div>
+                <div id="daily-board-active-container">
+                    <!-- Match cards go here -->
+                </div>
+            </div>
+
+            <!-- SECCIÓN B: HISTORIAL DE ANÁLISIS -->
+            <div>
+                <div class="flex items-center justify-between pb-4 mb-6 border-b border-valior-border">
+                    <h2 class="text-lg font-bold uppercase tracking-widest text-valior-muted">
+                        Historial de Análisis
+                    </h2>
+                    <span id="board-finished-count" class="text-[10px] font-mono uppercase tracking-widest text-valior-muted bg-valior-card px-2.5 py-1 rounded border border-valior-border"></span>
+                </div>
+                <div id="daily-board-finished-container" class="opacity-60 hover:opacity-100 transition duration-300">
+                    <!-- Match cards go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PRONÓSTICOS VIP -->
+        <div id="tab-vip" class="hidden space-y-12">
+            <!-- SECCIÓN A: VIP ACTIVOS -->
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between pb-4 border-b border-valior-green/30">
+                    <h2 class="text-lg font-bold uppercase tracking-widest text-valior-green">
+                        Pronósticos Activos
+                    </h2>
+                    <span id="vip-active-count" class="text-[10px] font-mono uppercase font-bold tracking-widest text-black bg-valior-green px-3 py-1 rounded"></span>
+                </div>
+                <div id="vip-signals-active-container" class="space-y-6">
+                    <!-- Renders here -->
+                </div>
+            </div>
+
+            <!-- SECCIÓN B: VIP HISTORIAL -->
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between pb-4 border-b border-valior-border">
+                    <h2 class="text-lg font-bold uppercase tracking-widest text-valior-muted">
+                        Historial VIP
+                    </h2>
+                    <span id="vip-finished-count" class="text-[10px] font-mono uppercase font-bold tracking-widest text-valior-muted bg-valior-card border border-valior-border px-3 py-1 rounded"></span>
+                </div>
+                <div id="vip-signals-finished-container" class="space-y-6 opacity-60 hover:opacity-100 transition duration-300">
+                    <!-- Renders here -->
+                </div>
+            </div>
+        </div>
+
     </main>
 
-    <!-- ═══ FOOTER ═══ -->
-    <footer class="mt-8 border-t border-podium-border/70 pt-6 pb-8 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col items-start justify-between gap-4 text-[11px] text-podium-muted sm:flex-row sm:items-center">
-        <p>Podium 360 · Sistema Data-First Híbrido · IA y Optimización de EV.</p>
-        <p class="uppercase tracking-[0.24em]">Powered by Antigravity & Claude</p>
+    <!-- Modal Detalles de Partido (Match View) -->
+    <div id="match-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Background backdrop -->
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeMatchModal()"></div>
+
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+
+                <div class="relative transform overflow-hidden rounded-2xl border border-valior-border bg-valior-bg text-left shadow-2xl transition-all sm:my-8 w-full max-w-5xl">
+                    <!-- Boton Cerrar -->
+                    <button onclick="closeMatchModal()" class="absolute right-5 top-5 text-valior-muted hover:text-white bg-valior-card border border-valior-border rounded-lg p-2 z-10 transition-colors">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    <!-- Content Injected via JS -->
+                    <div id="match-modal-content" class="h-full">
+                        <!-- Loading or match details -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="mt-auto border-t border-valior-border pt-8 pb-10 mx-auto w-full max-w-7xl px-6">
+      <div class="flex flex-col items-start justify-between gap-4 text-xs text-valior-muted sm:flex-row sm:items-center">
+        <p>
+          Valior · Sistema Data-First Híbrido · IA y Optimización de EV.
+        </p>
+        <p class="font-mono uppercase tracking-widest text-[10px]">
+          Powered by Antigravity & Claude
+        </p>
       </div>
     </footer>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-  <!-- SCRIPT — All data from Supabase, zero local dependencies                 -->
-  <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- Config compartida (Supabase URL + ANON_KEY + getSupabase()) -->
+  <script src="js/config.js"></script>
+
   <script>
-    // ── Defensive HTML escape ──
-    function esc(str) {
-      if (str == null) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    // Escapa caracteres HTML para prevenir XSS en cualquier valor proveniente de Supabase
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
-    // ── Market label humanizer ──
-    const MARKET_LABELS = {
-      '1x2_local': 'Victoria Local', '1x2_visitante': 'Victoria Visitante', '1x2_empate': 'Empate',
-      'over_1.5': 'Over 1.5', 'under_1.5': 'Under 1.5', 'over_2.5': 'Over 2.5', 'under_2.5': 'Under 2.5',
-      'over_3.5': 'Over 3.5', 'under_3.5': 'Under 3.5',
-      'btts': 'BTTS', 'dc_1x': 'DC 1X', 'dc_x2': 'DC X2', 'dc_12': 'DC 12',
-    };
+    // Global Data Cache
+    let GLOBAL_MATCHES = {};
+    let GLOBAL_BOARD = [];
+    let GLOBAL_VIP = [];
 
-    function humanizeMarket(code, home, away) {
-      if (!code) return '--';
-      const c = code.toLowerCase();
-      if (c === '1x2_local') return `${home}`;
-      if (c === '1x2_visitante') return `${away}`;
-      return MARKET_LABELS[c] || code;
+    // Tabs Logic
+    function switchTab(tab) {
+        if (tab === 'general') {
+            document.getElementById('tab-general').classList.remove('hidden');
+            document.getElementById('tab-vip').classList.add('hidden');
+            document.getElementById('tab-btn-general').classList.add('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-general').classList.remove('border-transparent', 'text-podium-muted');
+            document.getElementById('tab-btn-vip').classList.remove('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-vip').classList.add('border-transparent', 'text-podium-muted');
+        } else {
+            document.getElementById('tab-vip').classList.remove('hidden');
+            document.getElementById('tab-general').classList.add('hidden');
+            document.getElementById('tab-btn-vip').classList.add('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-vip').classList.remove('border-transparent', 'text-podium-muted');
+            document.getElementById('tab-btn-general').classList.remove('border-podium-gold', 'text-podium-gold');
+            document.getElementById('tab-btn-general').classList.add('border-transparent', 'text-podium-muted');
+        }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // BOOT — with robust error handling and timeout
-    // ═══════════════════════════════════════════════════════════════════════════
-    let sb; // Supabase client instance
-
-    function showError(msg) {
-      console.error('[Podium]', msg);
-      document.getElementById('loading-state').classList.add('hidden');
-      document.getElementById('error-state').classList.remove('hidden');
-      document.getElementById('error-state').classList.add('flex');
-      document.getElementById('error-message').textContent = msg;
+    // Modal UI Helpers
+    function openMatchModal(matchKey) {
+        document.getElementById('match-modal').classList.remove('hidden');
+        renderMatchDetailView(matchKey);
     }
 
+    function closeMatchModal() {
+        document.getElementById('match-modal').classList.add('hidden');
+        document.getElementById('match-modal-content').innerHTML = ''; // Clean up
+    }
+
+    // Logout
     async function logout() {
-      if (sb) await sb.auth.signOut();
-      window.location.href = 'auth.html';
+        const sb = getSupabase();
+        if (sb) await sb.auth.signOut();
+        window.location.href = 'auth.html';
     }
 
-    async function boot() {
-      console.log('[Podium] Booting dashboard...');
-
-      try {
-        sb = getSupabase();
-        
-        // --- AUTHENTICATION GUARD ---
-        const { data: { session }, error: authError } = await sb.auth.getSession();
-        if (authError || !session) {
-          console.warn('[Podium] Unauthenticated user, redirecting to Login.');
-          window.location.href = 'auth.html';
-          return;
-        }
-        // -----------------------------
-
-        console.log('[Podium] Client authenticated, fetching data...');
-
-        // 3. Fetch with timeout (15s)
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout: Supabase no respondió en 15 segundos')), 15000)
-        );
-
-        const dataFetch = Promise.all([
-          sb.from('historical_results').select('*').order('match_date', { ascending: true }),
-          sb.from('daily_board').select('*').eq('status', 'active').order('match_date', { ascending: true }),
-          sb.from('vip_signals').select('*').eq('status', 'active').order('ev_pct', { ascending: false }),
-        ]);
-
-        const [historicalRes, boardRes, vipRes] = await Promise.race([dataFetch, timeout]);
-
-        console.log('[Podium] Responses:', {
-          historical: { data: historicalRes.data?.length, error: historicalRes.error },
-          board: { data: boardRes.data?.length, error: boardRes.error },
-          vip: { data: vipRes.data?.length, error: vipRes.error },
-        });
-
-        // Check for RLS or auth errors
-        if (historicalRes.error) {
-          const msg = historicalRes.error.message || JSON.stringify(historicalRes.error);
-          throw new Error(`historical_results: ${msg}. ¿Ejecutaste la migración SQL?`);
-        }
-        if (boardRes.error) {
-          throw new Error(`daily_board: ${boardRes.error.message}`);
-        }
-        if (vipRes.error) {
-          throw new Error(`vip_signals: ${vipRes.error.message}`);
-        }
-
-        const historical = historicalRes.data || [];
-        const board = boardRes.data || [];
-        const vip = vipRes.data || [];
-
-        console.log(`[Podium] Data loaded: ${historical.length} historical, ${board.length} board, ${vip.length} VIP`);
-
-        // 4. Show content
-        document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('dashboard-content').classList.remove('hidden');
-
-        renderKPIs(historical);
-        renderROIChart(historical);
-        renderRecentPicks(historical);
-        renderMatches(board);
-        renderVIP(vip);
-
-        document.getElementById('last-sync').textContent = `Sync: ${new Date().toLocaleTimeString('es-CO')}`;
-
-      } catch (err) {
-        showError(err.message || 'Error desconocido al conectar con Supabase.');
-      }
+    // ── Momentum helpers (Form + H2H) ──────────────────────────────────────
+    function extractMomentum(mercadosCompletos) {
+        if (!mercadosCompletos) return null;
+        const entry = mercadosCompletos.find(m => m.mercado === 'MOMENTUM_DATA');
+        return entry || null;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // KPIs — calculated client-side from historical_results
-    // ═══════════════════════════════════════════════════════════════════════════
-    function renderKPIs(data) {
-      const resolved = data.filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss');
-      const wins = resolved.filter(d => d.status_win_loss === 'win');
-      const losses = resolved.filter(d => d.status_win_loss === 'loss');
-      const total = resolved.length;
-
-      if (total === 0) {
-        document.getElementById('kpi-total').textContent = '0';
-        document.getElementById('kpi-winrate').textContent = '—';
-        document.getElementById('kpi-yield').textContent = '—';
-        document.getElementById('kpi-profit').textContent = '—';
-        return;
-      }
-
-      const winrate = (wins.length / total * 100).toFixed(1);
-      const profit = wins.reduce((sum, d) => sum + ((d.cuota || 1) - 1), 0)
-                   + losses.reduce((sum, _) => sum - 1, 0);
-      const yieldPct = (profit / total * 100).toFixed(1);
-
-      document.getElementById('kpi-total').textContent = total;
-      document.getElementById('kpi-winrate').textContent = `${winrate}%`;
-      document.getElementById('kpi-yield').textContent = `${yieldPct > 0 ? '+' : ''}${yieldPct}%`;
-      document.getElementById('kpi-profit').textContent = `${profit > 0 ? '+' : ''}${profit.toFixed(1)}u`;
-
-      // Color code profit
-      const profitEl = document.getElementById('kpi-profit');
-      profitEl.className = profitEl.className.replace(/text-podium-\w+/g, '');
-      profitEl.classList.add(profit >= 0 ? 'text-podium-green' : 'text-podium-red');
-      profitEl.classList.add('font-display', 'text-4xl');
+    // ── Data completeness check ──────────────────────────────────────────
+    function isDataIncomplete(item) {
+        const markets = item.mercados_completos || [];
+        const realMarkets = markets.filter(m => m.mercado && m.mercado !== 'MOMENTUM_DATA' && m.mercado !== 'IA_ANALYSIS' && m.cuota != null);
+        const momentum = extractMomentum(markets);
+        const hasXg = item.xg_diff != null && parseFloat(item.xg_diff) !== 0;
+        const hasQuotes = realMarkets.length >= 3;
+        const hasForma = momentum && momentum.forma && (momentum.forma.local || momentum.forma.visitante);
+        // Incomplete if missing 2+ of: xG, cuotas, forma
+        const missing = (!hasXg ? 1 : 0) + (!hasQuotes ? 1 : 0) + (!hasForma ? 1 : 0);
+        return missing >= 2;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // ROI Chart — cumulative profit over time
-    // ═══════════════════════════════════════════════════════════════════════════
-    function renderROIChart(data) {
-      const resolved = data.filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss');
-      if (resolved.length === 0) return;
-
-      // Sort by date
-      resolved.sort((a, b) => (a.match_date || '').localeCompare(b.match_date || ''));
-
-      // Group by date and accumulate profit
-      let cumProfit = 0;
-      const dateMap = new Map();
-
-      for (const pick of resolved) {
-        const date = pick.match_date || 'N/A';
-        const delta = pick.status_win_loss === 'win' ? (pick.cuota || 1) - 1 : -1;
-        cumProfit += delta;
-        dateMap.set(date, cumProfit);
-      }
-
-      const labels = [...dateMap.keys()].map(d => {
-        const parts = d.split('-');
-        return parts.length === 3 ? `${parts[2]}/${parts[1]}` : d;
-      });
-      const values = [...dateMap.values()].map(v => parseFloat(v.toFixed(2)));
-
-      const ctx = document.getElementById('roi-chart').getContext('2d');
-      const gradient = ctx.createLinearGradient(0, 0, 0, 280);
-      gradient.addColorStop(0, 'rgba(37, 212, 102, 0.25)');
-      gradient.addColorStop(1, 'rgba(37, 212, 102, 0.0)');
-
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Profit (units)',
-            data: values,
-            borderColor: '#25d466',
-            borderWidth: 2,
-            backgroundColor: gradient,
-            fill: true,
-            tension: 0.35,
-            pointRadius: 3,
-            pointBackgroundColor: '#25d466',
-            pointBorderColor: '#050716',
-            pointBorderWidth: 2,
-            pointHoverRadius: 6,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { intersect: false, mode: 'index' },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: '#13162b',
-              borderColor: '#1e2340',
-              borderWidth: 1,
-              titleFont: { family: 'Barlow Condensed' },
-              bodyFont: { family: 'Barlow Condensed' },
-              callbacks: {
-                label: ctx => `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}u`,
-              },
-            },
-          },
-          scales: {
-            x: {
-              ticks: { color: '#8090b0', font: { family: 'Barlow Condensed', size: 10 }, maxRotation: 45 },
-              grid: { color: 'rgba(30,35,64,0.4)' },
-            },
-            y: {
-              ticks: {
-                color: '#8090b0',
-                font: { family: 'Barlow Condensed', size: 11 },
-                callback: v => `${v >= 0 ? '+' : ''}${v}u`,
-              },
-              grid: { color: 'rgba(30,35,64,0.3)' },
-            },
-          },
-        },
-      });
+    function renderFormDots(formaArr) {
+        if (!formaArr || !formaArr.length) return '';
+        return formaArr.map(r => {
+            const u = (r || '').toUpperCase();
+            if (u === 'W') return '<span class="inline-block h-2 w-2 rounded-full bg-podium-green" title="Victoria"></span>';
+            if (u === 'D') return '<span class="inline-block h-2 w-2 rounded-full bg-podium-gold" title="Empate"></span>';
+            return '<span class="inline-block h-2 w-2 rounded-full bg-podium-red" title="Derrota"></span>';
+        }).join('');
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Recent Picks Table
-    // ═══════════════════════════════════════════════════════════════════════════
-    function renderRecentPicks(data) {
-      const resolved = data
-        .filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss')
-        .sort((a, b) => (b.match_date || '').localeCompare(a.match_date || ''))
-        .slice(0, 15);
-
-      const tbody = document.getElementById('recent-picks-body');
-
-      if (resolved.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-podium-muted text-sm">Sin picks resueltos aún.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = resolved.map(pick => {
-        const isWin = pick.status_win_loss === 'win';
-        const badgeClass = isWin
-          ? 'bg-podium-green/15 text-podium-green border-podium-green/30'
-          : 'bg-podium-red/15 text-podium-red border-podium-red/30';
-        const badgeText = isWin ? 'W' : 'L';
-        const evVal = pick.ev_pct != null ? parseFloat(pick.ev_pct).toFixed(1) : '--';
-        const cuotaVal = pick.cuota != null ? parseFloat(pick.cuota).toFixed(2) : '--';
-        const dateStr = pick.match_date ? pick.match_date.split('-').reverse().slice(0, 2).join('/') : '--';
-        const teams = `${esc(pick.home_team || '')} v ${esc(pick.away_team || '')}`;
-
+    function renderFormRow(label, formaArr) {
+        if (!formaArr || !formaArr.length) return '';
+        const dots = renderFormDots(formaArr);
+        const wCount = formaArr.filter(r => (r||'').toUpperCase() === 'W').length;
+        const dCount = formaArr.filter(r => (r||'').toUpperCase() === 'D').length;
+        const lCount = formaArr.filter(r => (r||'').toUpperCase() === 'L').length;
         return `
-          <tr class="border-b border-podium-border/20 hover:bg-black/30 transition">
-            <td class="py-2 text-[11px] text-podium-muted font-mono">${dateStr}</td>
-            <td class="py-2 text-[11px] text-podium-text truncate max-w-[120px]" title="${teams}">${teams}</td>
-            <td class="py-2 text-[11px] text-podium-text text-right font-mono">${cuotaVal}</td>
-            <td class="py-2 text-[11px] text-podium-gold text-right font-mono">${evVal}%</td>
-            <td class="py-2 text-right">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${badgeClass}">${badgeText}</span>
-            </td>
-          </tr>`;
-      }).join('');
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] text-podium-muted uppercase tracking-wider">${escapeHtml(label)}</span>
+                <div class="flex items-center gap-2">
+                    <div class="flex gap-1">${dots}</div>
+                    <span class="text-[10px] text-podium-muted/70 font-mono">${wCount}W ${dCount}D ${lCount}L</span>
+                </div>
+            </div>`;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Active Matches (daily_board)
-    // ═══════════════════════════════════════════════════════════════════════════
-    function renderMatches(data) {
-      const container = document.getElementById('matches-container');
-      const countEl = document.getElementById('match-count');
+    function formatAdj(val) {
+        if (val == null || val === 1.0) return null;
+        const pct = ((val - 1) * 100).toFixed(1);
+        const sign = pct > 0 ? '+' : '';
+        const color = pct > 0 ? 'text-podium-green' : (pct < 0 ? 'text-podium-red' : 'text-podium-muted');
+        return `<span class="${color} text-[10px] font-mono">${sign}${pct}%</span>`;
+    }
 
-      if (data.length === 0) {
-        container.innerHTML = `
-          <div class="glass rounded-2xl p-10 text-center col-span-full">
-            <div class="flex h-14 w-14 items-center justify-center rounded-full border border-podium-border bg-black/60 mb-4 mx-auto">
-              <svg class="w-7 h-7 text-podium-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-              </svg>
-            </div>
-            <h3 class="font-display text-xl uppercase tracking-[0.16em] text-podium-text mb-2">Sin Eventos Activos</h3>
-            <p class="text-sm text-podium-muted">El próximo escaneo algorítmico generará nuevas posiciones.</p>
-          </div>`;
-        countEl.textContent = '0 partidos';
-        return;
-      }
+    // UI Helpers
+    function getEvColorClass(ev) {
+        const value = parseFloat(ev);
+        if (isNaN(value)) return 'text-podium-muted';
+        if (value < 1.0) return 'text-podium-red';
+        if (value >= 1.0 && value < 5.0) return 'text-podium-gold';
+        if (value >= 5.0) return 'text-podium-green font-bold';
+        return 'text-podium-muted';
+    }
 
-      countEl.textContent = `${data.length} partido${data.length !== 1 ? 's' : ''}`;
+    function renderBoardCard(item) {
+        const matchKey = `${item.home_team}_${item.away_team}`;
+        const markets = item.mercados_completos || [];
 
-      container.innerHTML = data.map(item => {
-        const p1 = item.poisson_1 || 33;
-        const px = item.poisson_x || 33;
-        const p2 = item.poisson_2 || 33;
+        // ── IA detection ──────────────────────────────────────────────────────
+        const hasIA = markets.some(m => m.mercado === 'IA_ANALYSIS');
+
+        // ── xG diff pill ──────────────────────────────────────────────────────
         const xgDiff = parseFloat(item.xg_diff) || 0;
         const xgSign = xgDiff > 0 ? '+' : '';
         const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
+        const xgPill = `<span class="font-mono text-[9px] px-1.5 py-0.5 rounded border border-podium-border/60 bg-black/40 ${xgColor}">xG ${xgSign}${item.xg_diff || '0'}</span>`;
 
-        // Best EV from mercados_completos
-        const markets = item.mercados_completos || [];
+        // ── IA pill ───────────────────────────────────────────────────────────
+        const iaPill = hasIA
+            ? `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded border border-podium-gold/40 text-podium-gold bg-podium-gold/5">IA</span>`
+            : '';
+
+        // ── Incomplete data pill ─────────────────────────────────────────────
+        const incompletePill = isDataIncomplete(item)
+            ? `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded border border-podium-red/40 text-podium-red bg-podium-red/5" title="Datos parciales: sin cuotas API y/o sin xG/forma">Parcial</span>`
+            : '';
+
+        // ── Mejor EV: busca el mercado con mayor ev_pct ───────────────────────
+        const MARKET_LABELS = {
+            '1x2_local': 'Local', '1x2_visitante': 'Visitante', '1x2_empate': 'Empate',
+            'over_1.5': 'Over 1.5', 'under_1.5': 'Under 1.5',
+            'over_2.5': 'Over 2.5', 'under_2.5': 'Under 2.5',
+            'over_3.5': 'Over 3.5', 'under_3.5': 'Under 3.5',
+            'btts_yes': 'Ambos Marcan', 'btts_no': 'Sin Ambos',
+            'dc_1x': 'DC 1X', 'dc_x2': 'DC X2', 'dc_12': 'DC 12',
+        };
         const realMarkets = markets.filter(m => m.mercado && m.mercado !== 'MOMENTUM_DATA' && m.mercado !== 'IA_ANALYSIS' && m.ev_pct != null);
         let bestEvHtml = '';
         if (realMarkets.length > 0) {
-          const best = realMarkets.reduce((a, b) => parseFloat(b.ev_pct) > parseFloat(a.ev_pct) ? b : a);
-          const evVal = parseFloat(best.ev_pct);
-          const evColor = evVal >= 5 ? 'text-podium-green' : 'text-podium-gold';
-          bestEvHtml = `
-            <div class="flex items-center justify-between text-[10px]">
-              <span class="text-podium-muted uppercase tracking-widest">Mejor EV</span>
-              <span class="${evColor} font-mono font-semibold">${evVal > 0 ? '+' : ''}${evVal.toFixed(1)}% · ${esc(humanizeMarket(best.mercado, item.home_team, item.away_team))}</span>
-            </div>`;
+            const best = realMarkets.reduce((a, b) => parseFloat(b.ev_pct) > parseFloat(a.ev_pct) ? b : a);
+            const evVal = parseFloat(best.ev_pct);
+            const badgeClass = evVal >= 5
+                ? 'bg-podium-green/10 border-podium-green/50 text-podium-green'
+                : 'bg-podium-gold/10 border-podium-gold/40 text-podium-gold';
+            const evSign = evVal > 0 ? '+' : '';
+            const marketLabel = MARKET_LABELS[best.mercado] || best.mercado;
+            bestEvHtml = `
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] uppercase tracking-widest text-podium-muted font-mono">Mejor EV</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[9px] text-podium-muted/60 font-mono">${escapeHtml(marketLabel)}</span>
+                        <span class="text-[9px] font-mono font-semibold px-1.5 py-px rounded border ${badgeClass}">${evSign}${evVal.toFixed(1)}%</span>
+                    </div>
+                </div>`;
         }
 
+        // ── Forma: una sola línea con dots de ambos equipos ───────────────────
+        const momentum = extractMomentum(markets);
+        let formaHtml = '';
+        if (momentum && momentum.forma) {
+            const fl = momentum.forma.local;
+            const fv = momentum.forma.visitante;
+            if (fl || fv) {
+                const homeAbbr = escapeHtml((item.home_team || '').split(' ').pop().substring(0, 3).toUpperCase());
+                const awayAbbr = escapeHtml((item.away_team || '').split(' ').pop().substring(0, 3).toUpperCase());
+                const homeDots = fl ? renderFormDots(fl) : '<span class="text-podium-muted/30 text-[9px] font-mono">--</span>';
+                const awayDots = fv ? renderFormDots(fv) : '<span class="text-podium-muted/30 text-[9px] font-mono">--</span>';
+                formaHtml = `
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] uppercase tracking-widest text-podium-muted font-mono">Forma</span>
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[9px] text-podium-muted/40 font-mono">${homeAbbr}</span>
+                            <div class="flex gap-0.5">${homeDots}</div>
+                        </div>
+                        <span class="text-podium-border/60">·</span>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[9px] text-podium-muted/40 font-mono">${awayAbbr}</span>
+                            <div class="flex gap-0.5">${awayDots}</div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }
+
+        // ── Middle section ────────────────────────────────────────────────────
+        const hasMiddle = bestEvHtml || formaHtml;
+        const middleHtml = hasMiddle ? `
+            <div class="pt-2.5 border-t border-podium-border/30 space-y-1.5">
+                ${bestEvHtml}
+                ${formaHtml}
+            </div>` : '';
+
+        // ── CTA label ─────────────────────────────────────────────────────────
+        const ctaLabel = hasIA ? 'Triple ángulo + matrices' : 'Ver matrices de valor';
+
         return `
-        <div class="glass glass-hover rounded-2xl p-5 transition cursor-default flex flex-col gap-3">
-          <!-- Liga + xG pill -->
-          <div class="flex items-center justify-between">
-            <span class="text-[9px] uppercase tracking-[0.28em] text-podium-muted truncate">${esc(item.estado_mercado || 'Análisis')}</span>
-            <span class="font-mono text-[9px] px-1.5 py-0.5 rounded border border-podium-border/60 bg-black/40 ${xgColor}">xG ${xgSign}${item.xg_diff || '0'}</span>
-          </div>
+        <div onclick="openMatchModal('${escapeHtml(matchKey)}')" class="group relative overflow-hidden p-4 rounded-2xl border border-podium-border bg-[#090d18] transition hover:bg-[#0c1328] hover:border-podium-border/80 cursor-pointer shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.03)] flex flex-col gap-3 h-full">
 
-          <!-- Teams -->
-          <div class="leading-none">
-            <p class="font-display text-xl uppercase tracking-[0.1em] text-white leading-none">${esc(item.home_team)}</p>
-            <p class="text-[9px] font-light text-podium-muted/50 tracking-[0.24em] uppercase my-1">vs</p>
-            <p class="font-display text-xl uppercase tracking-[0.1em] text-white leading-none">${esc(item.away_team)}</p>
-          </div>
-
-          <!-- 1X2 Bar -->
-          <div class="space-y-1">
-            <div class="flex h-1.5 overflow-hidden rounded-full bg-[#050710]">
-              <div class="bg-podium-green opacity-90 transition-all" style="width: ${p1}%"></div>
-              <div class="bg-podium-muted opacity-50 transition-all" style="width: ${px}%"></div>
-              <div class="bg-podium-red opacity-90 transition-all" style="width: ${p2}%"></div>
+            <!-- Fila 1: liga + pills -->
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[9px] uppercase tracking-[0.28em] text-podium-muted truncate">${escapeHtml(item.liga || 'Competición Global')}</span>
+                <div class="flex items-center gap-1 shrink-0">
+                    ${incompletePill}
+                    ${xgPill}
+                    ${iaPill}
+                </div>
             </div>
-            <div class="flex justify-between text-[9px] font-mono">
-              <span class="text-podium-green">${p1}%&thinsp;1</span>
-              <span class="text-podium-muted">${px}%&thinsp;X</span>
-              <span class="text-podium-red">${p2}%&thinsp;2</span>
-            </div>
-          </div>
 
-          <!-- Best EV -->
-          ${bestEvHtml}
+            <!-- Fila 2: equipos -->
+            <div class="leading-none">
+                <p class="font-display text-xl uppercase tracking-[0.1em] text-white leading-none">${escapeHtml(item.home_team)}</p>
+                <p class="text-[9px] font-light text-podium-muted/50 tracking-[0.24em] uppercase my-1">vs</p>
+                <p class="font-display text-xl uppercase tracking-[0.1em] text-white leading-none">${escapeHtml(item.away_team)}</p>
+            </div>
+
+            <!-- Fila 3: barra 1X2 delgada -->
+            <div class="space-y-1">
+                <div class="flex h-1.5 overflow-hidden rounded-full bg-[#050710]">
+                    <div class="bg-podium-green opacity-90" style="width: ${item.poisson_1 || 33}%"></div>
+                    <div class="bg-podium-muted opacity-50" style="width: ${item.poisson_x || 33}%"></div>
+                    <div class="bg-podium-red opacity-90" style="width: ${item.poisson_2 || 33}%"></div>
+                </div>
+                <div class="flex justify-between text-[9px] font-mono">
+                    <span class="text-podium-green">${item.poisson_1 || '-'}%&thinsp;1</span>
+                    <span class="text-podium-muted">${item.poisson_x || '-'}%&thinsp;X</span>
+                    <span class="text-podium-red">${item.poisson_2 || '-'}%&thinsp;2</span>
+                </div>
+            </div>
+
+            <!-- Fila 4+5: Mejor EV + Forma -->
+            ${middleHtml}
+
+            <!-- CTA footer -->
+            <button class="mt-auto w-full flex justify-center items-center py-2 rounded border border-podium-border/80 bg-black/30 group-hover:bg-podium-border text-[10px] text-white uppercase tracking-[0.2em] transition font-mono">
+                ${ctaLabel}
+            </button>
         </div>`;
-      }).join('');
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // VIP Signals
-    // ═══════════════════════════════════════════════════════════════════════════
-    function renderVIP(data) {
-      const container = document.getElementById('vip-container');
-      const countEl = document.getElementById('vip-count');
+    // Agrupa tarjetas de partidos por liga
+    function renderBoardByLeague(data) {
+        if (data.length === 0) {
+            return `<p class="text-sm text-podium-muted italic p-4">No hay eventos en esta sección.</p>`;
+        }
+        const byLeague = {};
+        data.forEach(item => {
+            const league = item.liga || 'Competición Global';
+            if (!byLeague[league]) byLeague[league] = [];
+            byLeague[league].push(item);
+        });
+        return Object.entries(byLeague).map(([league, items]) => `
+            <div class="mb-10">
+                <div class="flex items-center gap-3 mb-5">
+                    <h3 class="font-display text-xl uppercase tracking-[0.18em] text-podium-gold whitespace-nowrap">${escapeHtml(league)}</h3>
+                    <div class="flex-1 h-px bg-podium-gold/20"></div>
+                    <span class="text-[10px] uppercase tracking-[0.24em] text-podium-muted whitespace-nowrap">${items.length} partido${items.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    ${items.map(renderBoardCard).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
 
-      if (data.length === 0) {
+    // Agrupa y renderiza el Match Detail
+    function renderMatchDetailView(matchKey) {
+        const item = GLOBAL_MATCHES[matchKey];
+        if(!item) return;
+
+        const container = document.getElementById('match-modal-content');
+
+        // Separating completely all the markets inside item.mercados_completos
+        const markets = item.mercados_completos || [];
+
+        let aiCourtesyData = null;
+
+        // Limpiar el angulo_matematico si existe para el Triple Angulo
+        let anguloMatematico = 'Generando modelo heurístico...';
+        let anguloTendencia = item.ultimo_diagnostico_tendencia || 'Evaluando métricas subyacentes...';
+        let anguloContexto = item.ultimo_diagnostico_contexto || 'Sin alteraciones sistémicas reportadas.';
+
+        markets.forEach(m => {
+            if(m.mercado === 'IA_ANALYSIS' && !aiCourtesyData) aiCourtesyData = m;
+            if (m.angulo_matematico && m.angulo_matematico !== 'Pendiente de generación') {
+                anguloMatematico = m.angulo_matematico.replace(/\[Mercado: .*?\]\s*/i, '');
+                anguloTendencia = m.angulo_tendencia || anguloTendencia;
+                anguloContexto = m.angulo_contexto || anguloContexto;
+            }
+        });
+
+        // Si teníamos un IA Courtesy explícito, sobreescribimos
+        if (aiCourtesyData) {
+            anguloMatematico = aiCourtesyData.angulo_matematico || anguloMatematico;
+            anguloTendencia = aiCourtesyData.angulo_tendencia || anguloTendencia;
+            anguloContexto = aiCourtesyData.angulo_contexto || anguloContexto;
+        }
+
+        const xgDiff = parseFloat(item.xg_diff) || 0;
+        const xgColor = xgDiff > 0 ? 'text-podium-green' : (xgDiff < 0 ? 'text-podium-red' : 'text-podium-muted');
+
+        // Fixed-layout Value Matrix — always renders all 5 sections regardless of data availability
+        function buildFixedValueMatrix(marketsArr, homeTeam, awayTeam) {
+            const lookup = {};
+            (marketsArr || []).forEach(m => {
+                if (m.mercado && m.mercado !== 'IA_ANALYSIS') {
+                    lookup[m.mercado.toLowerCase()] = m;
+                }
+            });
+
+            function buildRow(key, label) {
+                const m = lookup[key];
+                if (!m) {
+                    return `<tr class="border-b border-podium-border/20">
+                        <td class="py-2.5 pl-4 text-xs font-semibold tracking-wider text-podium-muted/60 uppercase">${label}</td>
+                        <td class="py-2.5 text-[11px] text-podium-muted/30 text-right hidden sm:table-cell">--</td>
+                        <td class="py-2.5 text-[11px] text-podium-muted/30 text-right hidden sm:table-cell">--</td>
+                        <td class="py-2.5 text-[11px] text-podium-muted/30 text-right">--</td>
+                        <td class="py-2.5 pr-4 text-[10px] text-podium-muted/40 text-right italic">Datos insuficientes</td>
+                    </tr>`;
+                }
+                const hasEv = m.ev_pct != null;
+                const hasCuota = m.cuota != null && m.cuota > 0;
+                const evValue = hasEv ? (m.ev_pct || 0) : null;
+                const oddValue = hasCuota ? m.cuota : '--';
+                const evColorClass = hasEv ? getEvColorClass(evValue) : 'text-podium-muted';
+                const showPrefix = (hasEv && evValue > 0) ? '+' : '';
+                const evDisplay = hasEv
+                    ? `${showPrefix}${evValue}%`
+                    : '<span class="text-podium-muted/50 italic text-[10px]">sin cuota API</span>';
+
+                let probModelo = '--';
+                let cuotaJusta = '--';
+                if (m.p_modelo_ext != null) {
+                    probModelo = parseFloat(m.p_modelo_ext).toFixed(1) + '%';
+                    cuotaJusta = m.p_modelo_ext > 0 ? (100 / parseFloat(m.p_modelo_ext)).toFixed(2) : '--';
+                } else if (hasCuota && hasEv && parseFloat(oddValue) > 0) {
+                    const probDecimal = (parseFloat(evValue) / 100 + 1) / parseFloat(oddValue);
+                    probModelo = (probDecimal * 100).toFixed(1) + '%';
+                    cuotaJusta = (1 / probDecimal).toFixed(2);
+                }
+
+                return `<tr class="border-b border-podium-border/30 hover:bg-black/60 transition">
+                    <td class="py-2.5 pl-4 text-xs font-semibold tracking-wider text-white uppercase">${label}</td>
+                    <td class="py-2.5 text-[11px] sm:text-xs text-podium-muted text-right hidden sm:table-cell">${probModelo}</td>
+                    <td class="py-2.5 text-[11px] sm:text-xs text-podium-muted text-right hidden sm:table-cell">${cuotaJusta}</td>
+                    <td class="py-2.5 text-[11px] sm:text-xs text-white font-semibold text-right">${oddValue}</td>
+                    <td class="py-2.5 pr-4 text-xs ${evColorClass} text-right">${evDisplay}</td>
+                </tr>`;
+            }
+
+            function buildSection(title, rows) {
+                return `<div class="overflow-hidden rounded-xl border border-podium-border bg-black/20 mb-4">
+                    <div class="bg-podium-border/20 px-4 py-2 border-b border-podium-border/40">
+                        <h4 class="font-display text-base uppercase tracking-widest text-podium-muted">${title}</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left whitespace-nowrap">
+                            <thead>
+                                <tr class="border-b border-podium-border/50 uppercase tracking-[0.15em] text-[10px] text-podium-muted/70">
+                                    <th class="py-2 pl-4 font-normal">Mercado</th>
+                                    <th class="py-2 font-normal text-right hidden sm:table-cell">Prob Modelo</th>
+                                    <th class="py-2 font-normal text-right hidden sm:table-cell">Cuota Justa</th>
+                                    <th class="py-2 font-normal text-right">Cuota Bookie</th>
+                                    <th class="py-2 pr-4 font-normal text-right">Ventaja (EV)</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+
+            const home = escapeHtml(homeTeam || 'Local');
+            const away = escapeHtml(awayTeam || 'Visitante');
+
+            const s1 = buildSection('Over / Under Goles', [
+                buildRow('over_1.5',  'Over 1.5'),
+                buildRow('under_1.5', 'Under 1.5'),
+                buildRow('over_2.5',  'Over 2.5'),
+                buildRow('under_2.5', 'Under 2.5'),
+                buildRow('over_3.5',  'Over 3.5'),
+                buildRow('under_3.5', 'Under 3.5'),
+            ].join(''));
+
+            const s2 = buildSection('Resultado', [
+                buildRow('1x2_local',     home + ' (Victoria Local)'),
+                buildRow('1x2_empate',    'Empate'),
+                buildRow('1x2_visitante', away + ' (Victoria Visitante)'),
+            ].join(''));
+
+            const s3 = buildSection('Doble Oportunidad', [
+                buildRow('dc_1x', '1X — ' + home + ' o Empate'),
+                buildRow('dc_x2', 'X2 — Empate o ' + away),
+                buildRow('dc_12', '12 — ' + home + ' o ' + away),
+            ].join(''));
+
+            const s4 = buildSection('Handicap Local', [
+                buildRow('spread_local_0.25', 'Local +0.25'),
+                buildRow('spread_local_0.5',  'Local +0.50'),
+                buildRow('spread_local_0.75', 'Local +0.75'),
+                buildRow('spread_local_1',    'Local +1'),
+                buildRow('spread_local_1.5',  'Local +1.5'),
+                buildRow('spread_local_2',    'Local +2'),
+            ].join(''));
+
+            const s5 = buildSection('Handicap Visitante', [
+                buildRow('spread_visitante_0.25', 'Visitante \u22120.25'),
+                buildRow('spread_visitante_0.5',  'Visitante \u22120.50'),
+                buildRow('spread_visitante_0.75', 'Visitante \u22120.75'),
+                buildRow('spread_visitante_1',    'Visitante \u22121'),
+                buildRow('spread_visitante_1.5',  'Visitante \u22121.5'),
+                buildRow('spread_visitante_2',    'Visitante \u22122'),
+            ].join(''));
+
+            return s1 + s2 + s3 + s4 + s5;
+        }
+
         container.innerHTML = `
-          <div class="glass rounded-2xl p-8 text-center glow-gold">
-            <p class="text-sm text-podium-muted">No hay señales VIP activas. El modelo es selectivo — protegiendo bankroll.</p>
-          </div>`;
-        countEl.textContent = '0';
-        return;
-      }
+        <div class="flex flex-col h-full mx-auto pb-8">
+            <!-- Header Modal -->
+            <div class="px-6 py-8 md:px-10 border-b border-podium-border/60 bg-gradient-to-br from-[#0a1020] to-[#0a0f1c]">
+                <div class="flex items-center space-x-2 mb-3">
+                    <span class="text-xs text-podium-muted font-semibold uppercase tracking-[0.24em]">${escapeHtml(item.liga || 'JORNADA GLOBAL')}</span>
+                </div>
+                <h3 class="font-display text-4xl sm:text-5xl uppercase tracking-[0.12em] text-white">
+                    ${escapeHtml(item.home_team)} <span class="text-podium-gold font-light px-2" style="font-family: 'Barlow Condensed';">VS</span> ${escapeHtml(item.away_team)}
+                </h3>
+            </div>
 
-      // Group picks by match
-      const groups = {};
-      const order = [];
-      data.forEach(pick => {
-        const key = `${pick.home_team}__${pick.away_team}`;
-        if (!groups[key]) { groups[key] = []; order.push(key); }
-        groups[key].push(pick);
-      });
+            <!-- Modal Content Padding -->
+            <div class="px-6 md:px-10 py-8 space-y-10">
 
-      countEl.textContent = `${data.length} pick${data.length !== 1 ? 's' : ''}`;
+                <!-- Incomplete data warning -->
+                ${isDataIncomplete(item) ? `
+                <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-podium-red/30 bg-podium-red/5">
+                    <span class="text-podium-red text-lg shrink-0">&#9888;</span>
+                    <p class="text-xs text-podium-red/80 leading-relaxed">
+                        <strong class="text-podium-red">Datos parciales.</strong> Este partido tiene cobertura limitada en las APIs — el modelo opera solo con Elo y/o probabilidades puras. Las cuotas, forma y xG pueden estar ausentes.
+                    </p>
+                </div>
+                ` : ''}
 
-      container.innerHTML = order.map(key => {
-        const picks = groups[key];
+                <!-- Triple Angulo (Análisis IA) -->
+                <div>
+                    <h4 class="font-display text-2xl uppercase tracking-widest text-podium-text mb-5 border-b border-podium-border pb-2 border-podium-gold/20 flex items-center gap-2">
+                        <svg class="h-5 w-5 text-podium-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Triple Ángulo <span class="text-podium-muted ml-2 text-lg">(Motor Analítico)</span>
+                    </h4>
+                    <div class="grid gap-5 md:grid-cols-3">
+                        <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5 shadow-inner">
+                            <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-gold">1. Matemático</p>
+                            <p class="text-sm leading-relaxed text-podium-muted font-body">${escapeHtml(anguloMatematico)}</p>
+                        </div>
+                        <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5 shadow-inner">
+                            <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-gold">2. Tendencia xG/Data</p>
+                            <p class="text-sm leading-relaxed text-podium-muted font-body">${escapeHtml(anguloTendencia)}</p>
+                        </div>
+                        <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5 shadow-inner">
+                            <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-gold">3. Contexto de Mercado</p>
+                            <p class="text-sm leading-relaxed text-podium-muted font-body">${escapeHtml(anguloContexto)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Momentum Section (Form + H2H) -->
+                ${(() => {
+                    const mom = extractMomentum(markets);
+                    if (!mom) return '';
+                    const forma = mom.forma || {};
+                    const h2h = mom.h2h || {};
+                    const diag = mom.diagnostico_global || {};
+                    const hasForma = forma.local || forma.visitante;
+                    const totalH2H = (h2h.victorias_local || 0) + (h2h.empates || 0) + (h2h.victorias_visitante || 0);
+                    const hasH2H = totalH2H > 0;
+                    if (!hasForma && !hasH2H) return '';
+
+                    const home = escapeHtml(item.home_team || 'Local');
+                    const away = escapeHtml(item.away_team || 'Visitante');
+
+                    let formaBlock = '';
+                    if (hasForma) {
+                        const adjLHtml = formatAdj(diag.form_adj_local);
+                        const adjVHtml = formatAdj(diag.form_adj_visitante);
+                        formaBlock = `
+                            <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5">
+                                <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-text">Forma Reciente</p>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] text-podium-muted">${home}</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex gap-1">${renderFormDots(forma.local)}</div>
+                                            ${adjLHtml ? '<span class="text-[10px] text-podium-muted/50 mx-1">|</span>' + adjLHtml : ''}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] text-podium-muted">${away}</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex gap-1">${renderFormDots(forma.visitante)}</div>
+                                            ${adjVHtml ? '<span class="text-[10px] text-podium-muted/50 mx-1">|</span>' + adjVHtml : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+
+                    let h2hBlock = '';
+                    if (hasH2H) {
+                        const adjHL = formatAdj(diag.h2h_adj_local);
+                        const adjHV = formatAdj(diag.h2h_adj_visitante);
+                        h2hBlock = `
+                            <div class="space-y-3 rounded-xl border border-podium-border/80 bg-black/40 p-5">
+                                <p class="text-xs uppercase font-bold tracking-[0.24em] text-podium-text">Historial Directo (H2H)</p>
+                                <div class="flex items-center justify-around text-center">
+                                    <div>
+                                        <p class="text-2xl font-display text-podium-green">${h2h.victorias_local || 0}</p>
+                                        <p class="text-[10px] text-podium-muted uppercase tracking-wider mt-1">${home}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-2xl font-display text-podium-muted">${h2h.empates || 0}</p>
+                                        <p class="text-[10px] text-podium-muted uppercase tracking-wider mt-1">Empates</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-2xl font-display text-podium-red">${h2h.victorias_visitante || 0}</p>
+                                        <p class="text-[10px] text-podium-muted uppercase tracking-wider mt-1">${away}</p>
+                                    </div>
+                                </div>
+                                ${(adjHL || adjHV) ? '<div class="text-center pt-2 border-t border-podium-border/30"><span class="text-[10px] text-podium-muted/60">Impacto: </span>' + (adjHL || '') + (adjHL && adjHV ? ' <span class="text-podium-muted/30">|</span> ' : '') + (adjHV || '') + '</div>' : ''}
+                            </div>`;
+                    }
+
+                    return `
+                    <div>
+                        <h4 class="font-display text-2xl uppercase tracking-widest text-podium-text mb-5 border-b border-podium-border pb-2 flex items-center gap-2">
+                            <svg class="h-5 w-5 text-podium-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                            Momentum <span class="text-podium-muted ml-2 text-lg">(Forma + H2H)</span>
+                        </h4>
+                        <div class="grid gap-5 ${hasForma && hasH2H ? 'md:grid-cols-2' : 'md:grid-cols-1 max-w-lg'}">
+                            ${formaBlock}
+                            ${h2hBlock}
+                        </div>
+                    </div>`;
+                })()}
+
+                <!-- Market Tables (Value Matrix) -->
+                <div>
+                    <h4 class="font-display text-2xl uppercase tracking-widest text-podium-text mb-5 border-b border-podium-border pb-2 flex items-center gap-2">
+                         <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Value Matrices <span class="text-podium-muted ml-2 text-lg">(Radar Algorítmico)</span>
+                    </h4>
+
+                    ${buildFixedValueMatrix(markets, item.home_team, item.away_team)}
+                </div>
+
+            </div>
+        </div>
+        `;
+    }
+
+    function getHumanizedMarket(mercado, home, away) {
+        if (!mercado) return '--';
+        const m = mercado.toLowerCase();
+        if (m === '1x2_local') return `Victoria ${home}`;
+        if (m === '1x2_visitante') return `Victoria ${away}`;
+        if (m === '1x2_empate') return 'Empate';
+        if (m === 'over_2.5') return 'Más de 2.5 Goles';
+        if (m === 'under_2.5') return 'Menos de 2.5 Goles';
+        if (m === 'over_1.5') return 'Más de 1.5 Goles';
+        if (m === 'under_1.5') return 'Menos de 1.5 Goles';
+        if (m === 'over_3.5') return 'Más de 3.5 Goles';
+        if (m === 'under_3.5') return 'Menos de 3.5 Goles';
+        if (m === 'btts') return 'Ambos Anotan';
+        if (m === 'dc_1x') return `Doble Oportunidad: ${home} o Empate`;
+        if (m === 'dc_x2') return `Doble Oportunidad: Empate o ${away}`;
+        if (m === 'dc_12') return `Doble Oportunidad: ${home} o ${away}`;
+        return mercado.replace('1x2_', '').toUpperCase();
+    }
+
+    // Agrupa un array de picks de vip_signals por partido (home_team + away_team).
+    // Retorna un array de arrays: cada sub-array contiene todos los picks de un mismo partido.
+    function groupVipByMatch(items) {
+        const groups = {};
+        const order = [];
+        items.forEach(item => {
+            const key = `${item.home_team}__${item.away_team}`;
+            if (!groups[key]) { groups[key] = []; order.push(key); }
+            groups[key].push(item);
+        });
+        return order.map(key => groups[key]);
+    }
+
+    // Recibe un array de picks del mismo partido y renderiza UNA card VIP agrupada.
+    function renderVipCard(picks) {
         const first = picks[0];
 
-        // Extract triple angle from first pick
-        let angMat = first.angulo_matematico || '';
-        // Remove [Mercado: ...] prefix
-        angMat = angMat.replace(/\[Mercado:\s*.*?\]\s*/i, '');
-        const angTen = first.angulo_tendencia || '';
-        const angCtx = first.angulo_contexto || '';
+        // Helper: extrae el código de mercado de un pick
+        function _getMercadoCode(pick) {
+            if (pick.mercado) return pick.mercado.toLowerCase();
+            if (pick.angulo_matematico && pick.angulo_matematico.includes('[Mercado:')) {
+                const m = pick.angulo_matematico.match(/\[Mercado: (.*?)\]/i);
+                if (m) return m[1].toLowerCase();
+            }
+            return null;
+        }
 
-        const picksHtml = picks.map(p => {
-          const evVal = parseFloat(p.ev_pct || 0);
-          const evColor = evVal >= 5 ? 'text-podium-green font-bold' : 'text-podium-gold';
-          const mLabel = humanizeMarket(p.mercado, first.home_team, first.away_team);
-          const cuota = p.cuota != null ? parseFloat(p.cuota).toFixed(2) : '--';
-          return `
-            <div class="flex items-center justify-between py-2 border-b border-podium-border/20 last:border-0">
-              <div>
-                <span class="text-xs text-podium-text font-semibold uppercase tracking-wider">${esc(mLabel)}</span>
-                <span class="text-[10px] text-podium-muted ml-2 font-mono">@ ${cuota}</span>
-              </div>
-              <span class="text-xs ${evColor} font-mono">+${evVal.toFixed(1)}% EV</span>
+        // Top 3 picks ordenados por ev_pct descendente
+        const topPicks = [...picks]
+            .sort((a, b) => (parseFloat(b.ev_pct) || 0) - (parseFloat(a.ev_pct) || 0))
+            .slice(0, 3);
+
+        const picksRowsHtml = topPicks.map(pick => {
+            const code = _getMercadoCode(pick);
+            const marketLabel = code ? getHumanizedMarket(code, first.home_team, first.away_team) : 'Ver análisis';
+            const cuota = pick.cuota != null ? pick.cuota : '--';
+            const evVal = parseFloat(pick.ev_pct || pick.ev_initial || 0);
+            const evStr = isNaN(evVal) ? '--' : evVal.toFixed(1);
+            const evColor = evVal >= 5 ? 'text-podium-green' : 'text-podium-gold';
+            return `
+            <div class="flex items-center gap-3 py-2 px-3 rounded-lg bg-black/30 border border-podium-border/40">
+                <span class="flex-1 text-xs text-podium-text font-semibold uppercase tracking-wide">${escapeHtml(marketLabel)}</span>
+                <span class="text-xs text-white font-bold">${cuota}</span>
+                <span class="text-xs font-bold ${evColor} border border-current/30 rounded px-2 py-0.5 bg-black/40 shrink-0">+${evStr}%</span>
             </div>`;
         }).join('');
 
+        // Accordion: usa el primer pick con narrativa real; si todos son pending → no mostrar
+        const _isPending = (t) => !t || ['Análisis IA Pendiente', '[PENDING_IA_GENERATION]'].some(s => t.includes(s));
+        const _allPending = picks.every(p => _isPending(p.angulo_matematico) && _isPending(p.angulo_tendencia) && _isPending(p.angulo_contexto));
+        const bestPick = picks.find(p => !_isPending(p.angulo_matematico)) || first;
+
+        let cleanAngulo = bestPick.angulo_matematico || 'Procesando narrativa...';
+        if (cleanAngulo.includes('[Mercado:')) {
+            cleanAngulo = cleanAngulo.replace(/\[Mercado: .*?\]\s*/i, '');
+        }
+
+        const _accordionId = 'angulos_' + (first.home_team + first.away_team).replace(/\W+/g, '');
+
         return `
-        <div class="glass rounded-2xl overflow-hidden glow-gold">
-          <!-- Header -->
-          <div class="px-6 py-4 border-b border-podium-gold/20 bg-gradient-to-r from-podium-gold/5 to-transparent">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-[9px] uppercase tracking-[0.28em] text-podium-muted mb-1">${esc(first.match_date || '')}</p>
-                <h3 class="font-display text-2xl uppercase tracking-[0.1em] text-white">
-                  ${esc(first.home_team)} <span class="text-podium-gold text-lg mx-1" style="font-family:'Barlow Condensed'">vs</span> ${esc(first.away_team)}
+        <article class="relative overflow-hidden rounded-2xl border border-podium-gold/30 bg-gradient-to-br from-[#0f1428] via-[#050716] to-black p-4 shadow-podium-gold">
+            <!-- Glow BG -->
+            <div class="pointer-events-none absolute inset-x-0 -top-10 h-32 bg-gradient-to-b from-podium-gold/10 to-transparent"></div>
+
+            <!-- Header -->
+            <div class="relative mb-5 pb-4 border-b border-podium-border/60">
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="bg-podium-gold text-black text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(245,188,47,0.5)]">VIP Signal</span>
+                </div>
+                <h3 class="font-display text-3xl uppercase tracking-[0.14em] text-white">
+                    ${escapeHtml(first.home_team)} <span class="text-podium-gold px-1">vs</span> ${escapeHtml(first.away_team)}
                 </h3>
-              </div>
-              <div class="flex items-center gap-2 rounded-full bg-podium-gold/10 border border-podium-gold/40 px-3 py-1 pulse-live">
-                <span class="h-2 w-2 rounded-full bg-podium-gold"></span>
-                <span class="text-[10px] font-bold uppercase tracking-widest text-podium-gold">VIP</span>
-              </div>
             </div>
-          </div>
 
-          <!-- Picks -->
-          <div class="px-6 py-4">
-            ${picksHtml}
-          </div>
-
-          <!-- Triple Angle (if available) -->
-          ${angMat || angTen || angCtx ? `
-          <div class="px-6 pb-5 pt-2 border-t border-podium-border/30">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-podium-gold mb-3 font-bold">Triple Ángulo</p>
-            <div class="grid gap-3 md:grid-cols-3">
-              <div class="text-[11px] text-podium-muted leading-relaxed">
-                <span class="text-podium-gold font-bold">1.</span> ${esc(angMat).substring(0, 200)}${angMat.length > 200 ? '...' : ''}
-              </div>
-              <div class="text-[11px] text-podium-muted leading-relaxed">
-                <span class="text-podium-gold font-bold">2.</span> ${esc(angTen).substring(0, 200)}${angTen.length > 200 ? '...' : ''}
-              </div>
-              <div class="text-[11px] text-podium-muted leading-relaxed">
-                <span class="text-podium-gold font-bold">3.</span> ${esc(angCtx).substring(0, 200)}${angCtx.length > 200 ? '...' : ''}
-              </div>
+            <!-- Picks list -->
+            <div class="space-y-2 mb-5">
+                ${picksRowsHtml}
             </div>
-          </div>` : ''}
-        </div>`;
-      }).join('');
+
+            <!-- Accordion análisis IA -->
+            ${_allPending ? `
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-podium-border bg-podium-card px-3 py-1 text-[11px] text-podium-muted">
+                    <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-podium-gold"></span>
+                    Análisis en proceso
+                </span>
+            </div>
+            ` : `
+            <div>
+                <button onclick="(function(btn){var el=document.getElementById('${_accordionId}');el.classList.toggle('hidden');btn.querySelector('span').textContent=el.classList.contains('hidden')?'▾':'▴';})(this)"
+                        class="mb-3 flex items-center gap-1.5 text-[12px] text-podium-muted transition-colors hover:text-podium-gold">
+                    Ver análisis IA <span>▾</span>
+                </button>
+                <div id="${_accordionId}" class="hidden relative grid gap-5 md:grid-cols-3">
+                    <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
+                        <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">1. Matemático</p>
+                        <p class="text-[13px] leading-relaxed text-podium-muted font-body">${escapeHtml(cleanAngulo)}</p>
+                    </div>
+                    <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
+                        <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">2. Tendencia xG/Data</p>
+                        <p class="text-[13px] leading-relaxed text-podium-muted font-body">${escapeHtml(bestPick.angulo_tendencia || 'Procesando narrativa...')}</p>
+                    </div>
+                    <div class="space-y-2 rounded-xl border border-podium-border bg-black/40 p-4">
+                        <p class="text-[11px] uppercase tracking-[0.24em] text-podium-gold">3. Contexto de Mercado</p>
+                        <p class="text-[13px] leading-relaxed text-podium-text font-body">${escapeHtml(bestPick.angulo_contexto || 'Procesando narrativa...')}</p>
+                    </div>
+                </div>
+            </div>
+            `}
+        </article>`;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════════════════════
-    document.addEventListener('DOMContentLoaded', boot);
+    async function fetchData() {
+        // Auth Guard
+        const sb = getSupabase();
+        try {
+            const { data: { session }, error: authError } = await sb.auth.getSession();
+            if (authError || !session) {
+                window.location.href = 'auth.html';
+                return;
+            }
+        } catch(e) {
+            window.location.href = 'auth.html';
+            return;
+        }
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        try {
+            console.log("--- DEBUG: Iniciando FETCH a Supabase ---");
+
+            // Obtenemos todos los datos reales inyectados por python supabase_sync.py
+            const { data: dbBoard, error: err1 } = await supabase.from('daily_board').select('*').order('estado_mercado', { ascending: false });
+            const { data: dbVip, error: err2 } = await supabase.from('vip_signals').select('*').order('ev_pct', { ascending: false });
+
+            document.getElementById('loading-state').classList.add('hidden');
+
+            if (err1) console.error("--- DEBUG ERROR (daily_board) ---", err1);
+            if (err2) console.error("--- DEBUG ERROR (vip_signals) ---", err2);
+
+            console.log("--- DEBUG DATA (daily_board) ---", dbBoard);
+            console.log("--- DEBUG DATA (vip_signals) ---", dbVip);
+
+            if (err1 && err2) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                return;
+            }
+
+            // ══════════════════════════════════════════════════════════
+            // FILTRADO ROBUSTO
+            // ══════════════════════════════════════════════════════════
+
+            // 1. Filtrar registros con datos vacíos/nulos
+            const validBoard = (dbBoard || []).filter(item =>
+                item.home_team && item.away_team && item.home_team.trim() !== ''
+            );
+            const validVip = (dbVip || []).filter(item =>
+                item.home_team && item.away_team && item.home_team.trim() !== ''
+            );
+
+            // 2. Deduplicación del lado del cliente (por si acaso)
+            function deduplicateByMatch(items) {
+                const seen = {};
+                return items.filter(item => {
+                    const key = `${item.home_team}_${item.away_team}`.toLowerCase();
+                    if (seen[key]) return false;
+                    seen[key] = true;
+                    return true;
+                });
+            }
+
+            // Para VIP, deduplicar por home_team + away_team + mercado (extraído del ángulo)
+            function deduplicateVip(items) {
+                const seen = {};
+                return items.filter(item => {
+                    const key = (item.id || `${item.home_team}_${item.away_team}`).toLowerCase();
+                    if (seen[key]) return false;
+                    seen[key] = true;
+                    return true;
+                });
+            }
+
+            const boardData = deduplicateByMatch(validBoard);
+            const vipData = deduplicateVip(validVip);
+
+            // KPIs from historical_results
+            try {
+                const { data: historical } = await supabase.from('historical_results').select('*');
+                if (historical && historical.length > 0) {
+                    const resolved = historical.filter(d => d.status_win_loss === 'win' || d.status_win_loss === 'loss');
+                    const wins = resolved.filter(d => d.status_win_loss === 'win');
+                    const total = resolved.length;
+                    if (total > 0) {
+                        const profit = wins.reduce((sum, d) => sum + ((d.cuota || 1) - 1), 0) + resolved.filter(d => d.status_win_loss === 'loss').reduce((sum, _) => sum - 1, 0);
+                        const winrate = (wins.length / total * 100).toFixed(1);
+                        const yieldPct = (profit / total * 100).toFixed(1);
+                        document.getElementById('roi-total-picks').textContent = total;
+                        document.getElementById('roi-winrate').textContent = winrate + '%';
+                        document.getElementById('roi-yield').textContent = (yieldPct > 0 ? '+' : '') + yieldPct + '%';
+                        document.getElementById('roi-profit').textContent = (profit > 0 ? '+' : '') + profit.toFixed(1) + ' u.';
+                        const profitEl = document.getElementById('roi-profit');
+                        profitEl.className = profitEl.className.replace(/text-valior-\w+/g, '');
+                        profitEl.classList.add(profit >= 0 ? 'text-valior-green' : 'text-[#ff3333]', 'text-2xl', 'font-bold');
+                    }
+                }
+            } catch(e) { console.warn("[Valior] Could not load historical_results:", e); }
+
+            if (boardData.length === 0 && vipData.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+            } else {
+
+                // Set first tab Active
+                switchTab('general');
+
+                // Group match data by team names
+                GLOBAL_BOARD = boardData;
+                GLOBAL_VIP = vipData;
+                boardData.forEach(item => {
+                    const matchKey = `${item.home_team}_${item.away_team}`;
+                    GLOBAL_MATCHES[matchKey] = item;
+                });
+
+                // Inject cross-referencial data from VIP signals to the Global Match Objects
+                vipData.forEach(vip => {
+                    const matchKey = `${vip.home_team}_${vip.away_team}`;
+                    if(GLOBAL_MATCHES[matchKey]) {
+                        // Inherit the narrative if available
+                        if(vip.angulo_matematico) {
+                            if(!GLOBAL_MATCHES[matchKey].mercados_completos) GLOBAL_MATCHES[matchKey].mercados_completos = [];
+                            GLOBAL_MATCHES[matchKey].mercados_completos.push({
+                                mercado: 'IA_ANALYSIS',
+                                angulo_matematico: vip.angulo_matematico,
+                                angulo_tendencia: vip.angulo_tendencia,
+                                angulo_contexto: vip.angulo_contexto
+                            });
+                        }
+                    }
+                });
+
+                // Split active vs finished using the DB status tag
+                const boardActiveData = boardData.filter(item => item.status !== 'finished');
+                const boardFinishedData = boardData.filter(item => item.status === 'finished');
+
+                const vipActiveData = vipData.filter(item => item.status !== 'finished');
+                const vipFinishedData = vipData.filter(item => item.status === 'finished');
+
+                document.getElementById('board-active-count').innerText = `${boardActiveData.length} EN VIVO / PRÓXIMO${boardActiveData.length!==1?'S':''}`;
+                document.getElementById('board-finished-count').innerText = `${boardFinishedData.length} FINALIZADO${boardFinishedData.length!==1?'S':''}`;
+
+                document.getElementById('vip-active-count').innerText = `${vipActiveData.length} ACTIVA${vipActiveData.length!==1?'S':''}`;
+                document.getElementById('vip-finished-count').innerText = `${vipFinishedData.length} FINALIZADA${vipFinishedData.length!==1?'S':''}`;
+
+                const boardActiveContainer = document.getElementById('daily-board-active-container');
+                boardActiveContainer.innerHTML = renderBoardByLeague(boardActiveData);
+
+                const boardFinishedContainer = document.getElementById('daily-board-finished-container');
+                boardFinishedContainer.innerHTML = renderBoardByLeague(boardFinishedData);
+
+                const vipActiveContainer = document.getElementById('vip-signals-active-container');
+                if (vipActiveData.length > 0) {
+                    vipActiveContainer.innerHTML = groupVipByMatch(vipActiveData).map(renderVipCard).join('');
+                } else {
+                    vipActiveContainer.innerHTML = `
+                    <div class="flex flex-col items-center py-12 px-4 rounded-xl border border-podium-border bg-black/40 text-center">
+                        <svg class="w-10 h-10 text-podium-muted mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="text-sm text-podium-text">Ningún pick activo superó el umbral.</p>
+                        <p class="text-[11px] text-podium-muted mt-1 uppercase tracking-[0.1em]">Protegiendo Bankroll.</p>
+                    </div>`;
+                }
+
+                const vipFinishedContainer = document.getElementById('vip-signals-finished-container');
+                if (vipFinishedData.length > 0) {
+                    vipFinishedContainer.innerHTML = groupVipByMatch(vipFinishedData).map(renderVipCard).join('');
+                } else {
+                    vipFinishedContainer.innerHTML = `<p class="text-sm text-podium-muted italic p-4">Historial de señales VIP en blanco.</p>`;
+                }
+            }
+
+        } catch (e) {
+            console.error("Catch Exception:", e);
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchData);
   </script>
 </body>
 </html>

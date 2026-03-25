@@ -51,7 +51,9 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Deploy en Vercel exitoso en `valior.vercel.app`
 - [x] Landing page migrada a React/Vite/Tailwind v4 (23-Mar-2026)
 - [x] Auth page rediseñada con dark theme split-screen (24-Mar-2026)
-- [ ] **NEXT →** Rediseñar dashboard.html (generar con Google AI Studio, integrar lógica Supabase existente)
+- [x] Dashboard rediseñado con Google AI Studio + JS original integrado (25-Mar-2026)
+- [ ] **NEXT →** Verificar dashboard en producción (hacer deploy, probar con datos reales)
+- [ ] **NEXT →** Página individual de partido (abrir en nueva pestaña para comparar múltiples partidos)
 - [ ] **NEXT →** Integración Stripe: checkout, webhooks, tabla `user_profiles`, condicional freemium/pago
 
 ### Fase 2 — Credibilidad
@@ -90,8 +92,18 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
   - `vercel.json` actualizado: build apunta a `frontend/dist`, `auth.html` y `dashboard.html` servidos desde `frontend/public/`.
   - Carpeta `web/` preservada como fallback. Ningún archivo Python modificado.
   - Tag de backup: `backup-pre-react-landing` (commit `c51a68f`). Copia física en `Desktop\VALIOR-BACKUP-23MAR`.
-- **PENDIENTE — Dashboard (`dashboard.html`):** Necesita rediseño visual para alinear con el nuevo look (dark theme, `#00ff66`, tipografía mono). La lógica de Supabase (renderBoardCard, renderVipCard, modales, etc.) debe mantenerse intacta. Generar diseño con Google AI Studio y luego integrar.
-- **PENDIENTE — Integración Stripe:** Implementar checkout y webhooks para el plan PRO ($9.99/mes). Requiere crear `user_profiles` en Supabase, agregar variables de entorno de Stripe, y condicionar el acceso freemium/pago en el dashboard.
+- **Dashboard Rediseñado (25-Mar-2026):**
+  - HTML/CSS generado por Google AI Studio (archivo fuente: `C:\Users\Juan\Downloads\ai_studio_code (2).html`)
+  - JavaScript original de `landing page/dashboard_live.html` integrado sin cambios de lógica
+  - Truco clave: tailwind.config mapea `podium: {...}` a los nuevos colores `valior`, así todo el JS original funciona sin editar clases CSS
+  - Auth Guard agregado al inicio de `fetchData()` — redirige a `auth.html` si no hay sesión
+  - Botón "Salir" agregado al navbar (llama `logout()` → `signOut()` → redirect)
+  - 4 KPI cards (antes eran 2): Total Picks, Winrate, Yield, Profit — alimentadas desde `historical_results`
+  - Credenciales Supabase cargadas desde `js/config.js` (no hardcodeadas en el script)
+  - Copiado a `frontend/public/dashboard.html` para Vercel
+- **PENDIENTE — Verificación en producción:** El dashboard no ha sido probado con datos reales en Vercel. Necesita build + deploy + verificación visual.
+- **PENDIENTE — Página individual de partido:** Agregar vista en nueva pestaña (?match=KEY) para comparar partidos lado a lado. El modal actual funciona pero bloquea la pantalla.
+- **PENDIENTE — Integración Stripe:** Implementar checkout y webhooks para el plan PRO ($9.99/mes). Estrategia definida: Supabase Edge Functions para create-checkout y stripe-webhook. Requiere crear `user_profiles` en Supabase, agregar variables de entorno de Stripe, y condicionar el acceso freemium/pago en el dashboard.
 - **Deploy SaaS Completado (23-Mar-2026):** Se desplegó exitosamente el Frontend en Vercel (`valior.vercel.app`). El proyecto ya no depende de scripts locales para ver la UI. La Landing Page es pública, y el Dashboard está protegido por Supabase Auth.
 - **Configuración de Seguridad en Vercel:** Se implementó `vercel.json` con cabeceras `Cache-Control`, `X-Frame-Options` (DENY), y `X-Content-Type-Options` (nosniff) para prevención de ataques.
 - **Schema maestro ejecutado:** `migrations/schema_maestro.sql` sincroniza las 3 tablas de Supabase. Políticas RLS de lectura anónima activadas temporalmente, pendientes de restricción a `authenticated`.
@@ -585,5 +597,16 @@ La landing page de VALIOR (`web/index.html`) fue reemplazada por una app React/V
 - Botón "Continuar con Google" (placeholder visual — requiere configurar OAuth provider en Supabase)
 - Archivo fuente: `web/auth.html` (se copia a `frontend/public/auth.html`)
 
+### Dashboard rediseñado (25-Mar-2026):
+- HTML/CSS de Google AI Studio: fondo `#050505`, verde `#00ff66`, Inter + JetBrains Mono, grid de fondo idéntico al login
+- Logo VALIOR con icono de pulso cardíaco SVG (igual que auth page)
+- 4 KPI cards: Total Picks, Winrate, Yield, Profit (alimentadas desde `historical_results`)
+- Tabs: Jornada General / Pronósticos VIP (con underline verde activo)
+- Tailwind config con mapeo `podium → valior` para compatibilidad con JS original
+- Auth Guard + botón "Salir" en navbar
+- JS original de `dashboard_live.html` preservado al 100% (renderBoardCard, renderVipCard, renderMatchDetailView, etc.)
+- Archivo fuente visual: `C:\Users\Juan\Downloads\ai_studio_code (2).html`
+- Archivo fuente lógica: `landing page/dashboard_live.html`
+
 ### Regla Crítica #6:
-No modificar `frontend/src/App.tsx` ni `web/auth.html` sin confirmación explícita del usuario. Estos archivos contienen diseños aprobados manualmente (generados con Google AI Studio).
+No modificar `frontend/src/App.tsx`, `web/auth.html`, ni `web/dashboard.html` sin confirmación explícita del usuario. Estos archivos contienen diseños aprobados manualmente (generados con Google AI Studio).
