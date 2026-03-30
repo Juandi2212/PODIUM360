@@ -52,9 +52,9 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Landing page migrada a React/Vite/Tailwind v4 (23-Mar-2026)
 - [x] Auth page rediseñada con dark theme split-screen (24-Mar-2026)
 - [x] Dashboard rediseñado con Google AI Studio + JS original integrado (25-Mar-2026)
+- [x] Integración Stripe completa: checkout, webhooks, `user_profiles`, freemium/pago (30-Mar-2026)
 - [ ] **NEXT →** Verificar dashboard en producción (hacer deploy, probar con datos reales)
 - [ ] **NEXT →** Página individual de partido (abrir en nueva pestaña para comparar múltiples partidos)
-- [ ] **NEXT →** Integración Stripe: checkout, webhooks, tabla `user_profiles`, condicional freemium/pago
 
 ### Fase 2 — Credibilidad
 - [ ] Tab "Historial" público con ROI acumulado (historical_results)
@@ -75,7 +75,7 @@ Frontend Landing → React 19, Vite 6, Tailwind CSS v4 (Carpeta `frontend/`) (op
 Frontend Auth/Dash → HTML5, Vanilla JS, Tailwind CSS (Carpeta `web/` → copiado a `frontend/public/`) (operativo ✅)
 Backend/DB       → Supabase (operativo ✅)
 Auth             → Supabase Auth (operativo ✅)
-Pagos            → Stripe — por integrar (Próximo hito)
+Pagos            → Stripe Checkout + Webhooks via Supabase Edge Functions (operativo ✅)
 Deploy           → Vercel (conectado ✅)
 Pipeline         → Python local (operativo ✅) — migrar a servidor en Fase 2
 IA narrativa     → Gemini 2.5 Flash (operativo ✅)
@@ -83,9 +83,26 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (18 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (30 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
 ### Última jornada operativa:
+- **Integración Stripe Completada (30-Mar-2026):**
+  - Tabla `user_profiles` creada en Supabase con triggers automáticos: `handle_new_user()` (crea perfil al registrar), `handle_updated_at()`.
+  - Edge Functions desplegadas via Supabase CLI (`npx supabase functions deploy`):
+    - `create-checkout` — crea sesión de Stripe Checkout, desplegada con `--no-verify-jwt`
+    - `stripe-webhook` — recibe 4 eventos de Stripe, desplegada con `--no-verify-jwt`
+  - Webhook activo en Stripe Dashboard (modo Test) apuntando a `https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/stripe-webhook`
+  - Secrets configurados en Supabase Edge Functions: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`
+  - Producto creado en Stripe: "Valior PRO" $9.99/mes (Price ID: `price_1TAEWgRlkXl104JTEPPH1PUj`)
+  - Dashboard actualizado con lógica freemium completa:
+    - `fetchUserPlan()` — consulta `user_profiles` para detectar plan free/pro
+    - `upgradeToPro()` — llama a Edge Function `create-checkout`, redirige a Stripe Checkout
+    - `applyFreemiumGate()` — bloquea cards 4+ con blur + overlay "🔒 Análisis exclusivo PRO", bloquea tab VIP con wall de upgrade
+    - `applyProBadge()` — oculta botón upgrade para usuarios PRO
+    - `handleCheckoutReturn()` — detecta `?checkout=success` y muestra banner verde de confirmación
+    - Botón "Upgrade PRO ⚡" en navbar (visible solo para plan free)
+  - Flujo completo probado exitosamente con tarjeta de prueba (`4242 4242 4242 4242`)
+  - **IMPORTANTE:** `web/dashboard.html` NO tiene la lógica freemium. Solo `frontend/public/dashboard.html` (que Vercel sirve) la tiene.
 - **Migración Frontend Completada (24-Mar-2026):**
   - Landing page migrada de HTML estático a React 19/Vite 6/Tailwind v4 (carpeta `frontend/`). Diseño generado con Google AI Studio.
   - Auth page (`auth.html`) rediseñada completamente: split-screen dark theme, grid de fondo, glow verde, testimonial. Lógica Supabase Auth intacta.
@@ -103,7 +120,6 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
   - Copiado a `frontend/public/dashboard.html` para Vercel
 - **PENDIENTE — Verificación en producción:** El dashboard no ha sido probado con datos reales en Vercel. Necesita build + deploy + verificación visual.
 - **PENDIENTE — Página individual de partido:** Agregar vista en nueva pestaña (?match=KEY) para comparar partidos lado a lado. El modal actual funciona pero bloquea la pantalla.
-- **PENDIENTE — Integración Stripe:** Implementar checkout y webhooks para el plan PRO ($9.99/mes). Estrategia definida: Supabase Edge Functions para create-checkout y stripe-webhook. Requiere crear `user_profiles` en Supabase, agregar variables de entorno de Stripe, y condicionar el acceso freemium/pago en el dashboard.
 - **Deploy SaaS Completado (23-Mar-2026):** Se desplegó exitosamente el Frontend en Vercel (`valior.vercel.app`). El proyecto ya no depende de scripts locales para ver la UI. La Landing Page es pública, y el Dashboard está protegido por Supabase Auth.
 - **Configuración de Seguridad en Vercel:** Se implementó `vercel.json` con cabeceras `Cache-Control`, `X-Frame-Options` (DENY), y `X-Content-Type-Options` (nosniff) para prevención de ataques.
 - **Schema maestro ejecutado:** `migrations/schema_maestro.sql` sincroniza las 3 tablas de Supabase. Políticas RLS de lectura anónima activadas temporalmente, pendientes de restricción a `authenticated`.
@@ -431,40 +447,70 @@ API_FOOTBALL_KEY=<api-football.com>
 FOOTBALL_DATA_KEY=<football-data.org>  ← legacy, ya no se usa en result_updater
 ```
 
-### Variables a añadir en Fase 1 (Next.js):
+### Variables en Supabase Edge Functions (configuradas 30-Mar-2026 ✅):
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://ssvnixnqczpvpiomgrje.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
-STRIPE_SECRET_KEY=<stripe_secret>
-STRIPE_WEBHOOK_SECRET=<stripe_webhook>
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<stripe_publishable>
+STRIPE_SECRET_KEY=sk_test_...     ← Secret key de Stripe (modo Test)
+STRIPE_PRICE_ID=price_1TAEWgRlkXl104JTEPPH1PUj  ← Producto "Valior PRO" $9.99/mes
+STRIPE_WEBHOOK_SECRET=whsec_...   ← Signing secret del webhook
 ```
+Estas variables se configuraron via `npx supabase secrets set` y solo existen en Supabase Edge Functions.
+`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` están disponibles automáticamente en Edge Functions.
 
 ---
 
-## Esquema de Supabase (v2.0)
+## Esquema de Supabase (v3.0 — con Stripe)
 
 | Tabla | Propósito | Acceso dashboard JS |
 |-------|-----------|-------------------|
 | `daily_board` | Jornada activa (se purga en cada sync) | ✅ anon read |
 | `vip_signals` | Picks EV ≥ 5% de la jornada activa | ✅ anon read |
 | `historical_results` | Archivo permanente de picks finalizados + ROI | ❌ solo service_role |
+| `user_profiles` | Perfiles de usuario + plan + Stripe IDs | ✅ authenticated (solo propio perfil) |
 
-### Columnas a añadir en Supabase para Fase 1 (usuarios y membresías):
-```sql
--- Tabla de perfiles de usuario (vinculada a Supabase Auth)
-CREATE TABLE user_profiles (
-  id UUID REFERENCES auth.users PRIMARY KEY,
-  email TEXT,
-  plan TEXT DEFAULT 'free',         -- 'free' | 'paid'
-  stripe_customer_id TEXT,
-  subscription_status TEXT,         -- 'active' | 'canceled' | 'past_due'
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+### `user_profiles` — CREADA Y OPERATIVA (30-Mar-2026) ✅
 
--- RLS: usuarios solo leen su propio perfil
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-```
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `id` | UUID PK | FK → `auth.users(id)` ON DELETE CASCADE |
+| `email` | TEXT | Email del usuario |
+| `plan` | TEXT | `'free'` (default) \| `'pro'` |
+| `stripe_customer_id` | TEXT UNIQUE | ID de customer en Stripe |
+| `stripe_subscription_id` | TEXT | ID de suscripción activa |
+| `subscription_status` | TEXT | `'inactive'` (default) \| `'active'` \| `'canceled'` \| `'past_due'` |
+| `created_at` | TIMESTAMPTZ | Timestamp de creación |
+| `updated_at` | TIMESTAMPTZ | Auto-actualizado via trigger |
+
+**Triggers automáticos:**
+- `on_auth_user_created` → ejecuta `handle_new_user()` → inserta perfil vacío al registrarse
+- `set_updated_at` → ejecuta `handle_updated_at()` → actualiza `updated_at` en cada UPDATE
+
+**RLS:**
+- `users_read_own_profile` → authenticated solo lee su propio perfil (`auth.uid() = id`)
+- `service_role_all` → service_role puede escribir todo (usado por webhooks de Stripe)
+
+**Migration script:** `migrations/create_user_profiles.sql` — ya ejecutado en producción.
+
+### Supabase Edge Functions — DESPLEGADAS (30-Mar-2026) ✅
+
+#### `create-checkout`
+- **URL:** `https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/create-checkout`
+- **Código:** `supabase/functions/create-checkout/index.ts`
+- **JWT:** `--no-verify-jwt` (la función verifica internamente via `sb.auth.getUser(token)`)
+- **Flujo:** Autentica usuario → verifica que no sea PRO → obtiene/crea Stripe Customer → crea Checkout Session → devuelve URL
+- **Redirección post-pago:** `dashboard.html?checkout=success` o `dashboard.html?checkout=canceled`
+
+#### `stripe-webhook`
+- **URL:** `https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/stripe-webhook`
+- **Código:** `supabase/functions/stripe-webhook/index.ts`
+- **JWT:** `--no-verify-jwt` (Stripe no envía JWT; la función verifica firma con `STRIPE_WEBHOOK_SECRET`)
+- **Eventos manejados:**
+  - `checkout.session.completed` → activa plan PRO, guarda `stripe_subscription_id`
+  - `customer.subscription.updated` → actualiza `subscription_status` y `plan`
+  - `customer.subscription.deleted` → baja a plan free
+  - `invoice.payment_failed` → marca `past_due`
+
+**Deploy via CLI:** `npx supabase functions deploy <nombre> --project-ref ssvnixnqczpvpiomgrje --no-verify-jwt`
+**Requiere:** Access token de Supabase (`sbp_...`) pasado via `$env:SUPABASE_ACCESS_TOKEN`
 
 ### `daily_board` — patrón MOMENTUM_DATA (v2.0)
 La columna `mercados_completos` (JSONB) ahora incluye un registro especial con `mercado: "MOMENTUM_DATA"` que contiene `forma`, `h2h` y `diagnostico_global`. El dashboard JS lo extrae con `extractMomentum()` para renderizar la sección de Momentum en tarjetas y modal. Este patrón evita migraciones de esquema — los datos viajan dentro del JSONB existente.
