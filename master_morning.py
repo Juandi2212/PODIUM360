@@ -11,7 +11,7 @@ def ts():
 def run_step(script, step_num, total_steps):
     print(f"\n[{ts()}] -- PASO {step_num}/{total_steps}: {script} --------------------------")
     t0 = time.time()
-    result = subprocess.run(["python", script])
+    result = subprocess.run([sys.executable, script])
     elapsed = round(time.time() - t0, 1)
     if result.returncode != 0:
         print(f"\n[{ts()}] [FALLO] {script} (exit code {result.returncode})")
