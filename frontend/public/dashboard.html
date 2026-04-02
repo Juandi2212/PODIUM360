@@ -1186,8 +1186,8 @@
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Obtener plan del usuario; si viene de checkout, esperar confirmación del webhook
-        window.userPlan = await fetchUserPlan(sb, supabase);
+        // DEMO MODE: forzar plan PRO para pruebas sin Stripe
+        window.userPlan = 'pro'; // await fetchUserPlan(sb, supabase);
         await handleCheckoutReturn(sb, supabase);
 
         try {
