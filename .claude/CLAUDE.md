@@ -53,7 +53,11 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Auth page rediseñada con dark theme split-screen (24-Mar-2026)
 - [x] Dashboard rediseñado con Google AI Studio + JS original integrado (25-Mar-2026)
 - [x] Integración Stripe completa: checkout, webhooks, `user_profiles`, freemium/pago (30-Mar-2026)
-- [ ] **NEXT →** Verificar dashboard en producción (hacer deploy, probar con datos reales)
+- [x] Auditoría de seguridad pre-lanzamiento: freemium gate, RLS, headers CSP/HSTS, CORS, BTTS fix (11-May-2026)
+- [x] Deploy de seguridad en producción: commit `c9ca0d2` en `main` → `valior.vercel.app` (11-May-2026)
+- [ ] **NEXT →** Activar Gemini API pay-as-you-go (~$5/mes) para eliminar análisis "Pendiente" en jornadas grandes
+- [ ] **NEXT →** Comprar dominio `valior.app` o similar (~$12/año en Namecheap o Vercel)
+- [ ] **NEXT →** Verificar dashboard con datos reales de próxima jornada (pipeline + freemium gate + mercados completos)
 - [ ] **NEXT →** Página individual de partido (abrir en nueva pestaña para comparar múltiples partidos)
 
 ### Fase 2 — Credibilidad
@@ -83,7 +87,42 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (30 de Marzo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (11 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+
+### Auditoría de Seguridad Pre-Lanzamiento (11-May-2026):
+- **Freemium gate reactivado (`frontend/public/dashboard.html`):**
+  - `window.userPlan = 'pro'` (Demo Mode hardcodeado) reemplazado por `await fetchUserPlan(sb, supabase)`
+  - El plan de cada usuario ahora se consulta en tiempo real desde `user_profiles` en cada carga del dashboard
+  - **CRÍTICO:** Sin este fix, todos los usuarios veían plan PRO sin pagar
+- **RLS de Supabase — `vip_signals` protegida:**
+  - Eliminada política `anon_read_vip_signals` (`USING (true)`) que exponía picks VIP a cualquiera sin autenticar
+  - Nueva política `pro_read_vip_signals`: solo usuarios autenticados con `plan = 'pro'` en `user_profiles`
+  - Script: `migrations/fix_vip_signals_rls_pro_only.sql` (ejecutado en producción)
+  - `daily_board` mantiene lectura anónima (es el contenido gratuito — intencional)
+  - **Para dar acceso PRO sin pagar** (owner/beta): `UPDATE user_profiles SET plan='pro', subscription_status='active' WHERE email='...'`
+- **Headers de seguridad en `vercel.json`** (agregados):
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  - `Content-Security-Policy` completo (script-src, connect-src a Supabase/Stripe, frame-src Stripe)
+  - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
+- **CORS restringido en Edge Function `create-checkout`:**
+  - `'Access-Control-Allow-Origin': '*'` → `'https://valior.vercel.app'`
+- **Console.logs de debug eliminados del dashboard:**
+  - Removidos 5 `console.log/error` que imprimían todo `daily_board` y `vip_signals` en DevTools del usuario
+- **BTTS arreglado en `data_fetcher.py`:**
+  - `"markets": "h2h,totals,spreads"` → `"h2h,totals,spreads,btts"` (línea 921)
+  - BTTS nunca se solicitaba a The Odds API — por eso siempre estaba vacío
+- **Mercados sin cuota bookie ahora siempre visibles (`model_engine.py`):**
+  - Antes: solo `over_1.5`/`under_1.5` se inyectaban sin cuota API
+  - Ahora: `over_2.5`, `under_2.5`, `over_3.5`, `under_3.5`, `btts` también se inyectan con `p_modelo_ext` del Poisson
+  - El dashboard muestra Prob Modelo + Cuota Justa calculada + "sin cuota API" en EV — nunca "Datos insuficientes"
+- **Landing page — copy público limpiado (`frontend/src/App.tsx`):**
+  - Eliminadas referencias a Poisson, Elo, xG, H2H del frontend público
+  - Stat hero: `"Modelo / Poisson + xG"` → `"Algoritmo / Propietario"`
+  - Footer mockup: `"Poisson + Elo + xG Analysis"` → `"Motor Analítico Propietario"`
+  - Card "Ingesta de Datos": texto genérico sin revelar fuentes; tags `[ELO][XG][H2H]` → `[SEÑALES][MERCADO][TENDENCIA][TIEMPO REAL]`
+  - Fórmula: `EV = (P_modelo × Cuota) - 1` → `EV = (Probabilidad Real × Cuota) - 1`
+  - **Regla:** El modelo interno (Poisson + Elo + xG) es información confidencial. El frontend solo expone "EV" como concepto.
+- **Deploy:** Commit `c9ca0d2` pusheado a `main` → Vercel auto-deploya `valior.vercel.app`
 
 ### Última jornada operativa:
 - **Integración Stripe Completada (30-Mar-2026):**
@@ -578,6 +617,10 @@ WHERE status_win_loss IN ('win', 'loss');
 |----------|---------|----------|
 | ~~Columna `mercado` falta en `vip_signals`~~ | ~~RESUELTO 18-Mar-2026~~ | `schema_maestro.sql` la incluye |
 | ~~Naming: Atlético Madrid sin alias con acento~~ | ~~RESUELTO 18-Mar-2026~~ | Alias `"ATLÉTICO MADRID"` agregado a `naming.py` |
+| ~~Demo Mode hardcodeado en dashboard~~ | ~~RESUELTO 11-May-2026~~ | `fetchUserPlan()` reactivado — plan real por usuario |
+| ~~`vip_signals` accesible sin autenticar~~ | ~~RESUELTO 11-May-2026~~ | RLS `pro_read_vip_signals` — solo plan='pro' puede leer |
+| ~~BTTS siempre vacío en todos los partidos~~ | ~~RESUELTO 11-May-2026~~ | Agregado `btts` al parámetro `markets` de The Odds API |
+| ~~Over/Under 3.5 y 2.5 sin datos cuando no hay cuota bookie~~ | ~~RESUELTO 11-May-2026~~ | Inyección universal en `model_engine.py` con `p_modelo_ext` |
 | Football-Data API no retorna partidos EL/CL (tier insuficiente) | `result_updater.py` ya migrado a API-Football; Football-Data solo se usa en `data_fetcher.py` para fixtures/standings | Migración completada para resultados; evaluar migrar data_fetcher también |
 | Partidos UEL de bajo perfil sin cobertura en The Odds API | Ej: Braga vs Ferencvaros (18-Mar) — solo Elo disponible, sin cuotas ni xG | No se puede resolver con naming; es limitación de cobertura API. Marcar visualmente en dashboard. |
 | ~~`partidos_manuales.json` requiere mantenimiento manual~~ | ~~RESUELTO 18-Mar-2026~~ | `fetch_and_save_domestic_matches()` sobreescribe el archivo en cada ejecución de `test_runner.py` |
