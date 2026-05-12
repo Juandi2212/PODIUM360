@@ -128,12 +128,22 @@ const TESTIMONIALS = [
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [country, setCountry] = useState('US');
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(d => setCountry(d.country_code || 'US'))
+      .catch(() => {});
+  }, []);
+
+  const isCO = country === 'CO';
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0] font-sans selection:bg-[#00ff66] selection:text-black">
@@ -547,10 +557,13 @@ export default function App() {
             
             <div className="mb-8">
               <h3 className="text-xl font-bold mb-2 text-[#00ff66]">PRO Access</h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold">$9.99</span>
-                <span className="text-[#555] text-sm">/mes</span>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <span className="text-4xl font-bold">{isCO ? '69.900' : '~$17'}</span>
+                <span className="text-[#555] text-sm">{isCO ? 'COP/mes' : 'USD/mes'}</span>
               </div>
+              {!isCO && (
+                <p className="text-xs text-[#555] mt-1 font-mono">≈ 69.900 COP</p>
+              )}
             </div>
             
             <div className="space-y-4 mb-10 flex-1">

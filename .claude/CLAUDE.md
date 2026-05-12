@@ -24,12 +24,14 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - Sin acceso a `vip_signals`
 - Sin historial de ROI
 
-### Plan Pago (~$5–8 USD/mes, precio Latam)
+### Plan Pago (69.900 COP/mes · ~$17 USD para internacionales)
 - Todos los partidos del día (todas las ligas disponibles)
 - Todos los mercados: 1X2, Over/Under, BTTS, Double Chance, Asian Handicap
 - Narrativa Triple Ángulo generada por Gemini 2.5 Flash
 - Pronósticos VIP del día (mercados con EV ≥ 5%)
 - Historial completo con ROI verificable
+- **Pasarela de pago:** Wompi (Colombia) — precio en COP; usuarios internacionales ven `~$17 USD/mes` con equivalencia COP
+- **Activación de plan:** Manual vía dashboard Wompi → SQL en Supabase hasta implementar webhook automático
 
 ### Estrategia de adquisición
 - Canal TikTok (~15K seguidores): contenido educativo sobre EV y value betting
@@ -52,9 +54,11 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Landing page migrada a React/Vite/Tailwind v4 (23-Mar-2026)
 - [x] Auth page rediseñada con dark theme split-screen (24-Mar-2026)
 - [x] Dashboard rediseñado con Google AI Studio + JS original integrado (25-Mar-2026)
-- [x] Integración Stripe completa: checkout, webhooks, `user_profiles`, freemium/pago (30-Mar-2026)
+- [x] Integración Stripe completa: checkout, webhooks, `user_profiles`, freemium/pago (30-Mar-2026) ← **REEMPLAZADO por Wompi**
 - [x] Auditoría de seguridad pre-lanzamiento: freemium gate, RLS, headers CSP/HSTS, CORS, BTTS fix (11-May-2026)
 - [x] Deploy de seguridad en producción: commit `c9ca0d2` en `main` → `valior.vercel.app` (11-May-2026)
+- [x] Migración Stripe → Wompi + precio localizado por país (11-May-2026): precio 69.900 COP, detección de país via `ipapi.co`, CSP actualizado
+- [ ] **NEXT → ⚠️ WOMPI PENDIENTE:** Cuando llegue activación de cuenta Wompi (~3 días desde 11-May-2026): crear link de pago (69.900 COP), configurar URL de retorno `https://valior.vercel.app/dashboard.html?checkout=success`, y reemplazar `WOMPI_LINK_PLACEHOLDER` en `frontend/public/dashboard.html` línea ~395 con la URL real
 - [ ] **NEXT →** Activar Gemini API pay-as-you-go (~$5/mes) para eliminar análisis "Pendiente" en jornadas grandes
 - [ ] **NEXT →** Comprar dominio `valior.app` o similar (~$12/año en Namecheap o Vercel)
 - [ ] **NEXT →** Verificar dashboard con datos reales de próxima jornada (pipeline + freemium gate + mercados completos)
@@ -79,7 +83,7 @@ Frontend Landing → React 19, Vite 6, Tailwind CSS v4 (Carpeta `frontend/`) (op
 Frontend Auth/Dash → HTML5, Vanilla JS, Tailwind CSS (Carpeta `web/` → copiado a `frontend/public/`) (operativo ✅)
 Backend/DB       → Supabase (operativo ✅)
 Auth             → Supabase Auth (operativo ✅)
-Pagos            → Stripe Checkout + Webhooks via Supabase Edge Functions (operativo ✅)
+Pagos            → Wompi (link de pago fijo, activación manual) ⚠️ pendiente activación cuenta Wompi
 Deploy           → Vercel (conectado ✅)
 Pipeline         → Python local (operativo ✅) — migrar a servidor en Fase 2
 IA narrativa     → Gemini 2.5 Flash (operativo ✅)

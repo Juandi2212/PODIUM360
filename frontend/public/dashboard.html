@@ -345,10 +345,10 @@
                             Triple Ángulo IA · Matrices de valor · EV por mercado<br>
                             Forma reciente · H2H · Picks VIP
                         </div>
-                        <button onclick="upgradeToPro()" style="background:#00ff66;color:#000;border:none;padding:12px 28px;border-radius:8px;font-size:0.82rem;font-family:monospace;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.08em">
-                            Activar PRO — $9.99/mes
+                        <button onclick="upgradeToPro()" id="modal-upgrade-btn" style="background:#00ff66;color:#000;border:none;padding:12px 28px;border-radius:8px;font-size:0.82rem;font-family:monospace;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.08em">
+                            Activar PRO — 69.900 COP/mes
                         </button>
-                        <div style="color:#444;font-size:0.72rem">Cancela cuando quieras · Stripe</div>
+                        <div style="color:#444;font-size:0.72rem">Pago seguro · Wompi</div>
                     </div>
                 </div>`;
         } else {
@@ -377,35 +377,31 @@
         } catch { return 'free'; }
     }
 
-    // ── Upgrade a PRO via Stripe Checkout ────────────────────────────────
-    async function upgradeToPro() {
-        const btn = document.getElementById('btn-upgrade');
-        if (btn) { btn.textContent = 'Redirigiendo...'; btn.disabled = true; }
-
+    // ── Detección de país para precio localizado ─────────────────────────
+    let _countryCode = null;
+    async function detectCountry() {
+        if (_countryCode) return _countryCode;
         try {
-            const sb = getSupabase();
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session) { window.location.href = 'auth.html'; return; }
+            const r = await fetch('https://ipapi.co/json/');
+            const d = await r.json();
+            _countryCode = d.country_code || 'US';
+        } catch { _countryCode = 'US'; }
+        return _countryCode;
+    }
 
-            const EDGE_URL = 'https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/create-checkout';
-            const res = await fetch(EDGE_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type':  'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-            });
-            const json = await res.json();
-            if (json.url) {
-                window.location.href = json.url;
-            } else {
-                alert(json.error || 'Error al crear sesión de pago.');
-                if (btn) { btn.textContent = 'Upgrade PRO ⚡'; btn.disabled = false; }
-            }
-        } catch (e) {
-            alert('Error de conexión. Intenta de nuevo.');
-            if (btn) { btn.textContent = 'Upgrade PRO ⚡'; btn.disabled = false; }
-        }
+    function getPriceLabel(country) {
+        return country === 'CO' ? '69.900 COP/mes' : '~$17 USD/mes';
+    }
+
+    // ── Upgrade a PRO via Wompi ──────────────────────────────────────────
+    const WOMPI_PAYMENT_LINK = 'WOMPI_LINK_PLACEHOLDER'; // reemplazar con URL real al activar cuenta
+
+    async function upgradeToPro() {
+        const sb = getSupabase();
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) { window.location.href = 'auth.html'; return; }
+        const ref = encodeURIComponent(session.user.email);
+        window.location.href = `${WOMPI_PAYMENT_LINK}?reference=${ref}`;
     }
 
     // ── Gate freemium: todos los partidos visibles, info limitada ───────
@@ -456,9 +452,9 @@
                     border-radius:8px;font-size:0.9rem;font-family:monospace;
                     font-weight:700;cursor:pointer;text-transform:uppercase;
                     letter-spacing:.08em;margin-top:8px;
-                ">Activar PRO — $9.99/mes</button>
+                " id="vip-wall-upgrade-btn">Activar PRO — 69.900 COP/mes</button>
                 <p style="color:#555;font-size:0.75rem;margin:0">
-                    Cancela cuando quieras · Pago seguro con Stripe
+                    Pago seguro · Wompi
                 </p>
             `;
             // Ocultar contenido real y mostrar wall
@@ -477,39 +473,23 @@
         if (btnUpgrade) btnUpgrade.style.display = 'none'; // ocultar botón upgrade
     }
 
-    // ── Manejar retorno de Stripe Checkout (con polling hasta confirmar PRO) ──
-    async function handleCheckoutReturn(sb, supabaseClient) {
+    // ── Manejar retorno de Wompi ─────────────────────────────────────────
+    function handleCheckoutReturn() {
         const params = new URLSearchParams(window.location.search);
         window.history.replaceState({}, '', window.location.pathname);
 
-        if (params.get('checkout') === 'canceled') return;
+        if (params.get('checkout') !== 'success') return;
 
-        if (params.get('checkout') === 'success') {
-            // Polling: esperar hasta que el webhook actualice user_profiles
-            const MAX_ATTEMPTS = 8;
-            const DELAY_MS = 1500;
-            for (let i = 0; i < MAX_ATTEMPTS; i++) {
-                const plan = await fetchUserPlan(sb, supabaseClient);
-                if (plan === 'pro') {
-                    window.userPlan = 'pro';
-                    break;
-                }
-                await new Promise(r => setTimeout(r, DELAY_MS));
-            }
-
-            const banner = document.createElement('div');
-            banner.style.cssText = `
-                position:fixed;top:20px;left:50%;transform:translateX(-50%);
-                background:#00ff66;color:#000;padding:12px 28px;border-radius:8px;
-                font-family:monospace;font-weight:700;font-size:0.9rem;z-index:9999;
-                box-shadow:0 4px 20px rgba(0,255,102,0.4);
-            `;
-            banner.textContent = window.userPlan === 'pro'
-                ? '¡Plan PRO activado! Bienvenido a Valior PRO.'
-                : '¡Pago recibido! Tu plan PRO se activará en segundos — recarga si no ves los cambios.';
-            document.body.appendChild(banner);
-            setTimeout(() => banner.remove(), 6000);
-        }
+        const banner = document.createElement('div');
+        banner.style.cssText = `
+            position:fixed;top:20px;left:50%;transform:translateX(-50%);
+            background:#00ff66;color:#000;padding:12px 28px;border-radius:8px;
+            font-family:monospace;font-weight:700;font-size:0.9rem;z-index:9999;
+            box-shadow:0 4px 20px rgba(0,255,102,0.4);text-align:center;max-width:90vw;
+        `;
+        banner.textContent = '¡Pago recibido! Tu plan PRO se activará en breve — recarga en unos minutos.';
+        document.body.appendChild(banner);
+        setTimeout(() => banner.remove(), 8000);
     }
 
     // Logout
@@ -1187,7 +1167,12 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         window.userPlan = await fetchUserPlan(sb, supabase);
-        await handleCheckoutReturn(sb, supabase);
+        handleCheckoutReturn();
+
+        // Actualizar etiquetas de precio según país del usuario
+        const country = await detectCountry();
+        const priceLabel = `Activar PRO — ${getPriceLabel(country)}`;
+        document.querySelectorAll('#modal-upgrade-btn, #vip-wall-upgrade-btn').forEach(b => { if (b) b.textContent = priceLabel; });
 
         try {
             // Obtenemos todos los datos reales inyectados por python supabase_sync.py
