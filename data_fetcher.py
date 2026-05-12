@@ -918,7 +918,7 @@ def fetch_odds(local: str, visitante: str, liga: str) -> Optional[dict]:
         params={
             "apiKey":     ODDS_API_KEY,
             "regions":    "eu",
-            "markets":    "h2h,totals,spreads",
+            "markets":    "h2h,totals,spreads,btts",
             "oddsFormat": "decimal",
         },
         cache_ttl_seconds=3600

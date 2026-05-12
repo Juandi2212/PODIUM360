@@ -197,7 +197,7 @@ export default function App() {
 
             <div className="grid grid-cols-3 gap-1 border-t border-[#222] pt-8">
               {[
-                { label: 'Modelo', val: 'Poisson + xG' },
+                { label: 'Algoritmo', val: 'Propietario' },
                 { label: 'Señal VIP', val: 'EV ≥ 5%' },
                 { label: 'Análisis', val: 'IA Real-time' },
               ].map((stat, i) => (
@@ -271,7 +271,7 @@ export default function App() {
               </div>
 
               <div className="bg-[#0a0a0a] px-6 py-3 border-t border-[#222] flex justify-between items-center font-mono text-[9px] text-[#444] uppercase tracking-widest">
-                <span>Poisson + Elo + xG Analysis</span>
+                <span>Motor Analítico Propietario</span>
                 <span>Update: 2s ago</span>
               </div>
             </div>
@@ -328,10 +328,10 @@ export default function App() {
             </div>
             <h3 className="text-xl font-bold mb-4">Ingesta de Datos</h3>
             <p className="text-[#888] text-sm leading-relaxed mb-6">
-              Procesamos Elo ratings, xG por temporada, forma reciente e historial H2H. Sin narrativas, solo datos crudos.
+              Escaneamos decenas de señales por partido — rendimiento histórico, comportamiento de mercado y patrones de valor. Sin opiniones, solo datos.
             </p>
             <div className="flex flex-wrap gap-2">
-              {['Elo', 'xG', 'H2H', 'Live Odds'].map(tag => (
+              {['Señales', 'Mercado', 'Tendencia', 'Tiempo Real'].map(tag => (
                 <span key={tag} className="px-2 py-1 rounded bg-[#1a1a1a] border border-[#222] text-[9px] font-mono text-[#555] uppercase">{tag}</span>
               ))}
             </div>
@@ -346,7 +346,7 @@ export default function App() {
               El modelo calcula la probabilidad real. Si la cuota de la casa es superior a nuestra probabilidad, hay <span className="text-white">Edge</span>.
             </p>
             <div className="bg-[#0a0a0a] p-3 rounded-lg border border-[#222] font-mono text-[11px] text-[#00ff66]">
-              EV = (P_modelo × Cuota) - 1
+              EV = (Probabilidad Real × Cuota) - 1
             </div>
           </div>
 

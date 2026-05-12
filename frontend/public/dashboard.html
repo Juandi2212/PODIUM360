@@ -1186,24 +1186,15 @@
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // DEMO MODE: forzar plan PRO para pruebas sin Stripe
-        window.userPlan = 'pro'; // await fetchUserPlan(sb, supabase);
+        window.userPlan = await fetchUserPlan(sb, supabase);
         await handleCheckoutReturn(sb, supabase);
 
         try {
-            console.log("--- DEBUG: Iniciando FETCH a Supabase ---");
-
             // Obtenemos todos los datos reales inyectados por python supabase_sync.py
             const { data: dbBoard, error: err1 } = await supabase.from('daily_board').select('*').order('estado_mercado', { ascending: false });
             const { data: dbVip, error: err2 } = await supabase.from('vip_signals').select('*').order('ev_pct', { ascending: false });
 
             document.getElementById('loading-state').classList.add('hidden');
-
-            if (err1) console.error("--- DEBUG ERROR (daily_board) ---", err1);
-            if (err2) console.error("--- DEBUG ERROR (vip_signals) ---", err2);
-
-            console.log("--- DEBUG DATA (daily_board) ---", dbBoard);
-            console.log("--- DEBUG DATA (vip_signals) ---", dbVip);
 
             if (err1 && err2) {
                 document.getElementById('empty-state').classList.remove('hidden');

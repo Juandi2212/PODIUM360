@@ -739,15 +739,22 @@ def _process_market_outputs(top_3_picks, all_markets, m_extra, p_final):
             },
         })
 
-    # Always show over_1.5 / under_1.5 even without a bookie quote
+    # Always show all model-computable markets even without a bookie quote
     existing = {m["mercado"] for m in processed_all_markets}
-    for ou_key in ("over_1.5", "under_1.5"):
+    _always_show = (
+        "over_1.5", "under_1.5",
+        "over_2.5", "under_2.5",
+        "over_3.5", "under_3.5",
+        "btts",
+    )
+    for ou_key in _always_show:
         if ou_key not in existing:
             prob = p_final.get(ou_key)
             if prob is not None:
+                extra_cuota = m_extra.get("totals", {}).get(ou_key)
                 processed_all_markets.append({
                     "mercado":   ou_key,
-                    "cuota":     m_extra.get("totals", {}).get(ou_key),
+                    "cuota":     extra_cuota,
                     "ev_pct":    None,
                     "es_vip":    False,
                     "razon_rechazo":  "Sin cuota API",
@@ -1009,8 +1016,8 @@ def print_report(data_in: dict, out: dict):
         ev_val  = ev.get(key)
         cuota_v = mc_map[key][1]
         label   = label_map[key]
-        if cuota_v is None and key not in {"over_1.5", "under_1.5"}:
-            continue  # No mostrar líneas extra sin cuota (1.5 siempre se muestra)
+        if cuota_v is None and key not in {"over_1.5", "under_1.5", "over_2.5", "under_2.5", "over_3.5", "under_3.5", "btts"}:
+            continue  # No mostrar líneas sin cuota salvo las que el modelo siempre computa
         cuota_s = f"{cuota_v:.2f}" if cuota_v else "  N/D"
         if ev_val is not None:
             flag = "  ✓ EV+" if ev_val > EV_MIN else ""
