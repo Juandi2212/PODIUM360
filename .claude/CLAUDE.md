@@ -58,7 +58,8 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Auditoría de seguridad pre-lanzamiento: freemium gate, RLS, headers CSP/HSTS, CORS, BTTS fix (11-May-2026)
 - [x] Deploy de seguridad en producción: commit `c9ca0d2` en `main` → `valior.vercel.app` (11-May-2026)
 - [x] Migración Stripe → Wompi + precio localizado por país (11-May-2026): precio 69.900 COP, detección de país via `ipapi.co`, CSP actualizado
-- [ ] **NEXT → ⚠️ WOMPI PENDIENTE:** Cuando llegue activación de cuenta Wompi (~3 días desde 11-May-2026): crear link de pago (69.900 COP), configurar URL de retorno `https://valior.vercel.app/dashboard.html?checkout=success`, y reemplazar `WOMPI_LINK_PLACEHOLDER` en `frontend/public/dashboard.html` línea ~395 con la URL real
+- [x] Integración Wompi webhook automático (12-May-2026): Edge Function `wompi-webhook` desplegada, `WOMPI_INTEGRITY_SECRET` configurado, flujo completo probado en modo test
+- [ ] **NEXT → ⚠️ WOMPI PRODUCCIÓN:** Crear link de pago real en Wompi (69.900 COP, modo producción) → actualizar `WOMPI_PAYMENT_LINK` en `frontend/public/dashboard.html` línea ~397 + actualizar secret en Supabase a `prod_integrity_...`
 - [ ] **NEXT →** Activar Gemini API pay-as-you-go (~$5/mes) para eliminar análisis "Pendiente" en jornadas grandes
 - [ ] **NEXT →** Comprar dominio `valior.app` o similar (~$12/año en Namecheap o Vercel)
 - [ ] **NEXT →** Verificar dashboard con datos reales de próxima jornada (pipeline + freemium gate + mercados completos)
@@ -83,7 +84,7 @@ Frontend Landing → React 19, Vite 6, Tailwind CSS v4 (Carpeta `frontend/`) (op
 Frontend Auth/Dash → HTML5, Vanilla JS, Tailwind CSS (Carpeta `web/` → copiado a `frontend/public/`) (operativo ✅)
 Backend/DB       → Supabase (operativo ✅)
 Auth             → Supabase Auth (operativo ✅)
-Pagos            → Wompi (link de pago fijo, activación manual) ⚠️ pendiente activación cuenta Wompi
+Pagos            → Wompi (link de pago + webhook automático) ✅ test operativo — ⚠️ pendiente switch a producción
 Deploy           → Vercel (conectado ✅)
 Pipeline         → Python local (operativo ✅) — migrar a servidor en Fase 2
 IA narrativa     → Gemini 2.5 Flash (operativo ✅)
@@ -91,7 +92,7 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (11 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (12 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
 ### Auditoría de Seguridad Pre-Lanzamiento (11-May-2026):
 - **Freemium gate reactivado (`frontend/public/dashboard.html`):**
@@ -127,6 +128,18 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
   - Fórmula: `EV = (P_modelo × Cuota) - 1` → `EV = (Probabilidad Real × Cuota) - 1`
   - **Regla:** El modelo interno (Poisson + Elo + xG) es información confidencial. El frontend solo expone "EV" como concepto.
 - **Deploy:** Commit `c9ca0d2` pusheado a `main` → Vercel auto-deploya `valior.vercel.app`
+
+### Integración Wompi webhook (12-May-2026):
+- **Edge Function `wompi-webhook` desplegada en Supabase:**
+  - Verifica checksum de integridad: `SHA256(properties_values + WOMPI_INTEGRITY_SECRET)`
+  - Al recibir `transaction.status === 'APPROVED'`: extrae `reference` (email del usuario) → `UPDATE user_profiles SET plan='pro', subscription_status='active'`
+  - Responde 200 siempre para evitar reintentos de Wompi
+  - URL: `https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/wompi-webhook`
+- **`WOMPI_INTEGRITY_SECRET`** configurado en Supabase Edge Functions (actualmente en modo **test**)
+- **`WOMPI_PAYMENT_LINK`** en `frontend/public/dashboard.html` línea ~397: actualmente link de prueba `test_VPOS_F6dfkD`
+- **URL de eventos** configurada en panel Wompi (modo pruebas y producción): misma URL para ambos
+- **Flujo completo probado** en modo test: pago ficticio → webhook → `user_profiles` actualizado → dashboard muestra PRO
+- **⚠️ Para ir a producción:** 1) Crear link de pago real (69.900 COP) en panel Wompi → actualizar línea ~397 del dashboard 2) `npx supabase secrets set WOMPI_INTEGRITY_SECRET="prod_integrity_..." --project-ref ssvnixnqczpvpiomgrje`
 
 ### Última jornada operativa:
 - **Integración Stripe Completada (30-Mar-2026):**
@@ -551,6 +564,16 @@ Estas variables se configuraron via `npx supabase secrets set` y solo existen en
   - `customer.subscription.updated` → actualiza `subscription_status` y `plan`
   - `customer.subscription.deleted` → baja a plan free
   - `invoice.payment_failed` → marca `past_due`
+
+#### `wompi-webhook`
+- **URL:** `https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/wompi-webhook`
+- **Código:** `supabase/functions/wompi-webhook/index.ts`
+- **JWT:** `--no-verify-jwt` (Wompi no envía JWT; la función verifica firma con `WOMPI_INTEGRITY_SECRET`)
+- **Eventos manejados:**
+  - `transaction.updated` con `status=APPROVED` → activa plan PRO buscando usuario por `reference` (email)
+  - Cualquier otro status → log sin acción (no baja el plan — los pagos Wompi son one-shot, no suscripciones automáticas)
+- **Verificación de firma:** `SHA256(signature.properties valores concatenados + WOMPI_INTEGRITY_SECRET)` debe igualar `signature.checksum`
+- **Secret requerido:** `WOMPI_INTEGRITY_SECRET` — usar `test_integrity_...` para pruebas, `prod_integrity_...` para producción
 
 **Deploy via CLI:** `npx supabase functions deploy <nombre> --project-ref ssvnixnqczpvpiomgrje --no-verify-jwt`
 **Requiere:** Access token de Supabase (`sbp_...`) pasado via `$env:SUPABASE_ACCESS_TOKEN`
