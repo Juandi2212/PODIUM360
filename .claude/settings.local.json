@@ -82,7 +82,22 @@
       "Bash(npx vite:*)",
       "Bash(cp web/auth.html frontend/public/auth.html)",
       "Bash(cp web/dashboard.html frontend/public/dashboard.html)",
-      "Bash(cp -r web/js frontend/public/js)"
+      "Bash(cp -r web/js frontend/public/js)",
+      "Bash(cp \"C:\\\\Users\\\\Juan\\\\Downloads\\\\login \\(1\\).html\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\web\\\\auth.html\")",
+      "Bash(cp \"C:\\\\Users\\\\Juan\\\\Downloads\\\\login \\(1\\).html\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\frontend\\\\public\\\\auth.html\")",
+      "Bash(wc -l \"C:\\\\Users\\\\Juan\\\\Downloads\\\\ai_studio_code \\(2\\).html\")",
+      "WebFetch(domain:www.eloratings.net)",
+      "Bash(python test_intl_sports.py)",
+      "Bash(python master_morning.py)",
+      "Bash(grep -A 5 \"historical_results\" migrations/*.sql)",
+      "Bash(copy \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\web\\\\dashboard.html\" \"C:\\\\Users\\\\Juan\\\\Desktop\\\\CLAUDE DL\\\\frontend\\\\public\\\\dashboard.html\")",
+      "Bash(npm run:*)",
+      "Bash(npx vercel:*)",
+      "Bash(curl -s \"https://valior.vercel.app/dashboard.html\")",
+      "Bash(curl -sv \"https://valior.vercel.app/dashboard.html\")",
+      "Bash(curl -s \"https://valior.vercel.app/dashboard\")",
+      "Bash(curl -s \"https://valior.vercel.app/js/config.js\")",
+      "Bash(curl -s \"https://valior.vercel.app/auth\")"
     ]
   }
 }

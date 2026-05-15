@@ -46,6 +46,7 @@ ODDS_API_BASE      = "https://api.the-odds-api.com/v4"
 CLUBELO_BASE       = "http://api.clubelo.com"
 FOTMOB_BASE        = "https://www.fotmob.com"
 FOTMOB_CDN         = "https://data.fotmob.com/stats"
+ELORATINGS_BASE    = "https://www.eloratings.net"
 OUTPUT_FILE        = "partido_data.json"
 CACHE_FILE         = "database/api_cache.json"
 
@@ -270,6 +271,12 @@ ODDS_SPORT_KEYS = {
     "Liga MX":           "soccer_mexico_ligamx",
     "Copa Libertadores": "soccer_conmebol_copa_libertadores",
     "Copa Sudamericana": "soccer_conmebol_copa_sudamericana",
+    # ── Competiciones internacionales de selecciones ─────────────────────────
+    # Keys verificados con: python test_intl_sports.py (30-Mar-2026)
+    "Nations League UEFA":          "soccer_uefa_nations_league",
+    "WC Qualifier Europe":          "soccer_fifa_world_cup_qualifiers_europe",
+    # Resto de competiciones internacionales no disponibles en el plan actual de The Odds API.
+    # Agregar cuando estén activas o se suba de plan.
 }
 
 # ── ClubElo name aliases (run-together CamelCase) ─────────────────────────────
@@ -440,6 +447,182 @@ def _to_understat(name: str) -> str:
     if key in UNDERSTAT_ALIASES:
         return UNDERSTAT_ALIASES[key]
     return name.strip().replace(" ", "_")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 1-b. EloRatings.net — Elo para selecciones nacionales  (free, no auth)
+#
+# World.tsv: sin header. col[2]=código_país  col[3]=Elo_actual
+# en.teams.tsv: código_país TAB nombre_inglés
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Traducciones de nombres en español/variantes → nombre en inglés (eloratings.net)
+_NACIONAL_ALIASES: dict[str, str] = {
+    "españa":            "Spain",
+    "espana":            "Spain",
+    "francia":           "France",
+    "alemania":          "Germany",
+    "italia":            "Italy",
+    "países bajos":      "Netherlands",
+    "paises bajos":      "Netherlands",
+    "holanda":           "Netherlands",
+    "bélgica":           "Belgium",
+    "belgica":           "Belgium",
+    "suiza":             "Switzerland",
+    "suecia":            "Sweden",
+    "dinamarca":         "Denmark",
+    "noruega":           "Norway",
+    "polonia":           "Poland",
+    "austria":           "Austria",
+    "turquía":           "Turkey",
+    "turquia":           "Turkey",
+    "rusia":             "Russia",
+    "ucrania":           "Ukraine",
+    "grecia":            "Greece",
+    "suecia":            "Sweden",
+    "serbia":            "Serbia",
+    "rumanía":           "Romania",
+    "rumania":           "Romania",
+    "hungría":           "Hungary",
+    "hungria":           "Hungary",
+    "república checa":   "Czech Republic",
+    "republica checa":   "Czech Republic",
+    "escocia":           "Scotland",
+    "irlanda":           "Ireland",
+    "gales":             "Wales",
+    "estados unidos":    "United States",
+    "ee.uu.":            "United States",
+    "usa":               "United States",
+    "méxico":            "Mexico",
+    "brasil":            "Brazil",
+    "argentina":         "Argentina",
+    "colombia":          "Colombia",
+    "ecuador":           "Ecuador",
+    "perú":              "Peru",
+    "peru":              "Peru",
+    "chile":             "Chile",
+    "uruguay":           "Uruguay",
+    "venezuela":         "Venezuela",
+    "bolivia":           "Bolivia",
+    "paraguay":          "Paraguay",
+    "japón":             "Japan",
+    "japon":             "Japan",
+    "corea del sur":     "Korea Republic",
+    "corea":             "Korea Republic",
+    "australia":         "Australia",
+    "marruecos":         "Morocco",
+    "senegal":           "Senegal",
+    "nigeria":           "Nigeria",
+    "egipto":            "Egypt",
+    "ghana":             "Ghana",
+    "costa de marfil":   "Ivory Coast",
+    "camerún":           "Cameroon",
+    "camerun":           "Cameroon",
+    "argelia":           "Algeria",
+    "túnez":             "Tunisia",
+    "tunez":             "Tunisia",
+    "arabia saudita":    "Saudi Arabia",
+    "irán":              "Iran",
+    "iran":              "Iran",
+    "croacia":           "Croatia",
+    "eslovenia":         "Slovenia",
+    "eslovaquia":        "Slovakia",
+    "albania":           "Albania",
+    "georgia":           "Georgia",
+    "islandia":          "Iceland",
+    "finlandia":         "Finland",
+    "norte de irlanda":  "Northern Ireland",
+    "irlanda del norte": "Northern Ireland",
+    "luxemburgo":        "Luxembourg",
+    "gibraltar":         "Gibraltar",
+    "andorra":           "Andorra",
+    "israel":            "Israel",
+    "canada":            "Canada",
+    "costa rica":        "Costa Rica",
+    "panamá":            "Panama",
+    "panama":            "Panama",
+    "jamaica":           "Jamaica",
+    "nueva zelanda":     "New Zealand",
+    # Añadir más según se necesite
+}
+
+# Caché en memoria para el run actual (los TSV no cambian durante la ejecución)
+_elo_ratings_cache: dict[str, float] = {}
+_elo_code_map_cache: dict[str, str] = {}  # name_lower → code
+
+
+def _load_eloratings_maps() -> tuple[dict[str, str], dict[str, float]]:
+    """
+    Carga (una vez por ejecución) los dos TSV de eloratings.net:
+      en.teams.tsv  → name_lower:str  → code:str
+      World.tsv     → code:str        → elo:float
+    """
+    global _elo_code_map_cache, _elo_ratings_cache
+
+    if _elo_code_map_cache and _elo_ratings_cache:
+        return _elo_code_map_cache, _elo_ratings_cache
+
+    # 1. Cargar el mapa código → nombre
+    code_to_name: dict[str, str] = {}
+    name_to_code: dict[str, str] = {}
+    teams_data, _ = _get(f"{ELORATINGS_BASE}/en.teams.tsv", cache_ttl_seconds=86400)
+    if teams_data:
+        for line in teams_data.strip().splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                code = parts[0].strip()
+                # parts[1] es el nombre principal, parts[2:] son aliases
+                primary = parts[1].strip()
+                code_to_name[code] = primary
+                for name_variant in parts[1:]:
+                    v = name_variant.strip()
+                    if v:
+                        name_to_code[v.lower()] = code
+
+    # 2. Cargar ratings World.tsv: col[2]=code, col[3]=elo
+    code_to_elo: dict[str, float] = {}
+    world_data, _ = _get(f"{ELORATINGS_BASE}/World.tsv", cache_ttl_seconds=86400)
+    if world_data:
+        for line in world_data.strip().splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 4:
+                try:
+                    code = parts[2].strip()
+                    elo  = float(parts[3].strip())
+                    code_to_elo[code] = elo
+                except (ValueError, IndexError):
+                    continue
+
+    _elo_code_map_cache = name_to_code
+    _elo_ratings_cache  = code_to_elo
+    return name_to_code, code_to_elo
+
+
+def fetch_elo_nacional(team: str) -> Optional[float]:
+    """
+    Devuelve el Elo actual de una selección nacional desde eloratings.net.
+    Busca primero en _NACIONAL_ALIASES (español→inglés), luego directo por nombre.
+    """
+    name_to_code, code_to_elo = _load_eloratings_maps()
+
+    # Normalizar entrada
+    key = team.lower().strip()
+    english_name = _NACIONAL_ALIASES.get(key, team).lower()
+
+    code = name_to_code.get(english_name)
+    if not code:
+        # Intento directo con el nombre original (por si ya está en inglés)
+        code = name_to_code.get(key)
+    if not code:
+        _errors.append(f"EloRatings: no se encontró código para '{team}' (buscado: '{english_name}')")
+        return None
+
+    elo = code_to_elo.get(code)
+    if elo is None:
+        _errors.append(f"EloRatings: código '{code}' sin Elo en World.tsv")
+        return None
+
+    return round(elo, 1)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1022,7 +1205,7 @@ def fetch_odds(local: str, visitante: str, liga: str) -> Optional[dict]:
 # ══════════════════════════════════════════════════════════════════════════════
 # Orchestrator
 # ══════════════════════════════════════════════════════════════════════════════
-def fetch_all(local: str, visitante: str, liga: str) -> dict:
+def fetch_all(local: str, visitante: str, liga: str, es_seleccion: bool = False) -> dict:
     t0     = time.time()
     season = _current_season()
 
@@ -1051,58 +1234,71 @@ def fetch_all(local: str, visitante: str, liga: str) -> dict:
         "odds_disponibles": True,
     }
 
-    # ── 1. ClubElo ─────────────────────────────────────────────────────────
-    print("\n[1/5] ClubElo.com — Elo ratings...")
-    elo_l = fetch_elo(local)
-    elo_v = fetch_elo(visitante)
-    output["elo"]["local"]     = elo_l
-    output["elo"]["visitante"] = elo_v
-    print(f"      {local}: {elo_l}  |  {visitante}: {elo_v}")
+    if es_seleccion:
+        # ── MODO SELECCIONES: solo Elo nacional + Odds ─────────────────────
+        # xG, standings, forma, H2H y liga_avg no aplican a selecciones.
+        # El modelo corre en modo Elo puro (fallback neutral de xG).
+        print("\n[SELECCIÓN] eloratings.net — Elo nacional...")
+        elo_l = fetch_elo_nacional(local)
+        elo_v = fetch_elo_nacional(visitante)
+        output["elo"]["local"]     = elo_l
+        output["elo"]["visitante"] = elo_v
+        print(f"      {local}: {elo_l}  |  {visitante}: {elo_v}")
+        print("[SELECCIÓN] Pasos 2-4 omitidos (xG/forma/liga no disponibles para selecciones)")
+    else:
+        # ── MODO CLUBES: pipeline completo ─────────────────────────────────
+        # ── 1. ClubElo ─────────────────────────────────────────────────────
+        print("\n[1/5] ClubElo.com — Elo ratings...")
+        elo_l = fetch_elo(local)
+        elo_v = fetch_elo(visitante)
+        output["elo"]["local"]     = elo_l
+        output["elo"]["visitante"] = elo_v
+        print(f"      {local}: {elo_l}  |  {visitante}: {elo_v}")
 
-    # ── 2. Fotmob — xG ────────────────────────────────────────────────────
-    print(f"[2/5] Fotmob.com — xG data (season {season}-{season+1})...")
-    xg_result = fetch_xg_fotmob(local, visitante, liga)
-    xg_l = xg_result.get("local")
-    xg_v = xg_result.get("visitante")
-    if xg_l:
-        output["xg"]["local"]     = xg_l
-    if xg_v:
-        output["xg"]["visitante"] = xg_v
-    print(f"      {local}     atk xG : {(xg_l or {}).get('atk')}")
-    print(f"      {local}     def xGA: {(xg_l or {}).get('def')}")
-    print(f"      {visitante} atk xG : {(xg_v or {}).get('atk')}")
-    print(f"      {visitante} def xGA: {(xg_v or {}).get('def')}")
+        # ── 2. Fotmob — xG ─────────────────────────────────────────────────
+        print(f"[2/5] Fotmob.com — xG data (season {season}-{season+1})...")
+        xg_result = fetch_xg_fotmob(local, visitante, liga)
+        xg_l = xg_result.get("local")
+        xg_v = xg_result.get("visitante")
+        if xg_l:
+            output["xg"]["local"]     = xg_l
+        if xg_v:
+            output["xg"]["visitante"] = xg_v
+        print(f"      {local}     atk xG : {(xg_l or {}).get('atk')}")
+        print(f"      {local}     def xGA: {(xg_l or {}).get('def')}")
+        print(f"      {visitante} atk xG : {(xg_v or {}).get('atk')}")
+        print(f"      {visitante} def xGA: {(xg_v or {}).get('def')}")
 
-    # ── 3. Football-Data.org — standings, form, fixture, H2H ───────────────
-    print("[3/5] Football-Data.org — standings / form / fixture / H2H...")
+        # ── 3. Football-Data.org — standings, form, fixture, H2H ───────────
+        print("[3/5] Football-Data.org — standings / form / fixture / H2H...")
 
-    standings, local_id, visitante_id, _, _ = \
-        fetch_standings_and_ids(local, visitante, liga)
-    output["standings"].update(standings)
-    print(f"      Standings  : {standings}")
-    print(f"      Team IDs   : local={local_id}  visitante={visitante_id}")
+        standings, local_id, visitante_id, _, _ = \
+            fetch_standings_and_ids(local, visitante, liga)
+        output["standings"].update(standings)
+        print(f"      Standings  : {standings}")
+        print(f"      Team IDs   : local={local_id}  visitante={visitante_id}")
 
-    output["forma"]["local"]     = fetch_form_fdorg(local_id,     liga)
-    output["forma"]["visitante"] = fetch_form_fdorg(visitante_id, liga)
-    print(f"      Forma local: {output['forma']['local']}")
-    print(f"      Forma visit: {output['forma']['visitante']}")
+        output["forma"]["local"]     = fetch_form_fdorg(local_id,     liga)
+        output["forma"]["visitante"] = fetch_form_fdorg(visitante_id, liga)
+        print(f"      Forma local: {output['forma']['local']}")
+        print(f"      Forma visit: {output['forma']['visitante']}")
 
-    fixture = fetch_upcoming_fixture(local_id, visitante_id, liga)
-    if fixture:
-        output["partido"]["estadio"]  = fixture["estadio"]
-        output["partido"]["hora_utc"] = fixture["hora_utc"]
-    print(f"      Fixture    : {fixture}")
+        fixture = fetch_upcoming_fixture(local_id, visitante_id, liga)
+        if fixture:
+            output["partido"]["estadio"]  = fixture["estadio"]
+            output["partido"]["hora_utc"] = fixture["hora_utc"]
+        print(f"      Fixture    : {fixture}")
 
-    h2h = fetch_h2h(local_id, local, visitante_id, visitante)
-    if h2h:
-        output["h2h"] = h2h
-    print(f"      H2H        : {output['h2h']}")
+        h2h = fetch_h2h(local_id, local, visitante_id, visitante)
+        if h2h:
+            output["h2h"] = h2h
+        print(f"      H2H        : {output['h2h']}")
 
-    # ── 4. Football-Data.org — league avg goals ─────────────────────────────
-    print("[4/5] Football-Data.org — league average goals...")
-    avg = fetch_league_avg_goals(liga)
-    output["liga_avg_goals"] = avg
-    print(f"      {liga} avg goals/match: {avg}")
+        # ── 4. Football-Data.org — league avg goals ─────────────────────────
+        print("[4/5] Football-Data.org — league average goals...")
+        avg = fetch_league_avg_goals(liga)
+        output["liga_avg_goals"] = avg
+        print(f"      {liga} avg goals/match: {avg}")
 
     # ── 5. The Odds API ────────────────────────────────────────────────────
     print("[5/5] The Odds API — odds (1X2 / O-U 2.5 / BTTS)...")
@@ -1138,18 +1334,22 @@ def fetch_all(local: str, visitante: str, liga: str) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 def main():
     if len(sys.argv) < 4:
-        print('Usage  : python data_fetcher.py "Local" "Visitante" "Liga"')
+        print('Usage  : python data_fetcher.py "Local" "Visitante" "Liga" [--seleccion]')
         print('Example: python data_fetcher.py "Arsenal" "Liverpool" "Premier League"')
+        print('Example: python data_fetcher.py "España" "Francia" "Nations League UEFA" --seleccion')
         sys.exit(1)
 
     local, visitante, liga = sys.argv[1], sys.argv[2], sys.argv[3]
+    es_seleccion = "--seleccion" in sys.argv
 
     print(f"\n{'═'*56}")
     print(f"  PODIUM — Data Fetcher v1.2")
     print(f"  {local} vs {visitante}  |  {liga}")
+    if es_seleccion:
+        print(f"  MODO: Selección Nacional")
     print(f"{'═'*56}")
 
-    data = fetch_all(local, visitante, liga)
+    data = fetch_all(local, visitante, liga, es_seleccion=es_seleccion)
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)

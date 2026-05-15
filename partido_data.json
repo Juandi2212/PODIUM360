@@ -1,76 +1,52 @@
 {
   "partido": {
-    "local": "FC Porto",
-    "visitante": "Stuttgart",
-    "liga": "Europa League",
+    "local": "Aston Villa",
+    "visitante": "Liverpool",
+    "liga": "Premier League",
     "estadio": null,
-    "hora_utc": null
+    "hora_utc": "2026-05-15T19:00:00Z"
   },
   "elo": {
-    "local": null,
-    "visitante": 1753.4
+    "local": 1888.9,
+    "visitante": 1922.6
   },
   "xg": {
     "local": {
-      "atk": [
-        1.86,
-        1.86,
-        1.86,
-        1.86,
-        1.86,
-        1.86,
-        1.86,
-        1.86
-      ],
-      "def": [
-        0.58,
-        0.58,
-        0.58,
-        0.58,
-        0.58,
-        0.58,
-        0.58,
-        0.58
-      ]
+      "atk": null,
+      "def": null
     },
     "visitante": {
-      "atk": [
-        1.68,
-        1.68,
-        1.68,
-        1.68,
-        1.68,
-        1.68,
-        1.68,
-        1.68
-      ],
-      "def": [
-        1.43,
-        1.43,
-        1.43,
-        1.43,
-        1.43,
-        1.43,
-        1.43,
-        1.43
-      ]
+      "atk": null,
+      "def": null
     }
   },
-  "liga_avg_goals": null,
+  "liga_avg_goals": 2.75,
   "standings": {
-    "pos_local": null,
-    "pts_local": null,
-    "pos_visitante": null,
-    "pts_visitante": null
+    "pos_local": 5,
+    "pts_local": 59,
+    "pos_visitante": 4,
+    "pts_visitante": 59
   },
   "forma": {
-    "local": null,
-    "visitante": null
+    "local": [
+      "D",
+      "W",
+      "L",
+      "L",
+      "D"
+    ],
+    "visitante": [
+      "W",
+      "W",
+      "W",
+      "L",
+      "D"
+    ]
   },
   "h2h": {
-    "victorias_local": null,
-    "empates": null,
-    "victorias_visitante": null
+    "victorias_local": 0,
+    "empates": 0,
+    "victorias_visitante": 1
   },
   "bajas": {
     "local": null,
@@ -78,30 +54,36 @@
   },
   "odds": {
     "pinnacle": {
-      "local": 2.5,
-      "empate": 3.56,
-      "visitante": 2.83
+      "local": 2.81,
+      "empate": 3.65,
+      "visitante": 2.48
     },
     "mejor_cuota": {
-      "local": 2.6,
-      "empate": 3.6,
-      "visitante": 2.96,
-      "over_2.5": 1.94,
+      "local": 2.9,
+      "empate": 3.85,
+      "visitante": 2.56,
+      "over_2.5": 1.68,
       "btts": null
     },
     "mejores_cuotas_extra": {
       "totals": {
-        "over_2.5": 1.94,
-        "under_2.5": 2.0,
-        "over_1.5": 1.29,
-        "under_1.5": 4.2
+        "over_3.5": 2.38,
+        "under_3.5": 1.57,
+        "over_3.0": 2.06,
+        "under_3.0": 1.84,
+        "over_2.5": 1.68,
+        "under_2.5": 2.37
       },
       "spreads": {
-        "spread_local_0.0": 1.87,
-        "spread_visitante_0.0": 2.08,
-        "spread_local_0.25": 1.64,
-        "spread_visitante_-0.25": 2.54,
-        "spread_visitante_-0.0": 2.08
+        "spread_local_0.0": 2.1,
+        "spread_visitante_-0.0": 1.83,
+        "spread_visitante_0.0": 1.85,
+        "spread_local_0.5": 1.57,
+        "spread_visitante_-0.5": 2.35,
+        "spread_local_1.0": 1.29,
+        "spread_visitante_-1.0": 3.9,
+        "spread_local_0.25": 1.81,
+        "spread_visitante_-0.25": 2.2
       }
     },
     "corners": {

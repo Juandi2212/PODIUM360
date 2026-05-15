@@ -51,6 +51,9 @@ DIVERGENCIA_MAX = 8.0   # Regla de Oro: max market-vs-model divergence (pp)
 P_MIN_VIP      = 35.0   # Regla de Oro: prob mínima del modelo para VIP (%)
                         # Evita "value traps": picks con EV alto pero probabilidad
                         # baja que no tienen sentido futbolístico real
+REVERSE_DIV_MAX = 25.0  # Regla de Oro: si el modelo es 25pp+ más optimista que
+                        # Pinnacle, indica error de datos (ej: xG no disponible).
+                        # divergencia = fair_pinnacle - p_modelo; si es < -25 → rechazar.
 
 # ── Form & H2H adjustment weights ────────────────────────────────────────────
 FORM_WEIGHT    = 0.15   # Max ±7.5% lambda shift from recent form
@@ -565,6 +568,8 @@ def _regla_de_oro(ev_pct: float, consenso: int, divergencia: float,
         return False, f"Modelos no alineados ({consenso}/3)"
     if divergencia > DIVERGENCIA_MAX:
         return False, f"Mercado contradice el modelo ({divergencia:.1f}pp > {DIVERGENCIA_MAX:.0f}pp)"
+    if divergencia < -REVERSE_DIV_MAX:
+        return False, f"Modelo demasiado optimista vs Pinnacle ({abs(divergencia):.1f}pp — posible dato incompleto)"
     return True, "PICK VIP CONFIRMADO"
 
 

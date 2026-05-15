@@ -4,7 +4,7 @@ import json
 import glob
 import time
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from utils.naming import normalize_team_name
 
@@ -218,6 +218,9 @@ def _build_unique_id(event_date, local, visit):
 def _compute_status(hora_utc_str):
     """
     Determina si el partido está activo o finalizado basado en hora_utc.
+    Buffer de 2h: un partido se marca 'finished' solo 2h después del kick-off
+    (cubre 90min + tiempo extra/lesiones). Evita marcar como finalizado partidos
+    que aún se están jugando si supabase_sync se re-ejecuta durante el partido.
     Si no hay hora_utc, devuelve 'active' por defecto.
     """
     if not hora_utc_str:
@@ -225,7 +228,7 @@ def _compute_status(hora_utc_str):
     try:
         match_dt = datetime.strptime(hora_utc_str, "%Y-%m-%dT%H:%M:%SZ")
         match_dt = match_dt.replace(tzinfo=timezone.utc)
-        if match_dt < datetime.now(timezone.utc):
+        if match_dt + timedelta(hours=2) < datetime.now(timezone.utc):
             return "finished"
     except Exception:
         pass
@@ -505,6 +508,9 @@ def main():
         ang_ctx = ai_data.get("angulo_contexto", "No generado.")
             
         for pick in picks:
+            # Solo subir picks que el modelo confirmó como VIP
+            if not pick.get("es_vip"):
+                continue
             mercado = pick.get("mercado", "")
             vip_id = f"{unique_id}_{mercado}".replace(" ", "_")
             

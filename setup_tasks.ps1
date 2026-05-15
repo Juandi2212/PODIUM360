@@ -7,14 +7,15 @@ $actionMorning = New-ScheduledTaskAction `
     -Execute "$projectDir\run_morning.bat" `
     -WorkingDirectory $projectDir
 
-$triggerMorning = New-ScheduledTaskTrigger -Daily -At "09:00AM"
+$triggerMorning = New-ScheduledTaskTrigger -Daily -At "06:00AM"
 
 $settings = New-ScheduledTaskSettingsSet `
     -ExecutionTimeLimit (New-TimeSpan -Hours 2) `
     -RestartCount 2 `
     -RestartInterval (New-TimeSpan -Minutes 15) `
     -StartWhenAvailable `
-    -RunOnlyIfNetworkAvailable
+    -RunOnlyIfNetworkAvailable `
+    -WakeToRun
 
 $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -RunLevel Highest
 
@@ -26,7 +27,7 @@ Register-ScheduledTask `
     -Principal $principal `
     -Force
 
-Write-Host "[OK] Valior Morning Pipeline registrada -> 09:00 AM diario"
+Write-Host "[OK] Valior Morning Pipeline registrada -> 06:00 AM diario (WakeToRun activo)"
 
 # --- NIGHT ---
 $actionNight = New-ScheduledTaskAction `

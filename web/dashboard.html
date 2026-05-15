@@ -110,6 +110,11 @@
       </div>
 
       <div class="hidden items-center gap-6 text-sm sm:flex">
+        <!-- Botón Upgrade: visible solo para plan free -->
+        <button id="btn-upgrade" onclick="upgradeToPro()" style="display:none"
+          class="text-[11px] font-mono uppercase tracking-widest px-3 py-1.5 rounded border border-valior-green text-valior-green hover:bg-valior-green hover:text-black transition-all font-bold">
+          Upgrade PRO ⚡
+        </button>
         <button onclick="logout()" class="text-[11px] font-mono uppercase tracking-widest text-valior-muted hover:text-white transition-colors">Salir</button>
         <a href="index.html" class="text-[11px] font-mono uppercase tracking-widest text-valior-muted hover:text-white transition-colors">
           Volver a Inicio
@@ -324,6 +329,155 @@
     function closeMatchModal() {
         document.getElementById('match-modal').classList.add('hidden');
         document.getElementById('match-modal-content').innerHTML = ''; // Clean up
+    }
+
+    // ── Plan del usuario ─────────────────────────────────────────────────
+    window.userPlan = 'free'; // Se actualiza en fetchData()
+
+    async function fetchUserPlan(sb, supabaseClient) {
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) return 'free';
+            const { data } = await supabaseClient
+                .from('user_profiles')
+                .select('plan')
+                .eq('id', session.user.id)
+                .single();
+            return data?.plan || 'free';
+        } catch { return 'free'; }
+    }
+
+    // ── Upgrade a PRO via Stripe Checkout ────────────────────────────────
+    async function upgradeToPro() {
+        const btn = document.getElementById('btn-upgrade');
+        if (btn) { btn.textContent = 'Redirigiendo...'; btn.disabled = true; }
+
+        try {
+            const sb = getSupabase();
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) { window.location.href = 'auth.html'; return; }
+
+            const EDGE_URL = 'https://ssvnixnqczpvpiomgrje.supabase.co/functions/v1/create-checkout';
+            const res = await fetch(EDGE_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+            });
+            const json = await res.json();
+            if (json.url) {
+                window.location.href = json.url;
+            } else {
+                alert(json.error || 'Error al crear sesión de pago.');
+                if (btn) { btn.textContent = 'Upgrade PRO ⚡'; btn.disabled = false; }
+            }
+        } catch (e) {
+            alert('Error de conexión. Intenta de nuevo.');
+            if (btn) { btn.textContent = 'Upgrade PRO ⚡'; btn.disabled = false; }
+        }
+    }
+
+    // ── Gate freemium: bloquea cards 4+ en Jornada General ──────────────
+    function applyFreemiumGate() {
+        // Bloquear cards 4+ en daily board
+        const cards = document.querySelectorAll('#daily-board-active-container > *');
+        cards.forEach((card, i) => {
+            if (i >= 3) {
+                card.style.position = 'relative';
+                card.style.overflow = 'hidden';
+                // Blur del contenido
+                const inner = card.querySelector('article') || card.firstElementChild;
+                if (inner) inner.style.filter = 'blur(4px)';
+                // Overlay de upgrade
+                if (!card.querySelector('.upgrade-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'upgrade-overlay';
+                    overlay.style.cssText = `
+                        position:absolute;inset:0;display:flex;flex-direction:column;
+                        align-items:center;justify-content:center;gap:10px;
+                        background:rgba(5,7,22,0.75);backdrop-filter:blur(2px);
+                        border-radius:inherit;z-index:10;cursor:pointer;
+                    `;
+                    overlay.innerHTML = `
+                        <span style="font-size:1.5rem">🔒</span>
+                        <span style="color:#fff;font-size:0.78rem;font-family:monospace;text-align:center;padding:0 12px">
+                            Análisis exclusivo PRO
+                        </span>
+                        <button onclick="upgradeToPro()" style="
+                            background:#00ff66;color:#000;border:none;padding:7px 18px;
+                            border-radius:6px;font-size:0.75rem;font-family:monospace;
+                            font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;
+                        ">Upgrade $9.99/mes</button>
+                    `;
+                    card.appendChild(overlay);
+                }
+            }
+        });
+
+        // Bloquear tab VIP completa
+        const tabVip = document.getElementById('tab-vip');
+        if (tabVip && !tabVip.querySelector('.vip-upgrade-wall')) {
+            const wall = document.createElement('div');
+            wall.className = 'vip-upgrade-wall';
+            wall.style.cssText = `
+                display:flex;flex-direction:column;align-items:center;justify-content:center;
+                gap:20px;padding:60px 24px;text-align:center;
+            `;
+            wall.innerHTML = `
+                <div style="font-size:3rem">⚡</div>
+                <h3 style="color:#fff;font-size:1.4rem;font-family:'Inter',sans-serif;font-weight:700;margin:0">
+                    Pronósticos VIP — Plan PRO
+                </h3>
+                <p style="color:#888;font-size:0.9rem;max-width:380px;margin:0;line-height:1.6">
+                    Accede a los picks con EV ≥ 5%, análisis matemático completo
+                    y narrativa IA. Solo para suscriptores PRO.
+                </p>
+                <button onclick="upgradeToPro()" style="
+                    background:#00ff66;color:#000;border:none;padding:14px 36px;
+                    border-radius:8px;font-size:0.9rem;font-family:monospace;
+                    font-weight:700;cursor:pointer;text-transform:uppercase;
+                    letter-spacing:.08em;margin-top:8px;
+                ">Activar PRO — $9.99/mes</button>
+                <p style="color:#555;font-size:0.75rem;margin:0">
+                    Cancela cuando quieras · Pago seguro con Stripe
+                </p>
+            `;
+            // Ocultar contenido real y mostrar wall
+            Array.from(tabVip.children).forEach(c => c.style.display = 'none');
+            tabVip.appendChild(wall);
+        }
+
+        // Mostrar botón upgrade en navbar
+        const btnUpgrade = document.getElementById('btn-upgrade');
+        if (btnUpgrade) btnUpgrade.style.display = 'inline-flex';
+    }
+
+    // ── Mostrar badge PRO en navbar ──────────────────────────────────────
+    function applyProBadge() {
+        const btnUpgrade = document.getElementById('btn-upgrade');
+        if (btnUpgrade) btnUpgrade.style.display = 'none'; // ocultar botón upgrade
+    }
+
+    // ── Manejar retorno de Stripe Checkout ───────────────────────────────
+    function handleCheckoutReturn() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('checkout') === 'success') {
+            const banner = document.createElement('div');
+            banner.style.cssText = `
+                position:fixed;top:20px;left:50%;transform:translateX(-50%);
+                background:#00ff66;color:#000;padding:12px 28px;border-radius:8px;
+                font-family:monospace;font-weight:700;font-size:0.9rem;z-index:9999;
+                box-shadow:0 4px 20px rgba(0,255,102,0.4);
+            `;
+            banner.textContent = '¡Plan PRO activado! Bienvenido a Valior PRO.';
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 5000);
+            // Limpiar URL
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('checkout') === 'canceled') {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     }
 
     // Logout
@@ -1005,6 +1159,10 @@
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Obtener plan del usuario y aplicar gate si es free
+        window.userPlan = await fetchUserPlan(sb, supabase);
+        handleCheckoutReturn();
+
         try {
             console.log("--- DEBUG: Iniciando FETCH a Supabase ---");
 
@@ -1134,6 +1292,13 @@
 
                 const boardFinishedContainer = document.getElementById('daily-board-finished-container');
                 boardFinishedContainer.innerHTML = renderBoardByLeague(boardFinishedData);
+
+                // Aplicar gate freemium si el usuario no tiene plan PRO
+                if (window.userPlan !== 'pro') {
+                    applyFreemiumGate();
+                } else {
+                    applyProBadge();
+                }
 
                 const vipActiveContainer = document.getElementById('vip-signals-active-container');
                 if (vipActiveData.length > 0) {

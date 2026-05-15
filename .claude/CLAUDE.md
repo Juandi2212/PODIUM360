@@ -59,6 +59,11 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Deploy de seguridad en producción: commit `c9ca0d2` en `main` → `valior.vercel.app` (11-May-2026)
 - [x] Migración Stripe → Wompi + precio localizado por país (11-May-2026): precio 69.900 COP, detección de país via `ipapi.co`, CSP actualizado
 - [x] Integración Wompi webhook automático (12-May-2026): Edge Function `wompi-webhook` desplegada, `WOMPI_INTEGRITY_SECRET` configurado, flujo completo probado en modo test
+- [x] Resolución manual de 34 picks pendientes (15-May-2026): script `fix_pending_picks.py` (one-shot, eliminado) calificó picks de Mar-May 2026 que API-Football free no podía resolver por ventana de 2 días
+- [x] Dashboard KPI rediseñado (15-May-2026): reemplazadas 4 cards (Yield/Profit/Picks/Winrate) → contador de victorias dinámico `"X+ pronósticos acertados y contando"` desde `historical_results`
+- [x] Landing page track record label (15-May-2026): `"Rendimiento Actual"` → `"Track Record · Mar 2026"` para indicar que es snapshot histórico
+- [x] supabase_sync.py buffer 2h (15-May-2026): `_compute_status()` ahora marca `finished` solo si `hora_utc + 2h < now` — evita que partidos en curso desaparezcan si el pipeline re-corre durante el partido
+- [x] Tareas programadas actualizadas (15-May-2026): Morning pipeline movido a 06:00 AM + flag `WakeToRun` activo — funciona aunque el PC esté en suspensión
 - [ ] **NEXT → ⚠️ WOMPI PRODUCCIÓN:** Crear link de pago real en Wompi (69.900 COP, modo producción) → actualizar `WOMPI_PAYMENT_LINK` en `frontend/public/dashboard.html` línea ~397 + actualizar secret en Supabase a `prod_integrity_...`
 - [ ] **NEXT →** Activar Gemini API pay-as-you-go (~$5/mes) para eliminar análisis "Pendiente" en jornadas grandes
 - [ ] **NEXT →** Comprar dominio `valior.app` o similar (~$12/año en Namecheap o Vercel)
@@ -92,7 +97,7 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (12 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (15 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
 ### Auditoría de Seguridad Pre-Lanzamiento (11-May-2026):
 - **Freemium gate reactivado (`frontend/public/dashboard.html`):**

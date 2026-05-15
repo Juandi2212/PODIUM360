@@ -444,10 +444,10 @@ export default function App() {
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                   <TrendingUp size={80} className="text-[#00ff66]" />
                 </div>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#555] block mb-2">Rendimiento Actual</span>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[#555] block mb-2">Track Record · Mar 2026</span>
                 <p className="text-5xl font-bold tracking-tighter text-[#00ff66] mb-2">+71.1%</p>
                 <p className="text-[#888] text-xs leading-relaxed">
-                  Basado en 26 picks auditados con stake plano de 1 unidad.
+                  26 picks auditados, stake plano de 1 unidad.
                 </p>
               </div>
 
