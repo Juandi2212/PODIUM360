@@ -64,6 +64,8 @@ Utiliza modelos matemáticos propios (Poisson + Elo + xG) y narrativa generada p
 - [x] Landing page track record label (15-May-2026): `"Rendimiento Actual"` → `"Track Record · Mar 2026"` para indicar que es snapshot histórico
 - [x] supabase_sync.py buffer 2h (15-May-2026): `_compute_status()` ahora marca `finished` solo si `hora_utc + 2h < now` — evita que partidos en curso desaparezcan si el pipeline re-corre durante el partido
 - [x] Tareas programadas actualizadas (15-May-2026): Morning pipeline movido a 06:00 AM + flag `WakeToRun` activo — funciona aunque el PC esté en suspensión
+- [x] Fix btts fallback en `data_fetcher.py` (21-May-2026): `btts` en el parámetro `markets` causa HTTP 422 en Serie A y otras ligas que no lo soportan. El código ahora reintenta automáticamente sin `btts` si el primer intento falla. BTTS seguirá siendo `null` para esas ligas (limitación de The Odds API, no de nuestro código).
+- [x] Auditoría completa de market keys de The Odds API (21-May-2026): solo 4 keys soportados para soccer: `h2h`, `totals`, `spreads`, `h2h_lay`. Todo lo demás (`btts`, `alternate_totals`, `double_chance`, `draw_no_bet`) devuelve 422. Over/Under 1.5 **no existe en ninguna región** (eu/uk/us/au) ni en ningún plan de The Odds API para fútbol — techo estructural confirmado.
 - [ ] **NEXT → ⚠️ WOMPI PRODUCCIÓN:** Crear link de pago real en Wompi (69.900 COP, modo producción) → actualizar `WOMPI_PAYMENT_LINK` en `frontend/public/dashboard.html` línea ~397 + actualizar secret en Supabase a `prod_integrity_...`
 - [ ] **NEXT →** Activar Gemini API pay-as-you-go (~$5/mes) para eliminar análisis "Pendiente" en jornadas grandes
 - [ ] **NEXT →** Comprar dominio `valior.app` o similar (~$12/año en Namecheap o Vercel)
@@ -97,7 +99,7 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 
 ---
 
-## Estado Actual (15 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
+## Estado Actual (21 de Mayo de 2026) — TODOS LOS MÓDULOS OPERATIVOS ✅
 
 ### Auditoría de Seguridad Pre-Lanzamiento (11-May-2026):
 - **Freemium gate reactivado (`frontend/public/dashboard.html`):**
@@ -119,8 +121,10 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 - **Console.logs de debug eliminados del dashboard:**
   - Removidos 5 `console.log/error` que imprimían todo `daily_board` y `vip_signals` en DevTools del usuario
 - **BTTS arreglado en `data_fetcher.py`:**
-  - `"markets": "h2h,totals,spreads"` → `"h2h,totals,spreads,btts"` (línea 921)
+  - `"markets": "h2h,totals,spreads"` → `"h2h,totals,spreads,btts"` (11-May-2026, línea 921)
   - BTTS nunca se solicitaba a The Odds API — por eso siempre estaba vacío
+  - ⚠️ Fix parcial: ligas como Serie A no soportan `btts` y devolvían 422, bloqueando TODAS las cuotas (1X2 incluido)
+  - **Fix definitivo (21-May-2026):** código ahora intenta con `btts` y si recibe 422 reintenta sin él. BTTS quedará `null` para esas ligas, pero 1X2 y totales funcionan correctamente.
 - **Mercados sin cuota bookie ahora siempre visibles (`model_engine.py`):**
   - Antes: solo `over_1.5`/`under_1.5` se inyectaban sin cuota API
   - Ahora: `over_2.5`, `under_2.5`, `over_3.5`, `under_3.5`, `btts` también se inyectan con `p_modelo_ext` del Poisson
@@ -145,6 +149,22 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 - **URL de eventos** configurada en panel Wompi (modo pruebas y producción): misma URL para ambos
 - **Flujo completo probado** en modo test: pago ficticio → webhook → `user_profiles` actualizado → dashboard muestra PRO
 - **⚠️ Para ir a producción:** 1) Crear link de pago real (69.900 COP) en panel Wompi → actualizar línea ~397 del dashboard 2) `npx supabase secrets set WOMPI_INTEGRITY_SECRET="prod_integrity_..." --project-ref ssvnixnqczpvpiomgrje`
+
+### Sesión 21-May-2026 — Pipeline + Auditoría de APIs:
+- **Pipeline corrido para 22-May-2026:** Fiorentina vs Atalanta (Serie A, 18:45 UTC). Partido subido a Supabase. 0 señales VIP (ningún mercado alcanzó EV ≥ 5%). Análisis Gemini generado.
+- **Bug corregido — `btts` rompe ligas:** The Odds API devuelve HTTP 422 para `soccer_italy_serie_a` cuando `markets` incluye `btts`. Fix: `data_fetcher.py` ahora reintenta sin `btts` si el primer intento falla (línea ~1107). Afecta a cualquier liga que no soporte ese market key.
+- **Auditoría The Odds API — market keys soportados para soccer:**
+  - ✅ Soportados: `h2h`, `totals`, `spreads`, `h2h_lay`
+  - ❌ No soportados (422): `btts`, `alternate_totals`, `team_totals`, `draw_no_bet`, `double_chance`
+  - ❌ No existen (422 "Invalid market"): `asian_totals`, `asian_handicap`, `both_teams_score`
+  - Líneas disponibles en `totals` para fútbol europeo: **solo 2.5, 2.75, 3.0** — la línea 1.5 no aparece en NINGUNA región (eu, uk, us, au) ni para ninguna liga. Es un techo estructural de la API, no de cobertura de partido.
+  - `alternate_totals` (que incluiría 1.5) existe en otros deportes pero está bloqueado para soccer incluso en planes de pago básicos.
+- **Auditoría API-Football — odds pre-partido:**
+  - Plan gratuito bloqueado para `season=2025+`. Solo accede a 2022–2024.
+  - El endpoint `/odds` retorna `results=0` incluso para fixtures de seasons accesibles (2023/2024) — los datos de cuotas pre-partido requieren plan Standard+ ($9.99/mes).
+  - El catálogo `/odds/bets` lista **337 mercados** disponibles en plan de pago, incluyendo `Goals Over/Under` (id=5, que sí incluye línea 1.5), `BTTS` (id=8), `Double Chance` (id=12), `Corners` (id=45), `Cards` (id=80).
+  - **Conclusión:** API-Football con plan de pago es la única fuente verificada para Over/Under 1.5 con cuota bookie real. Evaluar en Fase 3 cuando haya tracción.
+- **Fotmob 404 en temporada 2025:** Los endpoints de xG de Fotmob devuelven 404 para `season=2025`. El pipeline usa fallback de goles promedio de liga (Serie A: 2.42 goles/partido). No hay acción inmediata — mismo comportamiento que temporadas pasadas al cierre de liga.
 
 ### Última jornada operativa:
 - **Integración Stripe Completada (30-Mar-2026):**
@@ -229,9 +249,11 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 ## Arquitectura de Módulos
 
 ### `data_fetcher.py` — Ingesta de Datos
-- **Fuentes:** ClubElo (Elo), Fotmob (xG season avg), Football-Data.org (fixtures/standings/forma), The Odds API (cuotas 1X2/OU/BTTS)
+- **Fuentes:** ClubElo (Elo), Fotmob (xG season avg — ⚠️ 404 en temporada 2025, usa fallback goles promedio de liga), Football-Data.org (fixtures/standings/forma), The Odds API (cuotas 1X2/OU)
 - **Caché local:** `database/api_cache.json` (TTL 24h, actualmente ~44MB)
 - **Ligas soportadas:** Premier League, La Liga, Bundesliga, Serie A, Ligue 1, Champions League, Eredivisie, Primeira Liga
+- **The Odds API — market keys válidos para soccer (confirmado 21-May-2026):** solo `h2h`, `totals`, `spreads`, `h2h_lay`. Todo lo demás devuelve 422. Líneas de `totals` disponibles: 2.5 (mayoría de bookies), 2.75 (Pinnacle), 3.0 (Coolbet). Línea 1.5 **no existe** en ninguna región.
+- **Fallback btts (v1.10, 21-May-2026):** El código intenta `h2h,totals,spreads,btts`. Si recibe 422, reintenta con `h2h,totals,spreads`. Leagues que no soportan `btts` (Serie A confirmada) quedan con `btts=null` en la cuota — comportamiento correcto.
 - **Captura de totales (v1.9):** Todas las líneas disponibles de la API se capturan sin filtro en `mejores_cuotas_extra.totals`. Clave generada: `f"{name}_{pt}".lower()` → `over_1.5`, `under_1.5`, `over_2.5`, `under_2.5`, `over_3.5`, etc.
 - **`mejor_cuota["over_2.5"]`** se mantiene en sync con `mejores_cuotas_extra.totals["over_2.5"]` (ambos establecidos desde la API; la clave `over25` fue eliminada en v1.9).
 - **Output:** `partido_data.json`
@@ -651,7 +673,7 @@ WHERE status_win_loss IN ('win', 'loss');
 | ~~Naming: Atlético Madrid sin alias con acento~~ | ~~RESUELTO 18-Mar-2026~~ | Alias `"ATLÉTICO MADRID"` agregado a `naming.py` |
 | ~~Demo Mode hardcodeado en dashboard~~ | ~~RESUELTO 11-May-2026~~ | `fetchUserPlan()` reactivado — plan real por usuario |
 | ~~`vip_signals` accesible sin autenticar~~ | ~~RESUELTO 11-May-2026~~ | RLS `pro_read_vip_signals` — solo plan='pro' puede leer |
-| ~~BTTS siempre vacío en todos los partidos~~ | ~~RESUELTO 11-May-2026~~ | Agregado `btts` al parámetro `markets` de The Odds API |
+| ~~BTTS siempre vacío en todos los partidos~~ | ~~RESUELTO 21-May-2026 (fix completo)~~ | Fallback en `data_fetcher.py`: intenta con `btts`, si 422 reintenta sin él. Serie A y otras ligas sin soporte quedan con `btts=null` pero 1X2 funciona. |
 | ~~Over/Under 3.5 y 2.5 sin datos cuando no hay cuota bookie~~ | ~~RESUELTO 11-May-2026~~ | Inyección universal en `model_engine.py` con `p_modelo_ext` |
 | Football-Data API no retorna partidos EL/CL (tier insuficiente) | `result_updater.py` ya migrado a API-Football; Football-Data solo se usa en `data_fetcher.py` para fixtures/standings | Migración completada para resultados; evaluar migrar data_fetcher también |
 | Partidos UEL de bajo perfil sin cobertura en The Odds API | Ej: Braga vs Ferencvaros (18-Mar) — solo Elo disponible, sin cuotas ni xG | No se puede resolver con naming; es limitación de cobertura API. Marcar visualmente en dashboard. |
@@ -659,9 +681,11 @@ WHERE status_win_loss IN ('win', 'loss');
 | ~~`test_runner.py` solo escanea CL y EL automáticamente~~ | ~~RESUELTO 18-Mar-2026~~ | Ahora consulta PL, SA, PD, BL1, FL1 vía Football-Data API con delays de 7s |
 | `result_updater.py` no califica mercados Asian Handicap complejos | Picks AH complejos quedan `pending` indefinidamente | Implementar `void` y lógica AH avanzada (`-1`, `-2`) |
 | DC markets no se emiten si Pinnacle no está disponible para el partido | Sin cuota sintética de referencia, el EV no se puede calcular | Implementar fallback con margen estimado (ej: 4%) cuando Pinnacle no retorna cuotas |
-| `over_1.5`/`under_1.5` usan probabilidad modelo puro (sin blend Pinnacle) | EV ligeramente menos preciso que mercados 1X2 | Extender `paso_f_blend()` para blendear O/U 1.5 cuando cuota disponible |
+| `over_1.5`/`under_1.5` siempre "Modelo puro" — sin cuota bookie real | The Odds API no devuelve línea 1.5 para fútbol en NINGUNA región ni plan. Solo ofrece 2.5, 2.75, 3.0. `alternate_totals` (que incluiría 1.5) devuelve 422 para soccer. Techo estructural confirmado el 21-May-2026. | API-Football Standard+ ($9.99/mes) tiene `Goals Over/Under` (id=5) con línea 1.5. Evaluar en Fase 3. Por ahora: EV no calculable para 1.5, mercado se muestra con `p_modelo_ext` sin cuota. |
 | Picks del 12-Mar-2026 en `historical_results` usan código legacy `over25` | No afecta calificación (regex lo maneja); pero rompe consistencia del historial | Ejecutar `UPDATE historical_results SET mercado='over_2.5' WHERE mercado='over25'` en Supabase |
-| Sin corners/tarjetas/stats avanzadas en el modelo | Mercados de corners y tarjetas no disponibles | Integrar API-Football cuando haya tracción de usuarios pagos |
+| Sin corners/tarjetas/stats avanzadas en el modelo | Mercados de corners y tarjetas no disponibles | API-Football Standard+ ($9.99/mes) tiene 337 bet types incluyendo corners, tarjetas, exact score, etc. Integrar en Fase 3. |
+| Fotmob 404 en endpoints de temporada 2025 | xG rolling no disponible — pipeline usa fallback de goles promedio de liga | No hay acción inmediata. Se repite al cierre de cada temporada. Evaluar actualizar IDs de temporada en `data_fetcher.py` cuando Fotmob publique la nueva. |
+| API-Football free plan bloqueado para season 2025+ | No se puede buscar fixtures ni resultados de la temporada actual por fixture date. `result_updater.py` usa workaround buscando por equipos. | Upgrade a Standard+ ($9.99/mes) desbloquea temporada actual y endpoint `/odds`. Evaluar en Fase 3. |
 | Gemini free tier rate limit (~50 req/día, 5 req/min) | Con jornadas de 9+ partidos, algunas narrativas quedan vacías si la cuota diaria se agota | Re-ejecutar `supabase_sync.py` cuando la cuota se renueve; considerar API key de pago en Fase 2 |
 | MOMENTUM_DATA embebido en `mercados_completos` JSONB | Patrón de embeber datos estructurados en campo JSONB existente — funcional pero no ideal a largo plazo | Migrar a columnas dedicadas (`forma`, `h2h`, `diagnostico_global`) en `daily_board` cuando se haga el port a Next.js |
 | H2H requiere mínimo 2 partidos para aplicar ajuste | Partidos de fase nueva (ej: UCL QF) con 0-1 H2H no reciben ajuste | Comportamiento correcto — muestra insuficiente no debe sesgar el modelo |
