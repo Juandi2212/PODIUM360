@@ -4,9 +4,9 @@ model_engine.py — Podium VIP Cards · Predictive Model Engine v1.0
 ==================================================================
 Implements Modelo Híbrido Podium v1.0 (MODELO-HIBRIDO-PODIUM-v1.0.md)
 
-  Paso A: factor_elo  ← Elo ratings (base force with home advantage)
+  Paso A: factor_strength ← API-Football comparison.total (base force with home advantage)
   Paso B: xG rolling  ← decay 0.85, fallback to liga avg if null
-  Paso C: λ_local / λ_visit ← xG normalizado × corrección Elo
+  Paso C: λ_local / λ_visit ← xG normalizado × corrección de fuerza
   Paso D: Poisson matrix P(i,j) 0-0 to 6-6
   Paso E: Market probs (1X2, Over 2.5, BTTS) desde la matriz
   Paso F: Blend modelo + Pinnacle fair odds (pesos por mercado)
@@ -41,8 +41,9 @@ WEIGHTS = {
 }
 
 # ── Model constants ────────────────────────────────────────────────────────────
-ELO_HOME_ADV   = 60     # Standard home advantage (Manual Paso A)
-ELO_EXP_WEIGHT = 0.3    # Elo influence on Poisson lambdas (Manual Paso C)
+ELO_HOME_ADV   = 60     # Standard home advantage, in Elo-equivalent points (Manual Paso A)
+STRENGTH_HOME_ADV_LOGODDS = ELO_HOME_ADV / 400 * math.log(10)  # misma magnitud, en log-odds
+ELO_EXP_WEIGHT = 0.3    # Strength-factor influence on Poisson lambdas (Manual Paso C)
 DECAY          = 0.85   # xG rolling decay factor (Manual Paso B)
 MAX_GOALS      = 7      # Poisson matrix size: 0..6 per team
 EV_MIN         = 3.0    # Regla de Oro: EV% threshold
@@ -63,22 +64,46 @@ H2H_MIN_GAMES  = 2      # Minimum H2H matches to apply adjustment
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PASO A — Elo: base probability and log-odds factor
+# PASO A — Strength: base probability and log-odds factor
+#
+# Fuente: API-Football /predictions → comparison.total (reemplazo de los
+# ratings absolutos de ClubElo, API descontinuada el 17-Sep-2026). Ver
+# data_fetcher.fetch_strength_comparison(). Selecciones nacionales usan
+# eloratings.net convertido al mismo formato vía _elo_pair_to_comparison().
 # ══════════════════════════════════════════════════════════════════════════════
-def paso_a_elo(elo_local: float, elo_visit: float) -> tuple[float, float]:
-    """
-    P_elo_local = 1 / (1 + 10^((Elo_visit - Elo_local - 60) / 400))
-    factor_elo  = ln(P_elo_local / (1 - P_elo_local))
+def _pct_to_frac(value) -> float:
+    """'55.0%' → 0.55"""
+    return float(str(value).replace("%", "").strip()) / 100.0
 
-    Returns (p_elo_local, factor_elo).
-    factor_elo > 0 → local stronger;  factor_elo < 0 → visitante stronger.
+
+def paso_a_strength(comparison: dict | None) -> tuple[float, float, bool]:
     """
-    exponent    = (elo_visit - elo_local - ELO_HOME_ADV) / 400
-    p_elo_local = 1 / (1 + 10 ** exponent)
-    # Clamp to avoid log(0)
-    p_elo_local = max(0.001, min(0.999, p_elo_local))
-    factor_elo  = math.log(p_elo_local / (1 - p_elo_local))
-    return p_elo_local, factor_elo
+    p_raw        = home / (home + away)   ← de comparison.total, sin ventaja de local
+    factor_local = ln(p_raw / (1 - p_raw)) + STRENGTH_HOME_ADV_LOGODDS
+
+    Returns (p_strength_local, factor_strength, strength_fallback).
+    factor_strength > 0 → local stronger;  factor_strength < 0 → visitante stronger.
+    Si no hay comparison/total válido, ambos equipos se tratan como iguales
+    (50/50) y aun así se aplica la ventaja de local — mismo comportamiento que
+    tenía el fallback de Elo (1500/1500 + ventaja).
+    """
+    p_raw   = 0.5
+    fallback = True
+    if comparison and isinstance(comparison.get("total"), dict):
+        try:
+            h = _pct_to_frac(comparison["total"]["home"])
+            a = _pct_to_frac(comparison["total"]["away"])
+            if h + a > 0:
+                p_raw    = max(0.001, min(0.999, h / (h + a)))
+                fallback = False
+        except (KeyError, TypeError, ValueError):
+            pass
+
+    factor_raw      = math.log(p_raw / (1 - p_raw))
+    factor_strength = factor_raw + STRENGTH_HOME_ADV_LOGODDS
+    p_strength_local = 1 / (1 + math.exp(-factor_strength))
+    p_strength_local = max(0.001, min(0.999, p_strength_local))
+    return p_strength_local, factor_strength, fallback
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -100,7 +125,7 @@ def paso_b_xg_rolling(values: list | None, decay: float = DECAY) -> float | None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PASO C — Normalize xG → indices → λ with Elo correction
+# PASO C — Normalize xG → indices → λ with strength correction
 # ══════════════════════════════════════════════════════════════════════════════
 def paso_c_lambdas(
     xg_atk_local: float,
@@ -108,7 +133,7 @@ def paso_c_lambdas(
     xg_atk_visit: float,
     xg_def_visit: float,   # xGA (goals conceded) by visitante
     liga_avg_goals: float,
-    factor_elo: float,
+    factor_strength: float,
 ) -> tuple[float, float]:
     """
     xG_avg_liga (per team) = liga_avg_goals / 2
@@ -117,8 +142,8 @@ def paso_c_lambdas(
     xG_def_visit_idx = xG_def_visit / xG_avg_liga   (visitante's defensive weakness)
     (symmetrically for visitante)
 
-    λ_local = atk_l_idx × def_v_idx × xG_avg × e^(+0.3 × factor_elo)
-    λ_visit = atk_v_idx × def_l_idx × xG_avg × e^(−0.3 × factor_elo)
+    λ_local = atk_l_idx × def_v_idx × xG_avg × e^(+0.3 × factor_strength)
+    λ_visit = atk_v_idx × def_l_idx × xG_avg × e^(−0.3 × factor_strength)
 
     Per Manual Paso C — normalizing prevents lambda inflation.
     """
@@ -129,8 +154,8 @@ def paso_c_lambdas(
     atk_v_idx = xg_atk_visit / xg_avg
     def_l_idx = xg_def_local  / xg_avg
 
-    lam_local = atk_l_idx * def_v_idx * xg_avg * math.exp( ELO_EXP_WEIGHT * factor_elo)
-    lam_visit = atk_v_idx * def_l_idx * xg_avg * math.exp(-ELO_EXP_WEIGHT * factor_elo)
+    lam_local = atk_l_idx * def_v_idx * xg_avg * math.exp( ELO_EXP_WEIGHT * factor_strength)
+    lam_visit = atk_v_idx * def_l_idx * xg_avg * math.exp(-ELO_EXP_WEIGHT * factor_strength)
 
     return lam_local, lam_visit
 
@@ -486,20 +511,20 @@ def paso_g_ev(p_final: dict, mejor_cuota: dict, extra: dict) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 # PASO H — Regla de Oro Podium
 # ══════════════════════════════════════════════════════════════════════════════
-def _elo_favors(p_elo_local: float, outcome: str) -> bool:
-    """Does the Elo model support this outcome?"""
+def _strength_favors(p_strength_local: float, outcome: str) -> bool:
+    """Does the strength-comparison signal support this outcome?"""
     if outcome == "1x2_local":
-        return p_elo_local > 0.5
+        return p_strength_local > 0.5
     if outcome == "1x2_visitante":
-        return p_elo_local < 0.5
+        return p_strength_local < 0.5
     # Double Chance
     if outcome == "dc_1x":
-        return p_elo_local >= 0.40   # local no es el gran perdedor
+        return p_strength_local >= 0.40   # local no es el gran perdedor
     if outcome == "dc_x2":
-        return p_elo_local <= 0.60   # visitante no es el gran perdedor
+        return p_strength_local <= 0.60   # visitante no es el gran perdedor
     if outcome == "dc_12":
-        return abs(p_elo_local - 0.5) > 0.10  # hay favorito claro → el empate es improbable
-    return False  # Elo not applicable to Over/BTTS (weight 0.05 in manual)
+        return abs(p_strength_local - 0.5) > 0.10  # hay favorito claro → el empate es improbable
+    return False  # Strength signal not applicable to Over/BTTS (weight 0.05 in manual)
 
 
 def _xg_favors(lam_local: float, lam_visit: float, outcome: str) -> bool:
@@ -574,14 +599,14 @@ def _regla_de_oro(ev_pct: float, consenso: int, divergencia: float,
 
 
 def paso_h_regla_de_oro(
-    ev_por_mercado:  dict,
-    p_modelo:        dict,
-    p_final:         dict,
-    fair_pinnacle:   dict | None,
-    p_elo_local:     float,
-    lam_local:       float,
-    lam_visit:       float,
-    mejor_cuota:     dict,
+    ev_por_mercado:    dict,
+    p_modelo:          dict,
+    p_final:           dict,
+    fair_pinnacle:     dict | None,
+    p_strength_local:  float,
+    lam_local:         float,
+    lam_visit:         float,
+    mejor_cuota:       dict,
 ) -> tuple[list[dict], list[dict]]:
     """
     Evaluate every market and return the top 3 picks (highest EV, >0).
@@ -608,10 +633,10 @@ def paso_h_regla_de_oro(
             continue
 
         # ── Consenso de modelos ──────────────────────────────────────────────
-        c_elo     = _elo_favors(p_elo_local, outcome)
-        c_xg      = _xg_favors(lam_local, lam_visit, outcome)
-        c_poisson = _poisson_favors(p_modelo, outcome)
-        consenso  = int(c_elo) + int(c_xg) + int(c_poisson)
+        c_strength = _strength_favors(p_strength_local, outcome)
+        c_xg       = _xg_favors(lam_local, lam_visit, outcome)
+        c_poisson  = _poisson_favors(p_modelo, outcome)
+        consenso   = int(c_strength) + int(c_xg) + int(c_poisson)
 
         # ── Divergencia de mercado (signed) ─────────────────────────────────
         if fair_pinnacle and fk in fair_pinnacle:
@@ -680,7 +705,7 @@ from utils.naming import normalize_team_name
 # ══════════════════════════════════════════════════════════════════════════════
 def _validate_input(data: dict) -> None:
     """Raise ValueError with a clear message if critical fields are missing."""
-    required = ["partido", "elo"]
+    required = ["partido"]
     for field in required:
         if field not in data or data[field] is None:
             raise ValueError(f"partido_data.json missing required field: '{field}'")
@@ -688,17 +713,6 @@ def _validate_input(data: dict) -> None:
     for sub in ("local", "visitante"):
         if not partido.get(sub):
             raise ValueError(f"partido_data.json missing partido.{sub}")
-
-
-def _impute_elo(elo_l, elo_v):
-    """Return (elo_l, elo_v, elo_fallback) with sensible defaults when data is absent."""
-    if not elo_l and not elo_v:
-        return 1500.0, 1500.0, True
-    if not elo_l:
-        return (1500.0 if not elo_v else elo_v - 50.0), elo_v, True
-    if not elo_v:
-        return elo_l, (1500.0 if not elo_l else elo_l - 50.0), True
-    return float(elo_l), float(elo_v), False
 
 
 def _process_market_outputs(top_3_picks, all_markets, m_extra, p_final):
@@ -782,7 +796,7 @@ def run_model(data: dict) -> dict:
     if "visitante" in partido:
         partido["visitante"] = normalize_team_name(partido["visitante"])
         
-    elo          = data["elo"]
+    comparison   = data.get("strength_comparison")
     xg           = data.get("xg") or {}
     liga_avg     = data.get("liga_avg_goals") or 2.5
     odds         = data.get("odds", {})
@@ -790,10 +804,8 @@ def run_model(data: dict) -> dict:
     mejor_cuota  = odds.get("mejor_cuota", {}) or {}
     m_extra      = odds.get("mejores_cuotas_extra", {}) or {}
 
-    # ── A. Elo ────────────────────────────────────────────────────────────────
-    elo_l, elo_v, elo_fallback = _impute_elo(elo.get("local"), elo.get("visitante"))
-
-    p_elo_local, factor_elo = paso_a_elo(elo_l, elo_v)
+    # ── A. Strength (API-Football, reemplazo de ClubElo) ─────────────────────
+    p_strength_local, factor_strength, strength_fallback = paso_a_strength(comparison)
 
     # ── B. xG rolling ─────────────────────────────────────────────────────────
     xg_local     = xg.get("local") or {}
@@ -828,7 +840,7 @@ def run_model(data: dict) -> dict:
     lam_local, lam_visit = paso_c_lambdas(
         xg_atk_local, xg_def_local,
         xg_atk_visit, xg_def_visit,
-        liga_avg_safe, factor_elo,
+        liga_avg_safe, factor_strength,
     )
 
     # ── C.5 Form & H2H adjustments on lambdas ─────────────────────────────────
@@ -866,7 +878,7 @@ def run_model(data: dict) -> dict:
 
     top_3_picks, all_markets = paso_h_regla_de_oro(
         ev_por_mercado, p_modelo, p_final, fair_pinnacle,
-        p_elo_local, lam_local, lam_visit, mejor_cuota,
+        p_strength_local, lam_local, lam_visit, mejor_cuota,
     )
 
     processed_picks, processed_all_markets = _process_market_outputs(
@@ -912,7 +924,7 @@ def run_model(data: dict) -> dict:
         "diagnostico_global": {
             "xg_usado":            xg_usado,
             "odds_blend":          odds_blend,
-            "elo_fallback":        elo_fallback,
+            "strength_fallback":   strength_fallback,
             "form_adj_local":      round(form_adj_l, 4),
             "form_adj_visitante":  round(form_adj_v, 4),
             "h2h_adj_local":       round(h2h_adj_l, 4),
@@ -925,12 +937,12 @@ def run_model(data: dict) -> dict:
 # Console report
 # ══════════════════════════════════════════════════════════════════════════════
 def print_report(data_in: dict, out: dict):
-    partido = data_in.get("partido") or {}
-    elo     = data_in.get("elo") or {}
-    L       = partido.get("local") or "Local"
-    V       = partido.get("visitante") or "Visitante"
-    liga    = partido.get("liga") or "—"
-    W       = 60
+    partido    = data_in.get("partido") or {}
+    comparison = data_in.get("strength_comparison") or {}
+    L          = partido.get("local") or "Local"
+    V          = partido.get("visitante") or "Visitante"
+    liga       = partido.get("liga") or "—"
+    W          = 60
 
     def line(char="═"): return char * W
 
@@ -939,19 +951,18 @@ def print_report(data_in: dict, out: dict):
     print(f"  {L} vs {V}  ·  {liga}")
     print(line())
 
-    # ── Elo ──────────────────────────────────────────────────────────────────
-    elo_fallback = out.get("diagnostico_global", {}).get("elo_fallback", False)
-    if not elo_fallback and elo.get("local") is not None and elo.get("visitante") is not None:
-        p_elo = 1 / (1 + 10 ** ((elo["visitante"] - elo["local"] - 60) / 400))
-        print(f"\n  ELO")
-        print(f"    {L:<22}  {elo['local']:.1f}  →  P(win) = {p_elo*100:.1f}%")
-        print(f"    {V:<22}  {elo['visitante']:.1f}  →  P(win) = {(1-p_elo)*100:.1f}%")
-        print(f"    Ventaja local (+60 Elo) incluida.")
+    # ── Strength (API-Football comparison.total) ──────────────────────────────
+    strength_fallback = out.get("diagnostico_global", {}).get("strength_fallback", False)
+    total = comparison.get("total") if isinstance(comparison.get("total"), dict) else None
+    if not strength_fallback and total:
+        p_strength, _, _ = paso_a_strength(comparison)
+        print(f"\n  FUERZA (API-Football)")
+        print(f"    {L:<22}  {total['home']}  →  P(win, con ventaja local) = {p_strength*100:.1f}%")
+        print(f"    {V:<22}  {total['away']}  →  P(win, con ventaja local) = {(1-p_strength)*100:.1f}%")
+        print(f"    Ventaja de local incluida (equivalente a +60 Elo).")
     else:
-        # Re-derive the effective Elo used in the model
-        lam_data = out["lambdas"]
-        print(f"\n  ELO")
-        print(f"    ⚠️ Datos Elo incompletos o no encontrados. Se utilizó Elo fallback de 1500/ajustado.")
+        print(f"\n  FUERZA (API-Football)")
+        print(f"    ⚠️ No se encontró el fixture o no hubo comparison.total. Se usó fallback 50/50 + ventaja de local.")
         print(f"    Esto degrada parcialmente la fiabilidad del pick final.")
 
     # ── Report Generation ─────────────────────────────────────────────────────
