@@ -97,7 +97,10 @@
       "Bash(curl -sv \"https://valior.vercel.app/dashboard.html\")",
       "Bash(curl -s \"https://valior.vercel.app/dashboard\")",
       "Bash(curl -s \"https://valior.vercel.app/js/config.js\")",
-      "Bash(curl -s \"https://valior.vercel.app/auth\")"
+      "Bash(curl -s \"https://valior.vercel.app/auth\")",
+      "Bash(curl -s -o /tmp/fm1.json -w \"HTTP_STATUS:%{http_code}\\\\n\" -A \"Mozilla/5.0\" \"https://www.fotmob.com/api/leagues?id=47\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /tmp/fm2.json -w \"HTTP_STATUS:%{http_code}\\\\n\" -A \"Mozilla/5.0\" \"https://footballapi.fotmob.com/api/leagues?id=47&season=2025\")"
     ]
   }
 }

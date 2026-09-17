@@ -166,6 +166,21 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
   - **Conclusión:** API-Football con plan de pago es la única fuente verificada para Over/Under 1.5 con cuota bookie real. Evaluar en Fase 3 cuando haya tracción.
 - **Fotmob 404 en temporada 2025:** Los endpoints de xG de Fotmob devuelven 404 para `season=2025`. El pipeline usa fallback de goles promedio de liga (Serie A: 2.42 goles/partido). No hay acción inmediata — mismo comportamiento que temporadas pasadas al cierre de liga.
 
+### Sesión 17-Sep-2026 — ClubElo descontinuada + fix Fotmob + reemplazo Paso A:
+- **Diagnóstico:** revisión de las 5 APIs del pipeline tras ~4 meses sin correr. The Odds API, Football-Data.org y API-Football operativos sin cambios. Fotmob y ClubElo fallando por causas distintas.
+- **Fix Fotmob (`data_fetcher.py`):** su API interna migró de `/api/leagues` y `/api/teams` a `/api/data/leagues` y `/api/data/teams`, y el formato de temporada cambió de año entero (`2025`) a string `"2025/2026"`. Nueva función `_fotmob_season_str()`. Estructura JSON de respuesta (tabla de posiciones, `primaryLeagueId`/`primarySeasonId`, CDN de xG) sin cambios. Verificado en vivo con Arsenal/Man City.
+- **ClubElo.com descontinuada — no es una caída temporal:** `api.clubelo.com` responde 502 Bad Gateway en HTTP y no acepta conexiones HTTPS (timeout, sin TLS). El sitio principal `clubelo.com` se rediseñó por completo y sigue funcionando, pero ya no expone ninguna API/CSV — `/api/{equipo}` y `/{equipo}.csv` redirigen al home. Scraping del HTML fue descartado explícitamente por decisión del usuario.
+- **Reemplazo del Paso A del modelo — API-Football `/predictions`:**
+  - Nueva fuente: `comparison.total` de `/predictions?fixture=ID` (ya integrada, sin costo adicional, funciona en plan Free incluso para partidos futuros de la temporada 2026).
+  - `data_fetcher.fetch_strength_comparison(local, visitante, liga)`: busca el fixture en una ventana de ±1 día (hoy/mañana/ayer) vía `/fixtures?date=X` (no bloqueado por season, a diferencia de `/fixtures?league=X&season=Y`), cacheado 2h; trae `/predictions` cacheado 24h.
+  - Nuevo módulo compartido `utils/af_fixtures.py`: `AF_NAME_MAP`, `af_team_names()`, `apply_af_map()`, `match_af_fixture()` — antes vivían duplicados dentro de `result_updater.py`. `result_updater.py` ahora importa de aquí (mismo comportamiento, cero cambio funcional).
+  - `model_engine.py`: `paso_a_elo()` → `paso_a_strength()`. Convierte `comparison.total.home/away` a probabilidad + ventaja de local (`STRENGTH_HOME_ADV_LOGODDS = ELO_HOME_ADV/400×ln(10)`, misma magnitud que antes). Renombrados internos: `p_elo_local`→`p_strength_local`, `factor_elo`→`factor_strength`, `_elo_favors`→`_strength_favors`, `elo_fallback`→`strength_fallback`. `_impute_elo()` eliminada (fallback ahora es a nivel de fixture: si no se encuentra, trata a ambos equipos como iguales 50/50 y aplica igual la ventaja de local — mismo comportamiento que el viejo fallback 1500/1500).
+  - Selecciones nacionales (`fetch_elo_nacional`, eloratings.net) sin cambios en la fuente — `data_fetcher._elo_pair_to_comparison()` convierte su par de Elo absolutos al mismo formato `comparison.total` para que `model_engine.py` solo entienda una forma de entrada.
+  - `partido_data.json`: campo `"elo": {...}` → `"strength_comparison": {...}` (o `null`).
+  - Verificado end-to-end con datos reales: `fetch_strength_comparison` + `paso_a_strength` + `run_model()` completo corrido sin errores, incluyendo el caso fallback (fixture no encontrado) y el caso selecciones.
+  - **Costo: $0** — reutiliza `API_FOOTBALL_KEY` ya existente, dentro del plan Free.
+- **Archivos tocados:** `data_fetcher.py`, `model_engine.py`, `result_updater.py` (solo import swap), `utils/af_fixtures.py` (nuevo), `.env.example`, `.claude/docs/MODELO-HIBRIDO-PODIUM-v1.0.md`.
+
 ### Última jornada operativa:
 - **Integración Stripe Completada (30-Mar-2026):**
   - Tabla `user_profiles` creada en Supabase con triggers automáticos: `handle_new_user()` (crea perfil al registrar), `handle_updated_at()`.
@@ -249,7 +264,7 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 ## Arquitectura de Módulos
 
 ### `data_fetcher.py` — Ingesta de Datos
-- **Fuentes:** ClubElo (Elo), Fotmob (xG season avg — ⚠️ 404 en temporada 2025, usa fallback goles promedio de liga), Football-Data.org (fixtures/standings/forma), The Odds API (cuotas 1X2/OU)
+- **Fuentes:** API-Football (comparación de fuerza — reemplazo de ClubElo, ver v1.3 abajo), Fotmob (xG season avg — endpoint migrado a `/api/data/...` el 17-Sep-2026, ver v1.3), Football-Data.org (fixtures/standings/forma), The Odds API (cuotas 1X2/OU)
 - **Caché local:** `database/api_cache.json` (TTL 24h, actualmente ~44MB)
 - **Ligas soportadas:** Premier League, La Liga, Bundesliga, Serie A, Ligue 1, Champions League, Eredivisie, Primeira Liga
 - **The Odds API — market keys válidos para soccer (confirmado 21-May-2026):** solo `h2h`, `totals`, `spreads`, `h2h_lay`. Todo lo demás devuelve 422. Líneas de `totals` disponibles: 2.5 (mayoría de bookies), 2.75 (Pinnacle), 3.0 (Coolbet). Línea 1.5 **no existe** en ninguna región.
@@ -267,8 +282,8 @@ IA narrativa     → Gemini 2.5 Flash (operativo ✅)
 - **Aliases añadidos en v1.3 (EL Round of 16):** Bologna, Real Betis, Stuttgart, Celta Vigo, Panathinaikos, Ferencvaros, Braga, Genk, Freiburg, Nottingham Forest, Midtjylland
 - **Fix v2.1 (18-Mar-2026):** Agregado `"ATLÉTICO MADRID"` (acento sin "de") — The Odds API devuelve esta variante. Sin este alias, la fuzzy match falla y el partido queda sin cuotas, H2H, forma visitante y xG. **Lección:** cuando un partido nuevo falla en cuotas, revisar `naming_errors.log` primero — probablemente es un alias faltante.
 
-### `model_engine.py` — Motor Predictivo (Pasos A→H) — v2.0
-- **A:** Elo + ventaja local (+60)
+### `model_engine.py` — Motor Predictivo (Pasos A→H) — v2.1
+- **A:** Strength (API-Football `comparison.total`) + ventaja local (equivalente a +60 Elo) — ver Sesión 17-Sep-2026
 - **B:** xG rolling con decay 0.85 (N=8 partidos)
 - **C:** Lambdas Poisson normalizados con corrección Elo
 - **C.5:** Ajuste de lambdas por forma reciente + H2H (v2.0)
@@ -684,7 +699,8 @@ WHERE status_win_loss IN ('win', 'loss');
 | `over_1.5`/`under_1.5` siempre "Modelo puro" — sin cuota bookie real | The Odds API no devuelve línea 1.5 para fútbol en NINGUNA región ni plan. Solo ofrece 2.5, 2.75, 3.0. `alternate_totals` (que incluiría 1.5) devuelve 422 para soccer. Techo estructural confirmado el 21-May-2026. | API-Football Standard+ ($9.99/mes) tiene `Goals Over/Under` (id=5) con línea 1.5. Evaluar en Fase 3. Por ahora: EV no calculable para 1.5, mercado se muestra con `p_modelo_ext` sin cuota. |
 | Picks del 12-Mar-2026 en `historical_results` usan código legacy `over25` | No afecta calificación (regex lo maneja); pero rompe consistencia del historial | Ejecutar `UPDATE historical_results SET mercado='over_2.5' WHERE mercado='over25'` en Supabase |
 | Sin corners/tarjetas/stats avanzadas en el modelo | Mercados de corners y tarjetas no disponibles | API-Football Standard+ ($9.99/mes) tiene 337 bet types incluyendo corners, tarjetas, exact score, etc. Integrar en Fase 3. |
-| Fotmob 404 en endpoints de temporada 2025 | xG rolling no disponible — pipeline usa fallback de goles promedio de liga | No hay acción inmediata. Se repite al cierre de cada temporada. Evaluar actualizar IDs de temporada en `data_fetcher.py` cuando Fotmob publique la nueva. |
+| ~~Fotmob 404 en endpoints de temporada 2025~~ | ~~RESUELTO 17-Sep-2026~~ | API interna migró a `/api/data/leagues` y `/api/data/teams` + formato de temporada `"YYYY/YYYY"`. Ver Sesión 17-Sep-2026. |
+| ~~ClubElo.com sin responder (502/timeout)~~ | ~~RESUELTO 17-Sep-2026~~ | ClubElo descontinuó su API pública por completo (no es caída temporal). Paso A del modelo reemplazado por `comparison.total` de API-Football `/predictions`. Ver Sesión 17-Sep-2026. |
 | API-Football free plan bloqueado para season 2025+ | No se puede buscar fixtures ni resultados de la temporada actual por fixture date. `result_updater.py` usa workaround buscando por equipos. | Upgrade a Standard+ ($9.99/mes) desbloquea temporada actual y endpoint `/odds`. Evaluar en Fase 3. |
 | Gemini free tier rate limit (~50 req/día, 5 req/min) | Con jornadas de 9+ partidos, algunas narrativas quedan vacías si la cuota diaria se agota | Re-ejecutar `supabase_sync.py` cuando la cuota se renueve; considerar API key de pago en Fase 2 |
 | MOMENTUM_DATA embebido en `mercados_completos` JSONB | Patrón de embeber datos estructurados en campo JSONB existente — funcional pero no ideal a largo plazo | Migrar a columnas dedicadas (`forma`, `h2h`, `diagnostico_global`) en `daily_board` cuando se haga el port a Next.js |

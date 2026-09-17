@@ -21,6 +21,7 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 from utils.naming import normalize_team_name
+from utils.af_fixtures import AF_NAME_MAP, match_af_fixture, apply_af_map
 
 MANUAL_MATCHES_PATH = Path(__file__).parent / "partidos_manuales.json"
 
@@ -30,65 +31,6 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 AF_KEY       = os.getenv("API_FOOTBALL_KEY")
 AF_BASE      = "https://v3.football.api-sports.io"
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Mapeo de nombres: nuestro nombre canónico → nombre que devuelve API-Football
-# ──────────────────────────────────────────────────────────────────────────────
-# Ejecuta `python result_updater.py --debug YYYY-MM-DD` para ver los nombres
-# exactos que devuelve AF y añadir aquí los que no coincidan.
-# Clave   = normalize_team_name(nombre en Supabase)
-# Valor   = nombre tal como aparece en la columna "AF (raw)" del debug
-# ──────────────────────────────────────────────────────────────────────────────
-AF_NAME_MAP: dict[str, str] = {
-    # ── Serie A ───────────────────────────────────────────────────────────────
-    "SS Lazio":                 "Lazio",
-    "SSC Napoli":               "Napoli",
-    "Inter Milan":              "Inter",
-    "Hellas Verona":            "Hellas Verona",
-    # ── Premier League ────────────────────────────────────────────────────────
-    "Tottenham Hotspur":        "Tottenham",
-    "Manchester United":        "Manchester Utd",
-    "West Ham United":          "West Ham",
-    "Newcastle United":         "Newcastle",
-    "Wolverhampton":            "Wolves",
-    "Leicester City":           "Leicester",
-    "Ipswich Town":             "Ipswich",
-    "Brighton":                 "Brighton",
-    # ── La Liga ───────────────────────────────────────────────────────────────
-    "Atletico Madrid":          "Atletico Madrid",
-    "Celta Vigo":               "Celta Vigo",
-    "Leganes":                  "Leganes",
-    "Alaves":                   "Alaves",
-    "Rayo Vallecano":           "Rayo Vallecano",
-    # ── Bundesliga ────────────────────────────────────────────────────────────
-    "Borussia Dortmund":        "Dortmund",
-    "Eintracht Frankfurt":      "Frankfurt",
-    "Borussia Monchengladbach": "M'gladbach",
-    "Bayer Leverkusen":         "Leverkusen",
-    "Hoffenheim":               "Hoffenheim",
-    "Werder Bremen":            "Werder Bremen",
-    "Union Berlin":             "Union Berlin",
-    "Heidenheim":               "Heidenheim",
-    "St. Pauli":                "St. Pauli",
-    "Holstein Kiel":            "Kiel",
-    # ── Ligue 1 ───────────────────────────────────────────────────────────────
-    "Paris Saint-Germain":      "Paris Saint Germain",
-    "Marseille":                "Marseille",
-    "Lyon":                     "Lyon",
-    "Rennes":                   "Rennes",
-    "Havre":                    "Le Havre",
-    "Saint-Etienne":            "Saint-Etienne",
-    # ── Champions / Europa League ─────────────────────────────────────────────
-    "Ajax":                     "Ajax",
-    "Feyenoord":                "Feyenoord",
-    "PSV":                      "PSV Eindhoven",
-    "Club Brugge":              "Club Brugge",
-    "Galatasaray":              "Galatasaray",
-    "Fenerbahce":               "Fenerbahce",
-    "Besiktas":                 "Besiktas",
-    "Ferencvaros":              "Ferencvaros",
-    "Panathinaikos":            "Panathinaikos",
-}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Supabase helpers
@@ -242,49 +184,10 @@ def _get_fixtures_on_date(date_str: str) -> list:
     return fixtures
 
 
-def _af_team_names(fixture: dict) -> tuple[str, str]:
-    """Extrae y normaliza los nombres de equipos de un fixture de AF."""
-    home_raw = fixture.get("teams", {}).get("home", {}).get("name", "")
-    away_raw = fixture.get("teams", {}).get("away", {}).get("name", "")
-    return normalize_team_name(home_raw), normalize_team_name(away_raw)
-
-
-def _apply_af_map(name: str) -> str:
-    """Traduce nuestro nombre canónico al equivalente en API-Football."""
-    return AF_NAME_MAP.get(name, name)
-
-
 def find_af_fixture(home: str, away: str, date_str: str) -> dict | None:
-    """
-    Busca un fixture por nombre normalizado en la respuesta de AF.
-    Pasos:
-      1. Match exacto tras aplicar AF_NAME_MAP a nuestros nombres.
-      2. Coincidencia por subcadena bidireccional (fallback).
-    """
+    """Busca un fixture por nombre normalizado entre los fixtures de esa fecha."""
     fixtures = _get_fixtures_on_date(date_str)
-
-    home_mapped = _apply_af_map(home)
-    away_mapped = _apply_af_map(away)
-
-    # Paso 1 — coincidencia exacta
-    for f in fixtures:
-        af_home, af_away = _af_team_names(f)
-        if af_home == home_mapped and af_away == away_mapped:
-            return f
-
-    # Paso 2 — subcadena bidireccional (maneja abreviaciones y sufijos)
-    home_u = home_mapped.upper()
-    away_u = away_mapped.upper()
-    for f in fixtures:
-        af_home, af_away = _af_team_names(f)
-        af_home_u = af_home.upper()
-        af_away_u = af_away.upper()
-        home_ok = home_u in af_home_u or af_home_u in home_u
-        away_ok = away_u in af_away_u or af_away_u in away_u
-        if home_ok and away_ok:
-            return f
-
-    return None
+    return match_af_fixture(fixtures, home, away)
 
 
 def debug_af_names(date_str: str) -> None:
@@ -471,8 +374,8 @@ def _process_rows(rows, update_fn) -> tuple[int, int, int]:
                   f"usando fecha del ID: '{id_date}'")
             date_s = id_date
 
-        home_mapped = _apply_af_map(home)
-        away_mapped = _apply_af_map(away)
+        home_mapped = apply_af_map(home)
+        away_mapped = apply_af_map(away)
         map_note = ""
         if home_mapped != home or away_mapped != away:
             map_note = f" (mapeado: {home_mapped} vs {away_mapped})"

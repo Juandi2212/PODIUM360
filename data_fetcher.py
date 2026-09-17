@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-data_fetcher.py — Podium VIP Cards · Data Ingestion Script v1.2
+data_fetcher.py — Podium VIP Cards · Data Ingestion Script v1.3
 ================================================================
 Sources (in strict order):
-  1. ClubElo.com        — Elo ratings                  (free, no key)
-  2. Fotmob             — xG attack/defense season avg  (free, JSON API)
-  3. Football-Data.org  — fixtures/standings/form/H2H   (key required)
-  4. Football-Data.org  — league avg goals               (same key)
-  5. The Odds API       — odds 1X2/O-U/BTTS/corners     (key required)
+  1. API-Football        — team-strength comparison      (key required)
+                            (reemplazo de ClubElo, descontinuada 17-Sep-2026)
+  2. Fotmob              — xG attack/defense season avg   (free, JSON API)
+  3. Football-Data.org   — fixtures/standings/form/H2H    (key required)
+  4. Football-Data.org   — league avg goals               (same key)
+  5. The Odds API        — odds 1X2/O-U/BTTS/corners      (key required)
 
 Usage:
     python data_fetcher.py "Arsenal" "Liverpool" "Premier League"
@@ -21,8 +22,6 @@ import os
 import json
 import time
 import re
-import csv
-import io
 from typing import Optional, Any
 
 import requests
@@ -38,12 +37,13 @@ load_dotenv()
 # ── API Keys ──────────────────────────────────────────────────────────────────
 FOOTBALL_DATA_KEY = os.getenv("FOOTBALL_DATA_KEY")  # football-data.org
 ODDS_API_KEY      = os.getenv("ODDS_API_KEY")        # the-odds-api.com
-# ClubElo and Understat: free, no key
+API_FOOTBALL_KEY  = os.getenv("API_FOOTBALL_KEY")    # api-sports.io
+# Understat: free, no key
 
 # ── Base URLs ─────────────────────────────────────────────────────────────────
 FOOTBALL_DATA_BASE = "https://api.football-data.org/v4"
 ODDS_API_BASE      = "https://api.the-odds-api.com/v4"
-CLUBELO_BASE       = "http://api.clubelo.com"
+API_FOOTBALL_BASE  = "https://v3.football.api-sports.io"
 FOTMOB_BASE        = "https://www.fotmob.com"
 FOTMOB_CDN         = "https://data.fotmob.com/stats"
 ELORATINGS_BASE    = "https://www.eloratings.net"
@@ -279,58 +279,6 @@ ODDS_SPORT_KEYS = {
     # Agregar cuando estén activas o se suba de plan.
 }
 
-# ── ClubElo name aliases (run-together CamelCase) ─────────────────────────────
-CLUBELO_ALIASES = {
-    "manchester city":         "ManCity",
-    "manchester united":       "ManUnited",
-    "tottenham hotspur":       "Tottenham",
-    "tottenham":               "Tottenham",
-    "newcastle united":        "Newcastle",
-    "newcastle":               "Newcastle",
-    "west ham united":         "WestHam",
-    "west ham":                "WestHam",
-    "aston villa":             "AstonVilla",
-    "nottingham forest":       "Nottingham",
-    "paris saint-germain":     "Paris",
-    "psg":                     "Paris",
-    "atletico madrid":         "Atletico",
-    "atlético de madrid":      "Atletico",
-    "betis":                   "RealBetis",
-    "real betis":              "RealBetis",
-    "real sociedad":           "RealSociedad",
-    "athletic club":           "Athletic",
-    "athletic bilbao":         "Athletic",
-    "inter milan":             "Inter",
-    "internazionale":          "Inter",
-    "ac milan":                "Milan",
-    "as roma":                 "Roma",
-    "ss lazio":                "Lazio",
-    "rb leipzig":              "RasenBallsport",
-    "bayer leverkusen":        "Leverkusen",
-    "borussia dortmund":       "Dortmund",
-    "borussia monchengladbach":"Mgladbach",
-    "eintracht frankfurt":     "Frankfurt",
-    "vfb stuttgart":           "Stuttgart",
-    "psv eindhoven":           "PSV",
-    "psv":                     "PSV",
-    "olympique lyonnais":      "Lyon",
-    "ol lyon":                 "Lyon",
-    "olympique de marseille":  "Marseille",
-    "sporting cp":             "Sporting",
-    "wolverhampton wanderers": "Wolverhampton",
-    "wolves":                  "Wolverhampton",
-    "leicester city":          "Leicester",
-    "crystal palace":          "CrystalPalace",
-    "brighton":                "Brighton",
-    "brighton & hove albion":  "Brighton",
-    "brentford":               "Brentford",
-    "fulham":                  "Fulham",
-    "ipswich town":            "Ipswich",
-    "southampton":             "Southampton",
-    "espanyol":                "Espanyol",
-    "real oviedo":             "RealOviedo",
-}
-
 # ── Understat name aliases ────────────────────────────────────────────────────
 UNDERSTAT_ALIASES = {
     "manchester city":         "Manchester_City",
@@ -424,6 +372,7 @@ def _get(url: str, headers: Optional[dict] = None, params: Optional[dict] = None
 
 
 from utils.naming import fuzzy_match, log_naming_error
+from utils.af_fixtures import match_af_fixture
 
 def _fuzzy(a: str, b: str) -> bool:
     return fuzzy_match(a, b)
@@ -435,11 +384,10 @@ def _current_season() -> int:
     return now.year if now.month >= 7 else now.year - 1
 
 
-def _to_clubelo(name: str) -> str:
-    key = name.lower().strip()
-    if key in CLUBELO_ALIASES:
-        return CLUBELO_ALIASES[key]
-    return "".join(w.capitalize() for w in name.split())
+def _fotmob_season_str() -> str:
+    """Fotmob season format since their Sep-2026 API migration: 'YYYY/YYYY+1'."""
+    start = _current_season()
+    return f"{start}/{start + 1}"
 
 
 def _to_understat(name: str) -> str:
@@ -625,23 +573,91 @@ def fetch_elo_nacional(team: str) -> Optional[float]:
     return round(elo, 1)
 
 
+def _elo_pair_to_comparison(elo_l: Optional[float], elo_v: Optional[float]) -> Optional[dict]:
+    """
+    Convierte un par de Elo absolutos (selecciones, eloratings.net) al mismo
+    formato comparison.total que produce API-Football/predictions para clubes,
+    para que model_engine.py solo tenga que entender una forma de entrada
+    (strength_comparison). Ventaja de local se aplica luego en paso_a_strength,
+    igual que antes se aplicaba una sola vez para ambos casos.
+    """
+    if elo_l is None or elo_v is None:
+        return None
+    p_raw = 1 / (1 + 10 ** ((elo_v - elo_l) / 400))
+    p_raw = max(0.001, min(0.999, p_raw))
+    return {"total": {"home": f"{p_raw * 100:.1f}%", "away": f"{(1 - p_raw) * 100:.1f}%"}}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
-# 1. ClubElo  (free, no auth)
+# 1. API-Football — team-strength comparison (reemplazo de ClubElo)
+#
+# ClubElo.com descontinuó su API pública el 17-Sep-2026 (api.clubelo.com
+# responde 502 / no acepta conexiones HTTPS — no es una caída temporal, el
+# sitio se rediseñó por completo y ya no expone CSV/JSON). En su lugar usamos
+# /predictions de API-Football, que ya integrábamos para calificar resultados.
+#
+# /predictions necesita un fixture_id, que necesita una fecha — pero Paso A
+# corre antes de que Football-Data.org resuelva la fecha del partido (Paso 3).
+# En vez de reordenar el pipeline, buscamos el fixture en una ventana de ±1
+# día alrededor de hoy: encaja con la operación real (el pipeline corre la
+# misma mañana del partido) y con el límite del plan Free de API-Football,
+# que solo permite consultar /fixtures?date= dentro de esa misma ventana.
 # ══════════════════════════════════════════════════════════════════════════════
-def fetch_elo(team: str) -> Optional[float]:
-    """GET http://api.clubelo.com/{slug} → most recent Elo rating (cache 24h)."""
-    slug = _to_clubelo(team)
-    data, _ = _get(f"{CLUBELO_BASE}/{slug}", cache_ttl_seconds=86400)
+def _af_headers() -> dict:
+    return {"x-apisports-key": API_FOOTBALL_KEY}
+
+
+def _af_fixtures_on_date(date_str: str) -> list:
+    """GET /fixtures?date= (sin filtro de liga/season — no bloqueado en plan Free)."""
+    data, _ = _get(
+        f"{API_FOOTBALL_BASE}/fixtures",
+        headers=_af_headers(),
+        params={"date": date_str},
+        cache_ttl_seconds=7200,  # 2h — varios partidos del día comparten esta llamada
+    )
     if not data:
+        return []
+    if data.get("errors"):
+        _errors.append(f"API-Football fixtures error ({date_str}): {data['errors']}")
+        return []
+    return data.get("response", [])
+
+
+def fetch_strength_comparison(local: str, visitante: str, liga: str) -> Optional[dict]:
+    """
+    Busca el fixture de hoy/mañana/ayer y trae su comparison.total desde
+    /predictions — comparación de fuerza local/visitante calculada por
+    API-Football (blend de forma, ataque, defensa, poisson, h2h y goles).
+    Reemplaza el rol de los ratings Elo absolutos en Paso A del modelo.
+    """
+    fixture = None
+    today = datetime.now()
+    for delta in (0, 1, -1):
+        date_str = (today + timedelta(days=delta)).strftime("%Y-%m-%d")
+        fixtures = _af_fixtures_on_date(date_str)
+        fixture = match_af_fixture(fixtures, local, visitante)
+        if fixture:
+            break
+
+    if not fixture:
+        _errors.append(f"API-Football: fixture no encontrado para '{local}' vs '{visitante}' (±1 dia)")
+        return None
+
+    fid = fixture.get("fixture", {}).get("id")
+    data, _ = _get(
+        f"{API_FOOTBALL_BASE}/predictions",
+        headers=_af_headers(),
+        params={"fixture": fid},
+        cache_ttl_seconds=86400,
+    )
+    if not data or data.get("errors"):
+        _errors.append(f"API-Football: error en /predictions (fixture={fid})")
         return None
     try:
-        reader = csv.DictReader(io.StringIO(data))
-        rows   = [r for r in reader if r.get("Elo")]
-        if rows:
-            return round(float(rows[-1]["Elo"]), 1)
-    except Exception as e:
-        _errors.append(f"ClubElo parse error ({team}): {e}")
-    return None
+        return data["response"][0]["comparison"]
+    except (KeyError, IndexError, TypeError):
+        _errors.append(f"API-Football: 'comparison' no encontrado en /predictions (fixture={fid})")
+        return None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -715,8 +731,8 @@ def _fotmob_cdn_stats(league_id: int, season_id: int) -> dict:
 def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> Optional[tuple[int, int]]:
     """
     Resolve Fotmob team IDs via league standings API — no hardcoded IDs needed.
-    GET /api/leagues?id={fotmob_league_id}&season={year} → extract team IDs
-    from the current standings table.
+    GET /api/data/leagues?id={fotmob_league_id}&season={YYYY/YYYY} → extract
+    team IDs from the current standings table.
 
     Returns (local_id, visitante_id) or None if the liga isn't mapped or
     either team isn't found in the standings.
@@ -726,8 +742,8 @@ def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> Optional[
         _errors.append(f"Fotmob: no league_id mapped for '{liga}' — using dict fallback")
         return None
 
-    season = _current_season()
-    data, _ = _fotmob_get(f"{FOTMOB_BASE}/api/leagues?id={fotmob_lid}&season={season}")
+    season = _fotmob_season_str()
+    data, _ = _fotmob_get(f"{FOTMOB_BASE}/api/data/leagues?id={fotmob_lid}&season={season}")
     if not data:
         return None
 
@@ -765,14 +781,14 @@ def _fotmob_resolve_team_ids(local: str, visitante: str, liga: str) -> Optional[
 def _fotmob_xg_for_team(team_id: int, team_name: str) -> Optional[dict]:
     """
     Given a resolved Fotmob team_id:
-      1. GET /api/teams?id={team_id} → primaryLeagueId + primarySeasonId
+      1. GET /api/data/teams?id={team_id} → primaryLeagueId + primarySeasonId
       2. _fotmob_cdn_stats() → season-average xG/xGA per match  (cached)
 
     Returns {"atk": [avg_xg]*8, "def": [avg_xga]*8} or None.
     CDN responses are module-level cached so both teams in the same league
     share a single HTTP call per stat file.
     """
-    data, _ = _fotmob_get(f"{FOTMOB_BASE}/api/teams?id={team_id}")
+    data, _ = _fotmob_get(f"{FOTMOB_BASE}/api/data/teams?id={team_id}")
     if not data:
         return None
 
@@ -811,8 +827,8 @@ def _fotmob_xg_for_team(team_id: int, team_name: str) -> Optional[dict]:
 def fetch_xg_fotmob(local: str, visitante: str, liga: str) -> dict:
     """
     Fetches xG data for BOTH teams in three steps:
-      1. GET /api/leagues?id={league_id}&season={year} → team IDs from standings
-      2. GET /api/teams?id={team_id} per team → primaryLeagueId + primarySeasonId
+      1. GET /api/data/leagues?id={league_id}&season={YYYY/YYYY} → team IDs from standings
+      2. GET /api/data/teams?id={team_id} per team → primaryLeagueId + primarySeasonId
       3. CDN expected_goals[_conceded]_team.json → season-avg xG/xGA
 
     Primary resolution: league standings (works for any team, any time).
@@ -1096,6 +1112,10 @@ def fetch_odds(local: str, visitante: str, liga: str) -> Optional[dict]:
         _errors.append(f"No Odds API sport_key mapped for: {liga}")
         return None
 
+    # btts ya no es un market soportado por The Odds API para soccer en NINGUNA
+    # liga (confirmado 17-Sep-2026 — devuelve 422 "Markets not supported" para
+    # las 5 ligas principales). Sin este fallback, un solo market inválido tira
+    # toda la respuesta y el partido queda sin 1X2/totales/spreads también.
     data, _ = _get(
         f"{ODDS_API_BASE}/sports/{sport_key}/odds",
         params={
@@ -1106,6 +1126,17 @@ def fetch_odds(local: str, visitante: str, liga: str) -> Optional[dict]:
         },
         cache_ttl_seconds=3600
     )
+    if not data:
+        data, _ = _get(
+            f"{ODDS_API_BASE}/sports/{sport_key}/odds",
+            params={
+                "apiKey":     ODDS_API_KEY,
+                "regions":    "eu",
+                "markets":    "h2h,totals,spreads",
+                "oddsFormat": "decimal",
+            },
+            cache_ttl_seconds=3600
+        )
     if not data:
         return None
 
@@ -1212,7 +1243,7 @@ def fetch_all(local: str, visitante: str, liga: str, es_seleccion: bool = False)
     output = {
         "partido":        {"local": local, "visitante": visitante,
                            "liga": liga, "estadio": None, "hora_utc": None},
-        "elo":            {"local": None, "visitante": None},
+        "strength_comparison": None,
         "xg": {
             "local":      {"atk": None, "def": None},
             "visitante":  {"atk": None, "def": None},
@@ -1241,19 +1272,15 @@ def fetch_all(local: str, visitante: str, liga: str, es_seleccion: bool = False)
         print("\n[SELECCIÓN] eloratings.net — Elo nacional...")
         elo_l = fetch_elo_nacional(local)
         elo_v = fetch_elo_nacional(visitante)
-        output["elo"]["local"]     = elo_l
-        output["elo"]["visitante"] = elo_v
+        output["strength_comparison"] = _elo_pair_to_comparison(elo_l, elo_v)
         print(f"      {local}: {elo_l}  |  {visitante}: {elo_v}")
         print("[SELECCIÓN] Pasos 2-4 omitidos (xG/forma/liga no disponibles para selecciones)")
     else:
         # ── MODO CLUBES: pipeline completo ─────────────────────────────────
-        # ── 1. ClubElo ─────────────────────────────────────────────────────
-        print("\n[1/5] ClubElo.com — Elo ratings...")
-        elo_l = fetch_elo(local)
-        elo_v = fetch_elo(visitante)
-        output["elo"]["local"]     = elo_l
-        output["elo"]["visitante"] = elo_v
-        print(f"      {local}: {elo_l}  |  {visitante}: {elo_v}")
+        # ── 1. API-Football — comparación de fuerza (reemplazo de ClubElo) ──
+        print("\n[1/5] API-Football — comparación de fuerza (reemplazo de ClubElo)...")
+        output["strength_comparison"] = fetch_strength_comparison(local, visitante, liga)
+        print(f"      comparison.total: {(output['strength_comparison'] or {}).get('total')}")
 
         # ── 2. Fotmob — xG ─────────────────────────────────────────────────
         print(f"[2/5] Fotmob.com — xG data (season {season}-{season+1})...")

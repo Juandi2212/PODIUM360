@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **Poisson** | Over/Under, BTTS, Total goles | 1X2 directo, partidos atípicos | Modela bien volumen de goles pero asume independencia entre equipos |
 | **xG** | Forma reciente, equipos con mala puntería | Muestras pequeñas (<5 partidos) | Captura calidad real de ocasiones, no suerte en conversión |
-| **Elo** | 1X2, fuerza relativa largo plazo | Copas, cambios de entrenador, equipos en transformación | Rating histórico lento en reflejar cambios estructurales |
+| **Strength (API-Football)** | 1X2, fuerza relativa largo plazo | Copas, cambios de entrenador, equipos en transformación | Comparación de forma/ataque/defensa/poisson/h2h/goles calculada por API-Football; reemplazó a ClubElo (descontinuada 17-Sep-2026) |
 | **Market Calibration** | Todos los mercados como validador | No detecta value por sí solo | Es el consenso del mercado, no una predicción independiente |
 
 ---
@@ -19,19 +19,24 @@ El modelo no es un promedio simple. Es una cadena donde cada componente refina a
 
 ### Cadena de cálculo
 
-**Paso A — Elo establece la base de fuerza relativa**
+**Paso A — Strength establece la base de fuerza relativa**
+
+> **Nota (17-Sep-2026):** ClubElo.com descontinuó su API pública (api.clubelo.com
+> responde 502 / no acepta HTTPS — no es una caída temporal, el sitio se
+> rediseñó por completo). Paso A ahora usa `comparison.total` de
+> `/predictions` de API-Football (ver `data_fetcher.fetch_strength_comparison`),
+> que ya integrábamos para calificar resultados. Selecciones nacionales siguen
+> usando eloratings.net, convertido al mismo formato de entrada.
 
 ```
-P_elo_local = 1 / (1 + 10^((Elo_visitante - Elo_local - 60) / 400))
+p_raw        = home% / (home% + away%)          ← de comparison.total
+factor_local = ln(p_raw / (1 - p_raw)) + (60 / 400 × ln 10)
 
-El +60 es el ajuste estándar de ventaja de local en fútbol.
+El término +60/400×ln(10) es el mismo ajuste de ventaja de local que antes
+se aplicaba dentro de la fórmula de Elo (equivalente a +60 puntos Elo).
 ```
 
-Este valor no se usa directamente como probabilidad final. Se convierte en un factor de ajuste de fuerza:
-
-```
-factor_elo = log(P_elo_local / (1 - P_elo_local))
-```
+Este valor no se usa directamente como probabilidad final. Se convierte en un factor de ajuste de fuerza (`factor_strength`, antes `factor_elo`).
 
 **Paso B — xG construye los lambdas de Poisson**
 
@@ -47,7 +52,7 @@ donde i = 0 es el partido más reciente, i = 1 el anterior, etc.
 N recomendado = 8 partidos. Mínimo aceptable = 5.
 ```
 
-**Paso C — Elo corrige los lambdas de Poisson**
+**Paso C — Strength corrige los lambdas de Poisson**
 
 Los xG absolutos deben convertirse en índices relativos al promedio de la liga antes de multiplicar. De lo contrario el lambda resultante se infla de forma irreal (prediciendo 4-5 goles por partido con demasiada frecuencia).
 
@@ -57,8 +62,8 @@ xG_def_visit_idx  = xG_def_visit  / xG_avg_liga
 xG_atk_visit_idx  = xG_atk_visit  / xG_avg_liga
 xG_def_local_idx  = xG_def_local  / xG_avg_liga
 
-λ_local = xG_atk_local_idx × xG_def_visit_idx × liga_avg_goals × e^(0.3 × factor_elo)
-λ_visit = xG_atk_visit_idx × xG_def_local_idx × liga_avg_goals × e^(-0.3 × factor_elo)
+λ_local = xG_atk_local_idx × xG_def_visit_idx × liga_avg_goals × e^(0.3 × factor_strength)
+λ_visit = xG_atk_visit_idx × xG_def_local_idx × liga_avg_goals × e^(-0.3 × factor_strength)
 ```
 
 Ejemplo con valores reales:
@@ -69,7 +74,7 @@ Sin normalizar:  λ_local = 2.1 × 1.8 × 1.35 = 5.1  ← incorrecto
 Con normalizar:  λ_local = 1.56 × 1.33 × 1.35 = 2.8 ← correcto
 ```
 
-El exponente 0.3 es el peso de Elo sobre Poisson. Suaviza la influencia para evitar que una diferencia grande de Elo distorsione los lambdas.
+El exponente 0.3 es el peso de la fuerza relativa sobre Poisson. Suaviza la influencia para evitar que una diferencia grande de fuerza distorsione los lambdas.
 
 **Paso D — Poisson genera la matriz de marcadores**
 
@@ -154,15 +159,15 @@ Recomendar si EV% > +3%
 
 ## PARTE 4 — Escenarios donde modificar o ignorar un modelo
 
-### Ignorar o reducir Elo
+### Ignorar o reducir Strength
 
 ```
 CONDICIÓN                          ACCIÓN
 ─────────────────────────────────────────────────────────
-Copa nacional (eliminatoria)       Reducir peso Elo a 0.15
-Cambio de entrenador < 5 partidos  Reducir peso Elo a 0.20
-Equipo recién ascendido            Inicializar Elo en media de liga
-Más de 60 días sin jugar           Aplicar decay: Elo × 0.95
+Copa nacional (eliminatoria)       Reducir peso Strength a 0.15
+Cambio de entrenador < 5 partidos  Reducir peso Strength a 0.20
+Fixture no encontrado en AF        Fallback automático a 50/50 + ventaja de local
+                                    (ver strength_fallback en diagnostico_global)
 ```
 
 ### Ignorar o reducir xG
@@ -190,7 +195,7 @@ Motivación asimétrica alta         Factor manual ±0.05 en P_final
 
 ## PARTE 5 — Matriz de mercados
 
-| Mercado | Modelos activos | Peso Elo | Peso xG | Peso Poisson | Peso Market |
+| Mercado | Modelos activos | Peso Strength | Peso xG | Peso Poisson | Peso Market |
 |---|---|---|---|---|---|
 | **1X2 local** | Todos | 0.25 | 0.20 | 0.20 | 0.35 |
 | **1X2 empate** | Poisson + Market | 0.10 | 0.15 | 0.35 | 0.40 |
@@ -200,7 +205,7 @@ Motivación asimétrica alta         Factor manual ±0.05 en P_final
 | **BTTS Sí** | xG + Poisson + Market | 0.05 | 0.35 | 0.25 | 0.35 |
 | **BTTS No** | Poisson + Market | 0.05 | 0.25 | 0.35 | 0.35 |
 | **Corners O/U** | Market dominante | 0.00 | 0.05 | 0.20 | 0.75 |
-| **Asian Handicap** | Elo + Market | 0.30 | 0.15 | 0.15 | 0.40 |
+| **Asian Handicap** | Strength + Market | 0.30 | 0.15 | 0.15 | 0.40 |
 
 ---
 
@@ -213,7 +218,7 @@ CRITERIO 1 — EV positivo confirmado
   EV% > +3% calculado con P_final vs mejor cuota disponible
 
 CRITERIO 2 — Consenso de modelo
-  Al menos dos de los tres modelos estadísticos (Elo, xG, Poisson)
+  Al menos dos de los tres modelos estadísticos (Strength, xG, Poisson)
   apuntan en la misma dirección que la recomendación
 
 CRITERIO 3 — Mercado no contradice fuertemente
@@ -241,13 +246,13 @@ def es_pick_vip(ev_pct, consenso_modelos, divergencia_mercado):
 ```
 INPUT:
   xG últimos 8 partidos (con decay 0.85)
-  Elo actual de ambos equipos
+  Comparación de fuerza local/visitante (API-Football /predictions)
   Odds Pinnacle (para fair value)
   Odds mejores bookmakers (para mejor cuota)
   Liga avg goals (para normalizar lambdas)
 
-PASO 1: Calcular factor_elo desde ratings actuales
-PASO 2: Calcular λ_local y λ_visit con xG corregido por Elo
+PASO 1: Calcular factor_strength desde comparison.total
+PASO 2: Calcular λ_local y λ_visit con xG corregido por factor_strength
 PASO 3: Generar matriz Poisson P(i,j) para marcadores 0-0 a 6-6
 PASO 4: Derivar P_modelo para cada mercado desde la matriz
 PASO 5: Blend P_modelo con P_fair_pinnacle según pesos por mercado
